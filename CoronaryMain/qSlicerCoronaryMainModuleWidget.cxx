@@ -27,6 +27,8 @@
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerCoronaryMainModuleWidgetPrivate: public Ui_qSlicerCoronaryMainModuleWidget
 {
+	Q_DECLARE_PUBLIC(qSlicerCoronaryMainModuleWidget);
+
 protected:
 	qSlicerCoronaryMainModuleWidget* const q_ptr;
 
@@ -44,6 +46,11 @@ qSlicerCoronaryMainModuleWidgetPrivate::qSlicerCoronaryMainModuleWidgetPrivate(q
 {
 }
 
+vtkSlicerCoronaryMainLogic* qSlicerCoronaryMainModuleWidgetPrivate::logic() const
+{
+	Q_Q(const qSlicerCoronaryMainModuleWidget);
+	return vtkSlicerCoronaryMainLogic::SafeDownCast(q->logic());
+}
 //-----------------------------------------------------------------------------
 // qSlicerCoronaryMainModuleWidget methods
 
@@ -66,11 +73,68 @@ void qSlicerCoronaryMainModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
-  connect(d->TestButton, SIGNAL(releaseMouse()),
-	  this, SLOT(TestButtonFuc()));
+  this->VolumeNode = NULL;
+  this->TransformCoronaryNode = NULL;
+
+  connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
+  connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
+  connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
+  connect(d->BuildMesh, SIGNAL(clicked()), this, SLOT(BuildMeshButtonFunc()));
+  connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 }
 
-void qSlicerCoronaryMainModuleWidget::TestButtonFuc()
+
+void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
 {
-	std::cout << 12 << std::endl;
+	if (node != NULL)
+	{
+		this->VolumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(node);
+	}
 }
+
+bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic != NULL)
+	{
+		logic->DetectLandmarksLogic(VolumeNode);
+	}
+
+	std::cout << "DetectLandmarksButtonFunc done!" << std::endl;
+
+	return true;
+}
+
+bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic != NULL)
+	{
+		logic->DetectCenterlinesLogic(VolumeNode, TransformCoronaryNode);
+	}
+	return true;
+
+}
+bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic != NULL)
+	{
+		logic->DetectLumenLogic(VolumeNode, TransformCoronaryNode);
+	}
+	return true;
+}
+bool qSlicerCoronaryMainModuleWidget::BuildMeshButtonFunc()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic != NULL)
+	{
+		logic->BuildMeshLogic(VolumeNode, TransformCoronaryNode);
+	}
+	return true;
+}
+

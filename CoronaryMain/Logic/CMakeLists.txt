@@ -10,11 +10,19 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}Logic.cxx
   vtkSlicer${MODULE_NAME}Logic.h
+  Learning.cxx
+  Learning.h
+  LearningImpl.cxx
+  LearningImpl.h
   )
 
 set(${KIT}_TARGET_LIBRARIES
   ${ITK_LIBRARIES}
+  ${OpenCV_LIBS}
   )
+
+find_package( OpenCV REQUIRED )
+
 
 #-----------------------------------------------------------------------------
 SlicerMacroBuildModuleLogic(

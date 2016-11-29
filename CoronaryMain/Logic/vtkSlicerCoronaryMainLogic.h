@@ -28,11 +28,23 @@
 #include "vtkSlicerModuleLogic.h"
 
 // MRML includes
+#include "vtkMRMLLinearTransformNode.h"
+#include "vtkMRMLModelNode.h"
+#include "vtkMRMLScalarVolumeNode.h"
+
+// VTK includes
+#include <vtkObject.h>
 
 // STD includes
 #include <cstdlib>
 
 #include "vtkSlicerCoronaryMainModuleLogicExport.h"
+#include "vtkImageInterpolator.h"
+
+#include "Learning.h"
+#include "LearningImpl.h"
+
+#define NUMBER_OF_LVCOR_LANDMARKS 7
 
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -40,10 +52,18 @@ class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT vtkSlicerCoronaryMainLogic :
   public vtkSlicerModuleLogic
 {
 public:
-
   static vtkSlicerCoronaryMainLogic *New();
   vtkTypeMacro(vtkSlicerCoronaryMainLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
+
+  bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode);
+  bool DetectCenterlinesLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
+  bool DetectLumenLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
+  bool BuildMeshLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
+
+
+  bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator);
+
 
 protected:
   vtkSlicerCoronaryMainLogic();

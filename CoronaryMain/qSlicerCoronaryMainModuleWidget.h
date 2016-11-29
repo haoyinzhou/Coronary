@@ -23,6 +23,11 @@
 
 #include "qSlicerCoronaryMainModuleExport.h"
 
+// MRML includes
+#include "vtkMRMLLinearTransformNode.h"
+#include "vtkMRMLModelNode.h"
+#include "vtkMRMLScalarVolumeNode.h"
+
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 
@@ -39,13 +44,19 @@ public:
   virtual ~qSlicerCoronaryMainModuleWidget();
 
 public slots:
-	void TestButtonFuc();
+	bool DetectLandmarksButtonFunc();
+	bool DetectCenterlinesButtonFunc();
+	bool DetectLumenButtonFunc();
+	bool BuildMeshButtonFunc();
+	void SetVolumn(vtkMRMLNode* node);
+	//void SetVolumn(vtkMRMLScene* node);
 
 protected:
   QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
   virtual void setup();
 
-
+  vtkMRMLScalarVolumeNode* VolumeNode;
+  vtkMRMLLinearTransformNode* TransformCoronaryNode;
 
 private:
   Q_DECLARE_PRIVATE(qSlicerCoronaryMainModuleWidget);
