@@ -12,17 +12,27 @@
 #include "opencv2/ml/ml.hpp"
 
 
-using namespace std;
 
-//class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT LearningImpl :
-//	public vtkSlicerModuleLogic
+
+using namespace std;
+using namespace cv;
+
+class LearningImpl;
+class Learning
+{
+public:
+	Learning();
+	~Learning();
+	LearningImpl* limpl;
+private:
+};
 
 class LearningImpl
 {
 public:
 	bool LoadLandmarkClassifiers(int num);
-//	std::vector<CvBoost> lmBoost;
-	
+	std::vector<CvBoost> lmBoost;
+
 public:
 	LearningImpl();
 	~LearningImpl();

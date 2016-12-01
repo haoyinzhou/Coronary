@@ -3,27 +3,32 @@
 
 using namespace cv;
 
+Learning::Learning()
+{
+	limpl = new LearningImpl;
+}
+Learning::~Learning()
+{
+	delete limpl;
+}
+
+
 LearningImpl::LearningImpl()
 {
-	std::cout << "LearningImpl()" << std::endl;
 }
 
 LearningImpl::~LearningImpl()
 {
-	std::cout << "~LearningImpl()" << std::endl;
 }
 
 bool LearningImpl::LoadLandmarkClassifiers(int num)
 {
-//	std::ostringstream strstm;
-//	lmBoost.resize(num);
-	std::cout << "Loading the classifiers ..." << std::endl;
-//	cv::FileStorage fs("C:\\work\\classifiers\\lvcorlmclassifier.yml", cv::FileStorage::READ);
-
-	FileStorage fs;
-	
-//	fs.open("C:\\work\\classifiers\\lvcorlmclassifier.yml", cv::FileStorage::READ);
-/*	for (int id = 0; id < num; id++)
+	std::ostringstream strstm;
+	lmBoost.resize(num);
+//	std::cout << "Loading the classifiers ..." << std::endl;
+	cv::FileStorage fs("C:\\work\\classifiers\\lvcorlmclassifier.yml", cv::FileStorage::READ);
+		
+	for (int id = 0; id < num; id++)
 	{
 		strstm.str("");
 		strstm << "Classifier_" << id;
@@ -34,10 +39,10 @@ bool LearningImpl::LoadLandmarkClassifiers(int num)
 			return false;
 		}
 	}
-*/
-//	fs.release();
+
+	fs.release();
 	
-	std::cout << "done" << std::endl;
+	std::cout << "classifiers loading done" << std::endl;
 
 	return true;
 }

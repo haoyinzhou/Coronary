@@ -10,10 +10,12 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}Logic.cxx
   vtkSlicer${MODULE_NAME}Logic.h
-  Learning.cxx
-  Learning.h
+  Common.cxx
+  Common.h
   LearningImpl.cxx
   LearningImpl.h
+  ExtendSplineFilter.h
+  ExtendSplineFilter.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES

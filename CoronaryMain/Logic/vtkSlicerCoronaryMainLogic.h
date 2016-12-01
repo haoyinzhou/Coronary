@@ -39,12 +39,20 @@
 #include <cstdlib>
 
 #include "vtkSlicerCoronaryMainModuleLogicExport.h"
-#include "vtkImageInterpolator.h"
 
-#include "Learning.h"
+#include "vtkImageInterpolator.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
+#include "vtkImageData.h"
+#include "vtkXMLImageDataWriter.h"
+#include "vtkMetaImageWriter.h"
+#include "vtkSmartPointer.h"
+#include "vtkSphereWidget.h"
+#include "vtkCaptionActor2D.h"
+
+#include "Common.h"
 #include "LearningImpl.h"
 
-#define NUMBER_OF_LVCOR_LANDMARKS 7
 
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -60,9 +68,7 @@ public:
   bool DetectCenterlinesLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
   bool DetectLumenLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
   bool BuildMeshLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
-
-
-  bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator);
+  
 
 
 protected:
@@ -75,6 +81,20 @@ protected:
   virtual void UpdateFromMRMLScene();
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
+
+
+private:
+
+	Learning learn;
+
+	vtkImageData* imageData;
+	vtkSmartPointer<vtkImageInterpolator> interpolator;
+	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
+
+	vtkSmartPointer<vtkImageData> hessianImage;
+	vtkSmartPointer<vtkPolyData> centerlineModel;
+
+
 private:
 
   vtkSlicerCoronaryMainLogic(const vtkSlicerCoronaryMainLogic&); // Not implemented

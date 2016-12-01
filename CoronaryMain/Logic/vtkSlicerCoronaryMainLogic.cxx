@@ -26,12 +26,6 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 
-#include "vtkPoints.h"
-#include "vtkPolyData.h"
-#include "vtkImageData.h"
-#include "vtkXMLImageDataWriter.h"
-#include "vtkMetaImageWriter.h"
-
 // STD includes
 #include <cassert>
 
@@ -99,11 +93,31 @@ bool vtkSlicerCoronaryMainLogic
 		return false;
 	}
 
-//	vtkImageData *imageData = VolumnNode->GetImageData();
-//	double landmarks[NUMBER_OF_LVCOR_LANDMARKS][3];
+	imageData = VolumnNode->GetImageData();
+	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
+	interpolator->SetInterpolationModeToLinear();
+	interpolator->SetOutValue(-3024.0);
+	interpolator->Initialize(imageData);
 
-	LearningImpl temp;
-	temp.LoadLandmarkClassifiers(NUMBER_OF_LVCOR_LANDMARKS);
+	int	 imageDims[3];
+	double imageOrigins[3];
+	double imageSpacings[3];
+	double imageCenter[3];
+	imageData->GetDimensions(imageDims);
+	imageData->GetOrigin(imageOrigins);
+	imageData->GetSpacing(imageSpacings);
+	for (int l = 0; l < 3; l ++) imageCenter[l] = imageOrigins[l] + imageSpacings[l] * imageDims[l] / 2.0;
+
+	std::cout << "Dims: " << " x: " << imageDims[0] << " y: " << imageDims[1] << " z: " << imageDims[2] << std::endl;
+	std::cout << "imageSpacings: " << " x: " << imageSpacings[0] << " y: " << imageSpacings[1] << " z: " << imageSpacings[2] << std::endl;
+	std::cout << "Number of points: " << imageData->GetNumberOfPoints() << std::endl;
+	std::cout << "Number of cells: " << imageData->GetNumberOfCells() << std::endl;
+	
+	DetectLandmarks_core(imageData, learn, landmarks, interpolator);
+	for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+	{
+		std::cout << landmarks[i][0] << ", " << landmarks[i][1] << ", " << landmarks[i][2] << std::endl;
+	}
 
 	std::cout << "DetectLandmarksLogic done!" << std::endl;
 	return true;
@@ -119,9 +133,21 @@ bool vtkSlicerCoronaryMainLogic
 		std::cerr << "VolumnNode is NULL" << std::endl;
 		return false;
 	}
+	if (imageData == NULL)
+		imageData = VolumnNode->GetImageData();
+	if (hessianImage == NULL)
+		hessianImage = vtkSmartPointer<vtkImageData>::New();
+	GenerateHessianImage(imageData, hessianImage, interpolator);
 
-	vtkImageData* imgData = VolumnNode->GetImageData();
-	
+	double leftOstium[3], rightOstium[3];
+	for (int l = 0; l < 3; l++) leftOstium[l] = landmarks[SmartCoronary::LEFT_CORONARY_OSTIUM][l];
+	for (int l = 0; l < 3; l++) rightOstium[l] = landmarks[SmartCoronary::RIGHT_CORONARY_OSTIUM][l];
+	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium);
+
+	SavePolyData(centerlineModel, "C:\\work\\centerlineModel.vtp");
+
+	std::cout << "DetectCenterlinesLogic Done! " << std::endl;
 	return true;
 }
 
@@ -158,12 +184,6 @@ bool vtkSlicerCoronaryMainLogic
 	return true;
 }
 
-bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator)
-{
-
-
-	return true;
-}
 
 
 
@@ -180,21 +200,4 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 
 
 
-
-
-void SaveVTKImage(vtkImageData *image, const char* fileName)
-{
-	vtkSmartPointer< vtkMetaImageWriter > writer = vtkSmartPointer< vtkMetaImageWriter >::New();
-	writer->SetFileName(fileName);
-	writer->SetInputData(image);
-	try
-	{
-		writer->Write();
-	}
-	catch (...)
-	{
-		std::cerr << "Error occurs when writing " << fileName << std::endl;
-		return;
-	}
-}
 
