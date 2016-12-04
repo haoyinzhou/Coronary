@@ -37,6 +37,7 @@ void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtk
 	intergalImage->SetExtent(0, (int)(imageDims[0] * imageSpacings[0]) + 72, 0, (int)(imageDims[1] * imageSpacings[1]) + 72, 0, (int)(imageDims[2] * imageSpacings[2]) + 72);
 	intergalImage->SetOrigin(imageOrigins[0] - 36.0, imageOrigins[1] - 36.0, imageOrigins[2] - 36.0);
 	intergalImage->SetSpacing(1.0, 1.0, 1.0);
+	//intergalImage->SetSpacing(imageSpacings);
 	intergalImage->AllocateScalars(VTK_DOUBLE, 6);
 
 	int* dims = intergalImage->GetDimensions();
@@ -88,6 +89,7 @@ void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtk
 						currhist[i] += sign[j][3] * prevhist[i];
 					}
 				}
+	
 			}
 		}
 	}
@@ -699,6 +701,7 @@ void TraceCenterline(typename BinaryImageType::Pointer rawCenterline, const type
 
 	if (ostiumIndex[0] >= 0 && ostiumIndex[1] >= 0 && ostiumIndex[2] >= 0)		//find ostium seeded centerlines
 	{
+		std::cout << "if begin!" << std::endl;
 		nIt.SetLocation(ostiumIndex);
 		if (nIt.GetCenterPixel() <= 0)	return;
 		nIt.SetCenterPixel(-1);
@@ -715,6 +718,9 @@ void TraceCenterline(typename BinaryImageType::Pointer rawCenterline, const type
 				initids.push_back(std::vector<typename BinaryImageType::IndexType>());
 			}
 		}
+		std::cout << nIt.Size() << ", " << initdirs.size() << ", " << initsizes.size() << ", " << initids.size() << std::endl;
+		std::cout << "1" << std::endl;
+
 		for (size_t i = 0; i < initdirs.size(); i++)
 		{
 			std::queue<typename BinaryImageType::IndexType> queue;
@@ -734,6 +740,7 @@ void TraceCenterline(typename BinaryImageType::Pointer rawCenterline, const type
 				}
 			}
 		}
+		std::cout << "2" << std::endl;
 
 		auto maxdir = std::distance(initsizes.begin(), std::max_element(initsizes.begin(), initsizes.end()));
 		for (size_t i = 0; i < initdirs.size(); i++)
@@ -756,16 +763,26 @@ void TraceCenterline(typename BinaryImageType::Pointer rawCenterline, const type
 			}
 		}
 
+		std::cout << "3" << std::endl;
+
+
 		nIt.SetLocation(ostiumIndex);
 		nIt.SetCenterPixel(0);
 		nIt.SetLocation(initdirs[maxdir]);
 		nIt.SetCenterPixel(0);
 		std::queue< std::pair<typename BinaryImageType::IndexType, typename BinaryImageType::IndexType> > clqueue;
 		clqueue.push(std::make_pair(ostiumIndex, initdirs[maxdir]));
+
+		std::cout << "4" << std::endl;
+
 		TraceCenterlineInternal<BinaryImageType>(clqueue, rawCenterline, clPoints, clModel);
+
+		std::cout << "5" << std::endl;
 	}
 	else
 	{
+		std::cout << "else begin!" << std::endl;
+
 		for (nIt.GoToBegin(); !nIt.IsAtEnd(); ++nIt)
 		{
 			if (nIt.GetCenterPixel() > 0)
@@ -1116,24 +1133,6 @@ void LumenWallCenterline(vtkPolyData* clModel)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator)
 {
 	LearningImpl *learnimpl = learn.limpl;
@@ -1141,9 +1140,10 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 
 	vtkSmartPointer<vtkImageData> integralImage = vtkSmartPointer<vtkImageData>::New();
 	FillIntegralImage(integralImage, imageData, interpolator);
-	
-	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
-	SaveVTKImage(integralImage, "C:\\work\\Coronary_Slicer\\testdata\\integralImage.mha");
+	std::cout << "FillIntegralImage done!" << std::endl;
+
+//	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
+//	SaveVTKImage(integralImage, "C:\\work\\Coronary_Slicer\\testdata\\integralImage.mha");
 
 	int	 imageDims[3];
 	double imageOrigins[3];
@@ -1153,6 +1153,11 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 	imageData->GetOrigin(imageOrigins);
 	imageData->GetSpacing(imageSpacings);
 
+	std::cout << "============DetectLandmarks_core========" << std::endl;
+	std::cout << "Dims: " << " x: " << imageDims[0] << " y: " << imageDims[1] << " z: " << imageDims[2] << std::endl;
+	std::cout << "imageOrigins: " << " x: " << imageOrigins[0] << " y: " << imageOrigins[1] << " z: " << imageOrigins[2] << std::endl;
+	std::cout << "imageSpacings: " << " x: " << imageSpacings[0] << " y: " << imageSpacings[1] << " z: " << imageSpacings[2] << std::endl;
+	
 	double coord[3];
 	int dim[3];
 	double maxpred[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS];
@@ -1161,15 +1166,14 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 	int imageDims01 = imageDims[0] * imageDims[1];
 	short* imagedata = static_cast<short*>(imageData->GetScalarPointer());
 
-	for (dim[2] = 1; dim[2] < imageDims[2] - 1; dim[2]++)
+	for (dim[2] = 5; dim[2] < imageDims[2] - 5; dim[2] += 5)
 	{
 		//if(dim[2]%10==0) progressBar->setValue(40+60*dim[2]/imageDims[2]);
-		for (dim[1] = 1; dim[1] < imageDims[1] - 1; dim[1]++)
-		{
-			
-			for (dim[0] = 1; dim[0] < imageDims[0] - 1; dim[0]++)
+		for (dim[1] = 50; dim[1] < imageDims[1] - 50; dim[1] += 5)
+		{			
+			for (dim[0] = 50; dim[0] < imageDims[0] - 50; dim[0] += 5)
 			{
-				if ((dim[0] % 5 != 0 || dim[1] % 5 != 0 || dim[2] % 5 != 0)) continue;
+				//if ((dim[0] % 5 != 0 || dim[1] % 5 != 0 || dim[2] % 5 != 0)) continue;
 				//if( (dim[0]%2 != 0 || dim[1]%2 != 0 || dim[2]%2 != 0) ) continue;
 
 				short pixel = imagedata[dim[2] * imageDims01 + dim[1] * imageDims[0] + dim[0]];
@@ -1191,6 +1195,9 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 			}
 		}
 	}
+
+	std::cout << "DetectLandmarks_core done!" << std::endl;
+
 	return true;
 }
 
@@ -1301,7 +1308,23 @@ void AxisCenterline(vtkPolyData* clModel, double planenormal[3])
 	//std::cout << "Leaving AxisCenterline" << std::endl;
 }
 
-
+template<class ImageType>
+void SaveITKImage(typename ImageType::Pointer image, const char* fileName)
+{
+	typedef itk::ImageFileWriter<ImageType> WriterType;
+	WriterType::Pointer writer = WriterType::New();
+	writer->SetFileName(fileName);
+	writer->SetInput(image);
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}
 
 bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3])
 {
@@ -1319,6 +1342,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		HessianToImageType::Pointer hessianToImageFilter = HessianToImageType::New();
 		hessianToImageFilter->SetInput(hessianImage);
 		hessianToImageFilter->Update();
+
 		ImageType::Pointer vesselnessImage = hessianToImageFilter->GetOutput();
 
 		ImageType::PointType leftOstiumPoint, rightOstiumPoint;
@@ -1389,6 +1413,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		thresholdFilter1->SetUpper(1500.0); // 1500
 		thresholdFilter1->SetLower(100.0);  // 100
 		thresholdFilter1->Update();
+
 		typedef itk::CastImageFilter< BinaryImageType, ImageType > CastFilterType;
 		CastFilterType::Pointer castFilter = CastFilterType::New();
 		castFilter->SetInput(thresholdFilter1->GetOutput());
@@ -1399,10 +1424,17 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		vtkFrangiResult->SetInput(castFilter->GetOutput());
 		vtkFrangiResult->Update();
 
+		//SaveITKImage<ImageType>(castFilter->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\castFilter.mha");
+
+
 		//	GetBifurcation(vtkFrangiResult->GetOutput(), ImageData);
 
 		thinningFilter->SetInput(thresholdFilter1->GetOutput());
 		thinningFilter->Update();
+
+		//SaveITKImage<BinaryImageType>(thinningFilter->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\thinningFilter.mha");
+
+
 		typedef itk::NeighborhoodIterator<BinaryImageType>	BNeighborhoodIteratorType;
 		nRadius.Fill(5);
 		nIt.SetRadius(nRadius);
@@ -1464,8 +1496,10 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 	duplicator->SetInputImage(thinningFilter->GetOutput());
 	duplicator->Update();
 	BinaryImageType::Pointer rawCenterline = duplicator->GetModifiableOutput();
-
+	
 	std::cout << "almost done!" << std::endl;
+	SaveITKImage<BinaryImageType>(rawCenterline, "C:\\work\\Coronary_Slicer\\testdata\\rawCenterline.mha");
+
 
 	//ImageType::IndexType invalidIndex; invalidIndex.Fill(-1);
 	//ImageType::IndexType ostiumIndex[3] = {leftOstiumIndex, rightOstiumIndex, invalidIndex};
@@ -1476,16 +1510,22 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		vtkSmartPointer<vtkPolyData> clModel = vtkSmartPointer<vtkPolyData>::New();
 		clModel->Allocate();
 		TraceCenterline<BinaryImageType>(rawCenterline, ostiumIndex[i], clModel);
-		CleanCenterline(clModel);
-		SimplifyCenterline(clModel);
-		RadiusCenterline(clModel);
-		LumenWallCenterline(clModel);
-		AxisCenterline(clModel);
+		SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel1.vtp");
+
+//		CleanCenterline(clModel);
+//		SimplifyCenterline(clModel);
+//		RadiusCenterline(clModel);
+//		LumenWallCenterline(clModel);
+//		AxisCenterline(clModel);
 		append->AddInputData(clModel);
 	}
 
 	append->Update();
 	centerlineModel->DeepCopy(append->GetOutput());
+
+
+	std::cout << "DetectCenterline_core done!" << std::endl;
+
 	return true;
 }
 

@@ -14,6 +14,7 @@
 #include "vtkAppendPolyData.h"
 #include "vtkDoubleArray.h"
 #include "vtkXMLPolyDataWriter.h"
+#include "vtkCleanPolyData.h"
 
 #include "itkImageToVTKImageFilter.h"
 #include "itkVTKImageToImageFilter.h"
@@ -56,37 +57,7 @@ namespace SmartCoronary
 		//////////////////////////////////////////////////////////////////////////
 		NUMBER_OF_LVCOR_LANDMARKS
 	};
-
-	struct LVCorLandMark
-	{
-		LVCorLandMarkList mark;
-		int vertexid;
-		char *name;
-	};
-
-	extern const LVCorLandMark LVCorLandmarkTable[];
-
-	enum HeartLabelList{
-		LEFT_VENTRICLE = 0,
-		LEFT_ATRIUM,
-		AORTA,
-		RIGHT_VENTRICLE,
-		RIGHT_ATRIUM,
-		PULMONARY,
-		//////////////////////////////////////////////////////////////////////////
-		NUMBER_OF_HEART_LABELS
-	};
-
-	struct HeartLabel
-	{
-		HeartLabelList label;
-		double color[3];
-		char *name;
-	};
-
-	extern const HeartLabel HeartLabelTable[];
 }
-
 
 
 void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtkImageInterpolator* interpolator);

@@ -86,7 +86,6 @@ protected:
 private:
 
 	Learning learn;
-
 	vtkImageData* imageData;
 	vtkSmartPointer<vtkImageInterpolator> interpolator;
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
