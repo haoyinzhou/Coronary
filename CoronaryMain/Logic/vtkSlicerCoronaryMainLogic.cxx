@@ -166,15 +166,15 @@ bool vtkSlicerCoronaryMainLogic
 		std::cerr << "VolumnNode is NULL" << std::endl;
 		return false;
 	}
-	if (imageData == NULL)
-		imageData = VolumnNode->GetImageData();
+//	if (imageData == NULL)
+//		imageData = VolumnNode->GetImageData();
 	if (hessianImage == NULL)
 		hessianImage = vtkSmartPointer<vtkImageData>::New();
 
-	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
-	interpolator->SetInterpolationModeToLinear();
-	interpolator->SetOutValue(-3024.0);
-	interpolator->Initialize(imageData);
+//	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
+//	interpolator->SetInterpolationModeToLinear();
+//	interpolator->SetOutValue(-3024.0);
+//	interpolator->Initialize(imageData);
 	GenerateHessianImage(imageData, hessianImage, interpolator);
 
 	std::cout << "GenerateHessianImage done!" << std::endl;
@@ -184,8 +184,6 @@ bool vtkSlicerCoronaryMainLogic
 	double leftOstium[3], rightOstium[3];
 	for (int l = 0; l < 3; l++) leftOstium[l] = landmarks[SmartCoronary::LEFT_CORONARY_OSTIUM][l];
 	for (int l = 0; l < 3; l++) rightOstium[l] = landmarks[SmartCoronary::RIGHT_CORONARY_OSTIUM][l];
-	std::cout << "leftOstium: " << leftOstium[0] << ", " << leftOstium[1] << " , " << leftOstium[2] << std::endl;
-	std::cout << "rightOstium: " << rightOstium[0] << ", " << rightOstium[1] << " , " << rightOstium[2] << std::endl;
 
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium);

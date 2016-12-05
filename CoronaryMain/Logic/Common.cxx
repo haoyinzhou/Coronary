@@ -680,7 +680,6 @@ void TraceCenterline(typename BinaryImageType::Pointer rawCenterline, const type
 
 	if (ostiumIndex[0] >= 0 && ostiumIndex[1] >= 0 && ostiumIndex[2] >= 0)		//find ostium seeded centerlines
 	{
-		std::cout << "if begin!" << std::endl;
 		nIt.SetLocation(ostiumIndex);
 		if (nIt.GetCenterPixel() <= 0)	return;
 		nIt.SetCenterPixel(-1);
@@ -697,7 +696,6 @@ void TraceCenterline(typename BinaryImageType::Pointer rawCenterline, const type
 				initids.push_back(std::vector<typename BinaryImageType::IndexType>());
 			}
 		}
-		std::cout << nIt.Size() << ", " << initdirs.size() << ", " << initsizes.size() << ", " << initids.size() << std::endl;
 
 		for (size_t i = 0; i < initdirs.size(); i++)
 		{
@@ -1133,12 +1131,12 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 	int imageDims01 = imageDims[0] * imageDims[1];
 	short* imagedata = static_cast<short*>(imageData->GetScalarPointer());
 
-	for (dim[2] = 1; dim[2] < imageDims[2] - 1; dim[2]++)
+	for (dim[2] = 10; dim[2] < imageDims[2] - 10; dim[2]++)
 	{
 		//if(dim[2]%10==0) progressBar->setValue(40+60*dim[2]/imageDims[2]);
-		for (dim[1] = 1; dim[1] < imageDims[1] - 1; dim[1]++)
+		for (dim[1] = 20; dim[1] < imageDims[1] - 20; dim[1]++)
 		{
-			for (dim[0] = 1; dim[0] < imageDims[0] - 1; dim[0]++)
+			for (dim[0] = 20; dim[0] < imageDims[0] - 20; dim[0]++)
 			{
 				if ((dim[0] % 5 != 0 || dim[1] % 5 != 0 || dim[2] % 5 != 0)) continue;
 
@@ -1460,7 +1458,6 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 	duplicator->Update();
 	BinaryImageType::Pointer rawCenterline = duplicator->GetModifiableOutput();
 	
-	std::cout << "almost done!" << std::endl;
 //	SaveITKImage<BinaryImageType>(rawCenterline, "C:\\work\\Coronary_Slicer\\testdata\\rawCenterline.mha");
 	
 	//ImageType::IndexType invalidIndex; invalidIndex.Fill(-1);

@@ -78,7 +78,6 @@ void SaveVTKImage(vtkImageData *image, const char* fileName);
 void SavePolyData(vtkPolyData *poly, const char* fileName);
 
 
-
 bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator);
 bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3]);
 
