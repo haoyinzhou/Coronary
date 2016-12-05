@@ -29,6 +29,7 @@
 #include "itkBinaryMorphologicalOpeningImageFilter.h"
 #include "itkBinaryFillholeImageFilter.h"
 #include "itkBinaryThinningImageFilter.h"
+#include "itkBinaryThinningImageFilter3D.h"
 #include "itkOrImageFilter.h"
 #include "itkImageDuplicator.h"
 #include "itkImageFileWriter.h"
@@ -47,11 +48,11 @@ using namespace cv;
 namespace SmartCoronary
 {
 	enum LVCorLandMarkList{
-		LEFT_VENTRICLE_APEX = 0,
-		BASE_LEFT_END,
-		BASE_RIGHT_END,
-		BASE_ANTERIOR_END,
-		BASE_POSTERIOR_END,
+		AA = 0,
+		BB,
+		CC,
+		DD,
+		EE,
 		LEFT_CORONARY_OSTIUM,
 		RIGHT_CORONARY_OSTIUM,
 		//////////////////////////////////////////////////////////////////////////

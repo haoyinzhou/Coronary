@@ -26,7 +26,7 @@ bool LearningImpl::LoadLandmarkClassifiers(int num)
 	std::ostringstream strstm;
 	lmBoost.resize(num);
 //	std::cout << "Loading the classifiers ..." << std::endl;
-	cv::FileStorage fs("C:\\work\\classifiers\\lvcorlmclassifier.yml", cv::FileStorage::READ);
+	cv::FileStorage fs("C:\\work\\classifiers\\lvcorlmclassifier.yml.gz", cv::FileStorage::READ);
 		
 	for (int id = 0; id < num; id++)
 	{

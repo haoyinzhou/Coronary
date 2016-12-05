@@ -16,6 +16,8 @@ set(${KIT}_SRCS
   LearningImpl.h
   ExtendSplineFilter.h
   ExtendSplineFilter.cxx
+  itkBinaryThinningImageFilter3D.h
+  itkBinaryThinningImageFilter3D.txx
   )
 
 set(${KIT}_TARGET_LIBRARIES

@@ -70,7 +70,6 @@ public:
   bool BuildMeshLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
   
 
-
 protected:
   vtkSlicerCoronaryMainLogic();
   virtual ~vtkSlicerCoronaryMainLogic();
@@ -81,7 +80,6 @@ protected:
   virtual void UpdateFromMRMLScene();
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
-
 
 private:
 

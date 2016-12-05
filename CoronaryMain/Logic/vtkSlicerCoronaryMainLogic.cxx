@@ -100,15 +100,15 @@ bool vtkSlicerCoronaryMainLogic
 	VolumnNode->GetSpacing(NodeSpaceing);
 
 	imageData = VolumnNode->GetImageData();
-	//	imageData->SetOrigin(-NodeOrigin[0], -NodeOrigin[1], NodeOrigin[2]);
-	//	imageData->SetSpacing(NodeSpaceing);
+	imageData->SetOrigin(-NodeOrigin[0], -NodeOrigin[1], NodeOrigin[2]);
+	imageData->SetSpacing(NodeSpaceing);
 
 	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
 	interpolator->SetInterpolationModeToLinear();
 	interpolator->SetOutValue(-3024.0);
 	interpolator->Initialize(imageData);
 
-	int	 imageDims[3];
+/*	int	 imageDims[3];
 	double imageOrigins[3];
 	double imageSpacings[3];
 	double imageCenter[3];
@@ -126,14 +126,10 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "NodeSpacings: " << " x: " << NodeSpaceing[0] << " y: " << NodeSpaceing[1] << " z: " << NodeSpaceing[2] << std::endl;
 	std::cout << "Number of points: " << imageData->GetNumberOfPoints() << std::endl;
 	std::cout << "Number of cells: " << imageData->GetNumberOfCells() << std::endl;
-
+*/
 	DetectLandmarks_core(imageData, learn, landmarks, interpolator);
-	//	imageData->SetOrigin(-NodeOrigin[0], -NodeOrigin[1], NodeOrigin[2]);
-	//	imageData->SetSpacing(NodeSpaceing);
 
-	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
-
-	{
+/*	{
 		for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
 		{
 			//	for (int l = 0; l < 3; l++) landmarks[i][l] = landmarks[i][l] * imageSpacings[l] + imageOrigins[l];
@@ -155,31 +151,7 @@ bool vtkSlicerCoronaryMainLogic
 		cleanFilter->Update();
 		SavePolyData(cleanFilter->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\landmarks.vtp");
 	}
-
-	{
-		double landmarks_forsave[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
-		for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
-		{
-			landmarks_forsave[i][0] = landmarks[i][0] * NodeSpaceing[0] - NodeOrigin[0];
-			landmarks_forsave[i][1] = landmarks[i][1] * NodeSpaceing[1] - NodeOrigin[1];
-			landmarks_forsave[i][2] = landmarks[i][2] * NodeSpaceing[2] + NodeOrigin[2];
-			std::cout << "landmarks_forsave: " << landmarks_forsave[i][0] << ", " << landmarks_forsave[i][1] << ", " << landmarks_forsave[i][2] << std::endl;
-		}
-		vtkSmartPointer<vtkAppendPolyData> appendFilter = vtkSmartPointer<vtkAppendPolyData>::New();
-		for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
-		{
-			vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-			sphereSource->SetCenter(landmarks_forsave[i][0], landmarks_forsave[i][1], landmarks_forsave[i][2]);
-			sphereSource->SetRadius(4.0);
-			sphereSource->Update();
-			appendFilter->AddInputData(sphereSource->GetOutput());
-		}
-		appendFilter->Update();
-		vtkSmartPointer<vtkCleanPolyData> cleanFilter = vtkSmartPointer<vtkCleanPolyData>::New();
-		cleanFilter->SetInputConnection(appendFilter->GetOutputPort());
-		cleanFilter->Update();
-		SavePolyData(cleanFilter->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\landmarks_forsave.vtp");
-	}
+*/
 	std::cout << "DetectLandmarksLogic done!" << std::endl;
 	return true;
 }
@@ -205,21 +177,21 @@ bool vtkSlicerCoronaryMainLogic
 	interpolator->Initialize(imageData);
 	GenerateHessianImage(imageData, hessianImage, interpolator);
 
-	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
-	SaveVTKImage(hessianImage, "C:\\work\\Coronary_Slicer\\testdata\\hessianImage.mha");
 	std::cout << "GenerateHessianImage done!" << std::endl;
+//	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
+//	SaveVTKImage(hessianImage, "C:\\work\\Coronary_Slicer\\testdata\\hessianImage.mha");
 
 	double leftOstium[3], rightOstium[3];
 	for (int l = 0; l < 3; l++) leftOstium[l] = landmarks[SmartCoronary::LEFT_CORONARY_OSTIUM][l];
 	for (int l = 0; l < 3; l++) rightOstium[l] = landmarks[SmartCoronary::RIGHT_CORONARY_OSTIUM][l];
 	std::cout << "leftOstium: " << leftOstium[0] << ", " << leftOstium[1] << " , " << leftOstium[2] << std::endl;
 	std::cout << "rightOstium: " << rightOstium[0] << ", " << rightOstium[1] << " , " << rightOstium[2] << std::endl;
-	
-/*	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+
+	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium);
 
 	SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
-*/
+
 	std::cout << "DetectCenterlinesLogic Done! " << std::endl;
 	return true;
 }
