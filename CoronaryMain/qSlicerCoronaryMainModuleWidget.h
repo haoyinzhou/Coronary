@@ -47,10 +47,11 @@ public slots:
 	bool DetectLandmarksButtonFunc();
 	bool DetectCenterlinesButtonFunc();
 	bool DetectLumenButtonFunc();
-	bool BuildMeshButtonFunc();
 	void SetVolumn(vtkMRMLNode* node);
 	//void SetVolumn(vtkMRMLScene* node);
 
+public:
+	bool BuildMesh();
 
 protected:
   QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;

@@ -37,6 +37,7 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 {
 	memset(landmarks, 0.0, SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS * 3 * sizeof(double));
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+	LumenModel = vtkSmartPointer<vtkPolyData>::New();
 	imageData = vtkSmartPointer<vtkImageData>::New();
 	memset(NodeOrigin, 0, 3 * sizeof(double));
 	for (int l = 0; l < 3; l++) NodeSpaceing[l] = 1.0;
@@ -192,7 +193,7 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium);
 
-	vtkSmartPointer<vtkTransform> translation =	vtkSmartPointer<vtkTransform>::New();
+/*	vtkSmartPointer<vtkTransform> translation =	vtkSmartPointer<vtkTransform>::New();
 	double spaceing[3], origin[3];
 	for (int l = 0; l < 3; l++) spaceing[l] = 1 / NodeSpaceing[l];
 	for (int l = 0; l < 3; l++) origin[l] = -NodeOrigin[l];
@@ -208,7 +209,7 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "NodeSpacings: " << " x: " << NodeSpaceing[0] << " y: " << NodeSpaceing[1] << " z: " << NodeSpaceing[2] << std::endl;
 	
 	centerlineModel = transformFilter->GetOutput();
-
+*/
 	//SaveVTKImage(imageData_original, "C:\\work\\Coronary_Slicer\\testdata\\imageData_original.mha");
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
@@ -243,6 +244,24 @@ bool vtkSlicerCoronaryMainLogic
 	this->GetMRMLScene()->AddNode(clDisplayNode);
 	clNode->SetAndObserveDisplayNodeID(clDisplayNode->GetID());
 
+	vtkSmartPointer<ExtendTubeFilter> centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
+	centerlineTube->SetInputData(centerlineModel);
+	centerlineTube->SetInputImageData(imageData);
+	centerlineTube->Update();
+
+	LumenModel = centerlineTube->GetOutput(2);
+	std::cout << "number of LumenModel points: " << LumenModel->GetPoints()->GetNumberOfPoints() << std::endl;
+	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
+
+	vtkMRMLModelNode* LumenNode = vtkMRMLModelNode::New();
+	vtkMRMLModelDisplayNode* LumenDisplayNode = vtkMRMLModelDisplayNode::New();
+	LumenNode->SetAndObservePolyData(LumenModel);
+	this->GetMRMLScene()->AddNode(LumenNode);
+	LumenDisplayNode->SetColor(0, 0, 1);
+	LumenDisplayNode->SetScene(this->GetMRMLScene());
+	this->GetMRMLScene()->AddNode(LumenDisplayNode);
+	LumenNode->SetAndObserveDisplayNodeID(LumenDisplayNode->GetID());
+	
 	std::cout << "BuildMeshLogic Done! " << std::endl;
 	return true;
 }

@@ -55,6 +55,7 @@
 
 #include "Common.h"
 #include "LearningImpl.h"
+#include "ExtendTubeFilter.h"
 
 
 
@@ -95,6 +96,7 @@ private:
 	vtkSmartPointer<vtkImageInterpolator> interpolator;
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
 	vtkSmartPointer<vtkPolyData> centerlineModel;
+	vtkSmartPointer<vtkPolyData> LumenModel;
 
 	double NodeOrigin[3];
 	double NodeSpaceing[3];

@@ -28,7 +28,8 @@ public:
 	int SegDir[20];
 };
 
-class VTKFILTERSCORE_EXPORT ExtendTubeFilter : public vtkPolyDataAlgorithm
+//class VTKFILTERSCORE_EXPORT ExtendTubeFilter : public vtkPolyDataAlgorithm
+class ExtendTubeFilter: public vtkPolyDataAlgorithm
 {
 public:
   vtkTypeMacro(ExtendTubeFilter,vtkPolyDataAlgorithm);

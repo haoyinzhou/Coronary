@@ -79,7 +79,6 @@ void qSlicerCoronaryMainModuleWidget::setup()
   connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
   connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
   connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
-  connect(d->BuildMesh, SIGNAL(clicked()), this, SLOT(BuildMeshButtonFunc()));
   connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 }
 
@@ -141,7 +140,9 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 	}
 	return true;
 }
-bool qSlicerCoronaryMainModuleWidget::BuildMeshButtonFunc()
+
+
+bool qSlicerCoronaryMainModuleWidget::BuildMesh()
 {
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();

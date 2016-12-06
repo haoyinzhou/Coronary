@@ -45,19 +45,19 @@
         </spacer>
        </item>
        <item>
-        <widget class="qMRMLNodeComboBox" name="MRMLNodeReadVolumn">
-         <property name="nodeTypes">
+        <widget class="qMRMLNodeComboBox" name="MRMLNodeReadVolumn" native="true">
+         <property name="nodeTypes" stdset="0">
           <stringlist>
            <string>vtkMRMLScalarVolumeNode</string>
           </stringlist>
          </property>
-         <property name="noneEnabled">
+         <property name="noneEnabled" stdset="0">
           <bool>true</bool>
          </property>
-         <property name="addEnabled">
+         <property name="addEnabled" stdset="0">
           <bool>false</bool>
          </property>
-         <property name="removeEnabled">
+         <property name="removeEnabled" stdset="0">
           <bool>false</bool>
          </property>
         </widget>
@@ -88,13 +88,6 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QPushButton" name="BuildMesh">
-       <property name="text">
-        <string>Build Mesh</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item>
@@ -111,8 +104,6 @@
     </spacer>
    </item>
   </layout>
-  <zorder>layoutWidget</zorder>
-  <zorder>verticalSpacer</zorder>
   <zorder>verticalSpacer</zorder>
  </widget>
  <customwidgets>
