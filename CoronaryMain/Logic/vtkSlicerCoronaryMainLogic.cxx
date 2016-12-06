@@ -36,6 +36,10 @@ vtkStandardNewMacro(vtkSlicerCoronaryMainLogic);
 vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 {
 	memset(landmarks, 0.0, SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS * 3 * sizeof(double));
+	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+	imageData = vtkSmartPointer<vtkImageData>::New();
+	memset(NodeOrigin, 0, 3 * sizeof(double));
+	for (int l = 0; l < 3; l++) NodeSpaceing[l] = 1.0;
 }
 
 //----------------------------------------------------------------------------
@@ -57,6 +61,12 @@ void vtkSlicerCoronaryMainLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
   events->InsertNextValue(vtkMRMLScene::NodeRemovedEvent);
   events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
   this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerCoronaryMainLogic::ObserveMRMLScene()
+{
+	this->Superclass::ObserveMRMLScene();
 }
 
 //-----------------------------------------------------------------------------
@@ -94,13 +104,14 @@ bool vtkSlicerCoronaryMainLogic
 		return false;
 	}
 
-	double NodeOrigin[3];
-	double NodeSpaceing[3];
 	VolumnNode->GetOrigin(NodeOrigin);
 	VolumnNode->GetSpacing(NodeSpaceing);
+	NodeOrigin[0] = -NodeOrigin[0];
+	NodeOrigin[1] = -NodeOrigin[1];
 
-	imageData = VolumnNode->GetImageData();
-	imageData->SetOrigin(-NodeOrigin[0], -NodeOrigin[1], NodeOrigin[2]);
+	imageData_original = VolumnNode->GetImageData();
+	imageData->DeepCopy(imageData_original);
+	imageData->SetOrigin(NodeOrigin);
 	imageData->SetSpacing(NodeSpaceing);
 
 	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
@@ -166,15 +177,8 @@ bool vtkSlicerCoronaryMainLogic
 		std::cerr << "VolumnNode is NULL" << std::endl;
 		return false;
 	}
-//	if (imageData == NULL)
-//		imageData = VolumnNode->GetImageData();
-	if (hessianImage == NULL)
-		hessianImage = vtkSmartPointer<vtkImageData>::New();
+	vtkSmartPointer<vtkImageData> hessianImage = vtkSmartPointer<vtkImageData>::New();
 
-//	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
-//	interpolator->SetInterpolationModeToLinear();
-//	interpolator->SetOutValue(-3024.0);
-//	interpolator->Initialize(imageData);
 	GenerateHessianImage(imageData, hessianImage, interpolator);
 
 	std::cout << "GenerateHessianImage done!" << std::endl;
@@ -188,7 +192,25 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium);
 
-	SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
+	vtkSmartPointer<vtkTransform> translation =	vtkSmartPointer<vtkTransform>::New();
+	double spaceing[3], origin[3];
+	for (int l = 0; l < 3; l++) spaceing[l] = 1 / NodeSpaceing[l];
+	for (int l = 0; l < 3; l++) origin[l] = -NodeOrigin[l];
+	translation->Scale(spaceing);
+	translation->Translate(origin);
+
+	vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+	transformFilter->SetInputData(centerlineModel);
+	transformFilter->SetTransform(translation);
+	transformFilter->Update();
+
+	std::cout << "NodeOrigins: " << " x: " << NodeOrigin[0] << " y: " << NodeOrigin[1] << " z: " << NodeOrigin[2] << std::endl;
+	std::cout << "NodeSpacings: " << " x: " << NodeSpaceing[0] << " y: " << NodeSpaceing[1] << " z: " << NodeSpaceing[2] << std::endl;
+	
+	centerlineModel = transformFilter->GetOutput();
+
+	//SaveVTKImage(imageData_original, "C:\\work\\Coronary_Slicer\\testdata\\imageData_original.mha");
+	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
 	std::cout << "DetectCenterlinesLogic Done! " << std::endl;
 	return true;
@@ -199,31 +221,29 @@ bool vtkSlicerCoronaryMainLogic
 {
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 
-	if (VolumnNode == NULL)
-	{
-		std::cerr << "VolumnNode is NULL" << std::endl;
-		return false;
-	}
 
-	vtkImageData* imgData = VolumnNode->GetImageData();
-
-
+	std::cout << "DetectLumenLogic Done! " << std::endl;
 	return true;
 }
 
 bool vtkSlicerCoronaryMainLogic
-::BuildMeshLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode)
+::BuildMeshLogic()
 {
-	std::cout << "BuildLumenLogic Begin! " << std::endl;
+	std::cout << "BuildMeshLogic Begin! " << std::endl;
+	std::cout << "number of cl points: " << centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
 
-	if (VolumnNode == NULL)
-	{
-		std::cerr << "VolumnNode is NULL" << std::endl;
-		return false;
-	}
+	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
+		
+	vtkMRMLModelNode* clNode = vtkMRMLModelNode::New();
+	vtkMRMLModelDisplayNode* clDisplayNode = vtkMRMLModelDisplayNode::New();
+	clNode->SetAndObservePolyData(centerlineModel);
+	this->GetMRMLScene()->AddNode(clNode);
+	clDisplayNode->SetColor(1, 0, 0);
+	clDisplayNode->SetScene(this->GetMRMLScene());
+	this->GetMRMLScene()->AddNode(clDisplayNode);
+	clNode->SetAndObserveDisplayNodeID(clDisplayNode->GetID());
 
-	vtkImageData* imgData = VolumnNode->GetImageData();
-	
+	std::cout << "BuildMeshLogic Done! " << std::endl;
 	return true;
 }
 

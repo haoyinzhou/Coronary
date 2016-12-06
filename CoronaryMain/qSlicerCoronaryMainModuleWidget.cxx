@@ -83,6 +83,20 @@ void qSlicerCoronaryMainModuleWidget::setup()
   connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 }
 
+#define DisableAllButtons()\
+{\
+	d->DetectLandmarks->setEnabled(false);\
+	d->DetectCenterlines->setEnabled(false);\
+	d->DetectLumen->setEnabled(false);\
+}\
+
+#define EnableAllButtons()\
+{\
+	d->DetectLandmarks->setEnabled(true);\
+	d->DetectCenterlines->setEnabled(true);\
+	d->DetectLumen->setEnabled(true);\
+}\
+
 
 void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
 {
@@ -98,10 +112,10 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
+	//	DisableAllButtons();
 		logic->DetectLandmarksLogic(VolumeNode);
+	//	EnableAllButtons();
 	}
-
-	std::cout << "DetectLandmarksButtonFunc done!" << std::endl;
 
 	return true;
 }
@@ -112,10 +126,10 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-		logic->DetectCenterlinesLogic(VolumeNode, TransformCoronaryNode);
+		if (logic->DetectCenterlinesLogic(VolumeNode, TransformCoronaryNode))
+			logic->BuildMeshLogic();
 	}
 	return true;
-
 }
 bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 {
@@ -133,7 +147,7 @@ bool qSlicerCoronaryMainModuleWidget::BuildMeshButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-		logic->BuildMeshLogic(VolumeNode, TransformCoronaryNode);
+		logic->BuildMeshLogic();
 	}
 	return true;
 }

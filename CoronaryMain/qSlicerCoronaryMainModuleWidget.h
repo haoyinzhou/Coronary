@@ -51,6 +51,7 @@ public slots:
 	void SetVolumn(vtkMRMLNode* node);
 	//void SetVolumn(vtkMRMLScene* node);
 
+
 protected:
   QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
   virtual void setup();

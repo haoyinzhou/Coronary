@@ -48,11 +48,11 @@ using namespace cv;
 namespace SmartCoronary
 {
 	enum LVCorLandMarkList{
-		AA = 0,
-		BB,
-		CC,
-		DD,
-		EE,
+		LEFT_VENTRICLE_APEX = 0,
+		BASE_LEFT_END,
+		BASE_RIGHT_END,
+		BASE_ANTERIOR_END,
+		BASE_POSTERIOR_END,
 		LEFT_CORONARY_OSTIUM,
 		RIGHT_CORONARY_OSTIUM,
 		//////////////////////////////////////////////////////////////////////////

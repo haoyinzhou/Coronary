@@ -1112,9 +1112,6 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 	FillIntegralImage(integralImage, imageData, interpolator);
 	std::cout << "FillIntegralImage done!" << std::endl;
 
-	//SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
-	//SaveVTKImage(integralImage, "C:\\work\\Coronary_Slicer\\testdata\\integralImage.mha");
-
 	int	 imageDims[3];
 	double imageOrigins[3];
 	double imageSpacings[3];
@@ -1322,7 +1319,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		NeighborhoodIteratorType nIt(nRadius, vesselnessImage, vesselnessImage->GetRequestedRegion());
 		nIt.SetLocation(leftOstiumIndex);
 		itk::OffsetValueType leftDistanceVessness = std::numeric_limits<itk::OffsetValueType>::max();
-		std::cout << "l1 nIt.Size() = " << nIt.Size() << std::endl;
+//		std::cout << "l1 nIt.Size() = " << nIt.Size() << std::endl;
 
 		for (size_t i = 0; i < nIt.Size(); i++)
 		{
@@ -1340,7 +1337,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		}
 		nIt.SetLocation(rightOstiumIndex);
 		itk::OffsetValueType rightDistanceVessness = std::numeric_limits<itk::OffsetValueType>::max();
-		std::cout << "r1 nIt.Size() = " << nIt.Size() << std::endl;
+//		std::cout << "r1 nIt.Size() = " << nIt.Size() << std::endl;
 		for (size_t i = 0; i < nIt.Size(); i++)
 		{
 			double pixel = nIt.GetPixel(i);
@@ -1402,8 +1399,8 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		tIt.SetLocation(leftOstiumIndex);
 		nIt.SetLocation(leftOstiumIndex);
 		leftDistanceVessness = std::numeric_limits<itk::OffsetValueType>::max();
-		std::cout << "l2 nIt.Size() = " << nIt.Size() << std::endl;
-		std::cout << "l2 tIt.Size() = " << tIt.Size() << std::endl;
+	//	std::cout << "l2 nIt.Size() = " << nIt.Size() << std::endl;
+	//	std::cout << "l2 tIt.Size() = " << tIt.Size() << std::endl;
 		for (size_t i = 0; i<nIt.Size(); i++)
 		{
 			double pixel = nIt.GetPixel(i);
@@ -1421,8 +1418,8 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		tIt.SetLocation(rightOstiumIndex);
 		nIt.SetLocation(rightOstiumIndex);
 		rightDistanceVessness = std::numeric_limits<itk::OffsetValueType>::max();
-		std::cout << "r2 nIt.Size() = " << nIt.Size() << std::endl;
-		std::cout << "r2 tIt.Size() = " << tIt.Size() << std::endl;
+	//	std::cout << "r2 nIt.Size() = " << nIt.Size() << std::endl;
+	//	std::cout << "r2 tIt.Size() = " << tIt.Size() << std::endl;
 		for (size_t i = 0; i<nIt.Size(); i++)
 		{
 			double pixel = nIt.GetPixel(i);

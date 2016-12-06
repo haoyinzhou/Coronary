@@ -31,6 +31,7 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLModelDisplayNode.h"
 
 // VTK includes
 #include <vtkObject.h>
@@ -49,6 +50,8 @@
 #include "vtkSmartPointer.h"
 #include "vtkSphereWidget.h"
 #include "vtkCaptionActor2D.h"
+#include "vtkTransform.h"
+#include "vtkTransformPolyDataFilter.h"
 
 #include "Common.h"
 #include "LearningImpl.h"
@@ -67,14 +70,17 @@ public:
   bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode);
   bool DetectCenterlinesLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
   bool DetectLumenLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
-  bool BuildMeshLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
+  bool BuildMeshLogic();
   
 
 protected:
   vtkSlicerCoronaryMainLogic();
   virtual ~vtkSlicerCoronaryMainLogic();
 
-  virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
+  /// Initialize listening to MRML events
+  virtual void SetMRMLSceneInternal(vtkMRMLScene * newScene);
+  virtual void ObserveMRMLScene();
+
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
   virtual void RegisterNodes();
   virtual void UpdateFromMRMLScene();
@@ -84,12 +90,14 @@ protected:
 private:
 
 	Learning learn;
-	vtkImageData* imageData;
+	vtkSmartPointer<vtkImageData> imageData;
+	vtkSmartPointer<vtkImageData> imageData_original;
 	vtkSmartPointer<vtkImageInterpolator> interpolator;
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
-
-	vtkSmartPointer<vtkImageData> hessianImage;
 	vtkSmartPointer<vtkPolyData> centerlineModel;
+
+	double NodeOrigin[3];
+	double NodeSpaceing[3];
 
 
 private:
