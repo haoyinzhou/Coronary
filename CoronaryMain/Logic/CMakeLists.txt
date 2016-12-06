@@ -18,6 +18,8 @@ set(${KIT}_SRCS
   ExtendSplineFilter.cxx
   itkBinaryThinningImageFilter3D.h
   itkBinaryThinningImageFilter3D.txx
+  ExtendTubeFilter.h
+  ExtendTubeFilter.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES
