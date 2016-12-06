@@ -53,6 +53,7 @@
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
 
+
 #include "Common.h"
 #include "LearningImpl.h"
 #include "ExtendTubeFilter.h"
@@ -68,9 +69,9 @@ public:
   vtkTypeMacro(vtkSlicerCoronaryMainLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode);
-  bool DetectCenterlinesLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
-  bool DetectLumenLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode);
+  bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar);
+  bool DetectCenterlinesLogic(QProgressBar* progressbar);
+  bool DetectLumenLogic();
   bool BuildMeshLogic();
   
 

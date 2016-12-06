@@ -50,6 +50,8 @@
 #include "itkImageDuplicator.h"
 #include "itkImageFileWriter.h"
 
+#include "qprogressbar.h"
+
 #include "psimpl.h"
 
 
@@ -83,7 +85,7 @@ void ImageFeatures(vtkImageData* intergalImage, double coord[3], cv::Mat& featur
 void HistSubtract(const double hist1[6], const double hist2[6], double hist3[6]);
 void InsertFeature(cv::Mat& featureRow, double hist[6], int& count);
 void HistNormalize(double hist[6]);
-void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, vtkImageInterpolator *interpolator);
+void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, vtkImageInterpolator *interpolator, QProgressBar* progressbar);
 void FillSumImage(vtkImageData* sumImage, vtkImageInterpolator* interpolator);
 void SumImageHist(vtkImageData* sumImage, double* sumimage, int corner1[3], int corner2[3], double& sum);
 void Hessian(vtkImageData* sumImage, double* sumimage, double coord[3], double eigvalue[3], double eigvector[3][3], int cellsize);
@@ -94,8 +96,8 @@ void SaveVTKImage(vtkImageData *image, const char* fileName);
 void SavePolyData(vtkPolyData *poly, const char* fileName);
 
 
-bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator);
-bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3]);
+bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator, QProgressBar* progressbar);
+bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3], QProgressBar* progressbar);
 
 
 #endif

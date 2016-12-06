@@ -95,7 +95,7 @@ void vtkSlicerCoronaryMainLogic
 }
 
 bool vtkSlicerCoronaryMainLogic
-::DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode)
+::DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar)
 {
 	std::cout << "DetectLandmarksLogic Begin! " << std::endl;
 
@@ -104,6 +104,9 @@ bool vtkSlicerCoronaryMainLogic
 		std::cerr << "VolumnNode is NULL" << std::endl;
 		return false;
 	}
+
+	//-------// 
+	progressbar->setValue(0);
 
 	VolumnNode->GetOrigin(NodeOrigin);
 	VolumnNode->GetSpacing(NodeSpaceing);
@@ -139,7 +142,7 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "Number of points: " << imageData->GetNumberOfPoints() << std::endl;
 	std::cout << "Number of cells: " << imageData->GetNumberOfCells() << std::endl;
 */
-	DetectLandmarks_core(imageData, learn, landmarks, interpolator);
+	DetectLandmarks_core(imageData, learn, landmarks, interpolator, progressbar);
 
 /*	{
 		for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
@@ -165,24 +168,28 @@ bool vtkSlicerCoronaryMainLogic
 	}
 */
 	std::cout << "DetectLandmarksLogic done!" << std::endl;
+	
+	//-------// 
+	progressbar->setValue(100);
+
 	return true;
 }
 
 bool vtkSlicerCoronaryMainLogic
-::DetectCenterlinesLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode)
+::DetectCenterlinesLogic(QProgressBar* progressbar)
 {
 	std::cout << "DetectCenterlinesLogic Begin! " << std::endl;
 
-	if (VolumnNode == NULL)
-	{
-		std::cerr << "VolumnNode is NULL" << std::endl;
-		return false;
-	}
+	//-------// 
+	progressbar->setValue(5);
+
 	vtkSmartPointer<vtkImageData> hessianImage = vtkSmartPointer<vtkImageData>::New();
-
-	GenerateHessianImage(imageData, hessianImage, interpolator);
-
+	GenerateHessianImage(imageData, hessianImage, interpolator, progressbar);
 	std::cout << "GenerateHessianImage done!" << std::endl;
+
+	//-------//
+	progressbar->setValue(30);
+
 //	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
 //	SaveVTKImage(hessianImage, "C:\\work\\Coronary_Slicer\\testdata\\hessianImage.mha");
 
@@ -191,7 +198,7 @@ bool vtkSlicerCoronaryMainLogic
 	for (int l = 0; l < 3; l++) rightOstium[l] = landmarks[SmartCoronary::RIGHT_CORONARY_OSTIUM][l];
 
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
-	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium);
+	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium, progressbar);
 
 /*	vtkSmartPointer<vtkTransform> translation =	vtkSmartPointer<vtkTransform>::New();
 	double spaceing[3], origin[3];
@@ -214,11 +221,15 @@ bool vtkSlicerCoronaryMainLogic
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
 	std::cout << "DetectCenterlinesLogic Done! " << std::endl;
+
+	//-------// 
+	progressbar->setValue(100);
+
 	return true;
 }
 
 bool vtkSlicerCoronaryMainLogic
-::DetectLumenLogic(vtkMRMLScalarVolumeNode* VolumnNode, vtkMRMLLinearTransformNode* transformNode)
+::DetectLumenLogic()
 {
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 

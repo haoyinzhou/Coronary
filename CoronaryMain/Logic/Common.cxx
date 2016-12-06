@@ -201,7 +201,7 @@ void HistNormalize(double hist[6])
 	for (int i = 0; i < 6; i++) hist[i] /= mag;
 }
 
-void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, vtkImageInterpolator *interpolator)
+void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, vtkImageInterpolator *interpolator, QProgressBar* progressbar)
 {
 	vtkSmartPointer<vtkImageResample> resample = vtkSmartPointer<vtkImageResample>::New();
 	resample->SetInputData(imageData);
@@ -227,9 +227,14 @@ void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, v
 	sumImage->SetSpacing(sumSpacing);
 	sumImage->AllocateScalars(VTK_DOUBLE, 1);
 
-	FillSumImage(sumImage, interpolator);
+	//-------//
+	progressbar->setValue(10);
 
-	//progressBar->setValue(40);
+
+	FillSumImage(sumImage, interpolator);
+	std::cout << "FillSumImage done!" << std::endl;
+	//-------//
+	progressbar->setValue(15);
 
 	hessianImage->CopyStructure(resampleImage);
 	hessianImage->AllocateScalars(VTK_DOUBLE, 1);
@@ -307,6 +312,9 @@ void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, v
 		}
 	}
 
+	//-------//
+	progressbar->setValue(20);
+
 	{
 		typedef itk::Image<short, 3>  ImageType;
 		typedef itk::VTKImageToImageFilter<ImageType> ResampleToImageType;
@@ -349,6 +357,9 @@ void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, v
 		}
 	}
 
+	//-------//
+	progressbar->setValue(25);
+	
 	{
 		typedef itk::Image<short, 3>  ImageType;
 		typedef itk::VTKImageToImageFilter<ImageType> ResampleToImageType;
@@ -1101,66 +1112,7 @@ void LumenWallCenterline(vtkPolyData* clModel)
 }
 
 
-bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator)
-{
-	std::cout << "DetectLandmarks_core begin!" << std::endl;
 
-	LearningImpl *learnimpl = learn.limpl;
-	learnimpl->LoadLandmarkClassifiers(SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS);
-
-	vtkSmartPointer<vtkImageData> integralImage = vtkSmartPointer<vtkImageData>::New();
-	FillIntegralImage(integralImage, imageData, interpolator);
-	std::cout << "FillIntegralImage done!" << std::endl;
-
-	int	 imageDims[3];
-	double imageOrigins[3];
-	double imageSpacings[3];
-
-	imageData->GetDimensions(imageDims);
-	imageData->GetOrigin(imageOrigins);
-	imageData->GetSpacing(imageSpacings);
-	
-	double coord[3];
-	int dim[3];
-	double maxpred[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS];
-	for (int k = 0; k < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; k++) maxpred[k] = std::numeric_limits<double>::lowest();
-
-	int imageDims01 = imageDims[0] * imageDims[1];
-	short* imagedata = static_cast<short*>(imageData->GetScalarPointer());
-
-	for (dim[2] = 10; dim[2] < imageDims[2] - 10; dim[2]++)
-	{
-		//if(dim[2]%10==0) progressBar->setValue(40+60*dim[2]/imageDims[2]);
-		for (dim[1] = 20; dim[1] < imageDims[1] - 20; dim[1]++)
-		{
-			for (dim[0] = 20; dim[0] < imageDims[0] - 20; dim[0]++)
-			{
-				if ((dim[0] % 5 != 0 || dim[1] % 5 != 0 || dim[2] % 5 != 0)) continue;
-
-				short pixel = imagedata[dim[2] * imageDims01 + dim[1] * imageDims[0] + dim[0]];
-				if (pixel < 0) continue;
-
-				for (int k = 0; k < 3; k++) coord[k] = imageOrigins[k] + imageSpacings[k] * dim[k];
-
-				cv::Mat featureRow(1, 126, CV_32F);
-				ImageFeatures(integralImage, coord, featureRow);
-				for (int id = SmartCoronary::LEFT_CORONARY_OSTIUM; id < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; id++)
-				{
-					float pred = learnimpl->lmBoost[id].predict(featureRow, cv::Mat(), cv::Range::all(), false, true);
-					if (pred > maxpred[id])
-					{
-						maxpred[id] = pred;
-						for (int k = 0; k < 3; k++) landmarks[id][k] = coord[k];
-					}
-				}
-			}
-		}
-	}
-
-	std::cout << "DetectLandmarks_core done!" << std::endl;
-
-	return true;
-}
 
 void GetRotationMatrix(double axis[3], double angle, double rot[3][3])
 {
@@ -1287,7 +1239,77 @@ void SaveITKImage(typename ImageType::Pointer image, const char* fileName)
 	}
 }
 
-bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3])
+bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landmarks[][3], vtkImageInterpolator *interpolator, QProgressBar* progressbar)
+{
+	std::cout << "DetectLandmarks_core begin!" << std::endl;
+
+	LearningImpl *learnimpl = learn.limpl;
+	learnimpl->LoadLandmarkClassifiers(SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS);
+
+	//-------// 
+	progressbar->setValue(10);
+
+	vtkSmartPointer<vtkImageData> integralImage = vtkSmartPointer<vtkImageData>::New();
+	FillIntegralImage(integralImage, imageData, interpolator);
+
+	//-------// 
+	progressbar->setValue(40);
+
+	std::cout << "FillIntegralImage done!" << std::endl;
+
+	int	 imageDims[3];
+	double imageOrigins[3];
+	double imageSpacings[3];
+
+	imageData->GetDimensions(imageDims);
+	imageData->GetOrigin(imageOrigins);
+	imageData->GetSpacing(imageSpacings);
+
+	double coord[3];
+	int dim[3];
+	double maxpred[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS];
+	for (int k = 0; k < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; k++) maxpred[k] = std::numeric_limits<double>::lowest();
+
+	int imageDims01 = imageDims[0] * imageDims[1];
+	short* imagedata = static_cast<short*>(imageData->GetScalarPointer());
+
+	for (dim[2] = 10; dim[2] < imageDims[2] - 10; dim[2]++)
+	{
+		//-------// 
+		if (dim[2] % 10 == 0) progressbar->setValue(40 + 50 * dim[2] / (imageDims[2] - 20));
+
+		for (dim[1] = 20; dim[1] < imageDims[1] - 20; dim[1]++)
+		{
+			for (dim[0] = 20; dim[0] < imageDims[0] - 20; dim[0]++)
+			{
+				if ((dim[0] % 5 != 0 || dim[1] % 5 != 0 || dim[2] % 5 != 0)) continue;
+
+				short pixel = imagedata[dim[2] * imageDims01 + dim[1] * imageDims[0] + dim[0]];
+				if (pixel < 0) continue;
+
+				for (int k = 0; k < 3; k++) coord[k] = imageOrigins[k] + imageSpacings[k] * dim[k];
+
+				cv::Mat featureRow(1, 126, CV_32F);
+				ImageFeatures(integralImage, coord, featureRow);
+				for (int id = SmartCoronary::LEFT_CORONARY_OSTIUM; id < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; id++)
+				{
+					float pred = learnimpl->lmBoost[id].predict(featureRow, cv::Mat(), cv::Range::all(), false, true);
+					if (pred > maxpred[id])
+					{
+						maxpred[id] = pred;
+						for (int k = 0; k < 3; k++) landmarks[id][k] = coord[k];
+					}
+				}
+			}
+		}
+	}
+
+	std::cout << "DetectLandmarks_core done!" << std::endl;
+
+	return true;
+}
+
+bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3], QProgressBar* progressbar)
 {
 	typedef itk::Image<double, 3> ImageType;
 	typedef itk::Image<short, 3>  BinaryImageType;
@@ -1306,6 +1328,9 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 
 		ImageType::Pointer vesselnessImage = hessianToImageFilter->GetOutput();
 
+		//-------// 
+		progressbar->setValue(40);
+
 		ImageType::PointType leftOstiumPoint, rightOstiumPoint;
 		for (int k = 0; k < 3; k++) leftOstiumPoint[k] = leftOstium[k];
 		for (int k = 0; k < 3; k++) rightOstiumPoint[k] = rightOstium[k];
@@ -1320,6 +1345,9 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		nIt.SetLocation(leftOstiumIndex);
 		itk::OffsetValueType leftDistanceVessness = std::numeric_limits<itk::OffsetValueType>::max();
 //		std::cout << "l1 nIt.Size() = " << nIt.Size() << std::endl;
+
+		//-------// 
+		progressbar->setValue(50);
 
 		for (size_t i = 0; i < nIt.Size(); i++)
 		{
@@ -1338,6 +1366,10 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		nIt.SetLocation(rightOstiumIndex);
 		itk::OffsetValueType rightDistanceVessness = std::numeric_limits<itk::OffsetValueType>::max();
 //		std::cout << "r1 nIt.Size() = " << nIt.Size() << std::endl;
+
+		//-------// 
+		progressbar->setValue(60);
+
 		for (size_t i = 0; i < nIt.Size(); i++)
 		{
 			double pixel = nIt.GetPixel(i);
@@ -1354,6 +1386,10 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		}
 		std::cout << "leftOstiumIndex 2: " << leftOstiumIndex << std::endl;
 		std::cout << "rightOstiumIndex 2: " << rightOstiumIndex << std::endl;
+
+		//-------// 
+		progressbar->setValue(70);
+
 		typedef itk::ConnectedThresholdImageFilter<ImageType, BinaryImageType> ThresholdFilterType;
 		ThresholdFilterType::Pointer thresholdFilter1 = ThresholdFilterType::New();
 		thresholdFilter1->SetInput(vesselnessImage);
@@ -1363,17 +1399,25 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		else
 		{
 			std::cerr << "Cannot find the starting point of the left coronary artery" << std::endl;
+			//-------// 
+			progressbar->setValue(0);
 			return false;
 		}
 		if (rightDistanceVessness < std::numeric_limits<itk::OffsetValueType>::max() / 2) thresholdFilter1->AddSeed(rightOstiumIndex);
 		else
 		{
 			std::cerr << "Cannot find the starting point of the right coronary artery" << std::endl;
+			//-------// 
+			progressbar->setValue(0);
 			return false;
 		}
 		thresholdFilter1->SetUpper(1500.0); // 1500
 		thresholdFilter1->SetLower(100.0);  // 100
 		thresholdFilter1->Update();
+
+		//-------// 
+		progressbar->setValue(80);
+
 
 	/*	typedef itk::CastImageFilter< BinaryImageType, ImageType > CastFilterType;
 		CastFilterType::Pointer castFilter = CastFilterType::New();
@@ -1446,6 +1490,9 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		}
 		std::cout << "leftOstiumIndex 3: " << leftOstiumIndex << std::endl;
 		std::cout << "rightOstiumIndex 3: " << rightOstiumIndex << std::endl;
+
+		//-------// 
+		progressbar->setValue(90);
 
 	}
 

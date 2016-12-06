@@ -59,6 +59,7 @@ qSlicerCoronaryMainModuleWidget::qSlicerCoronaryMainModuleWidget(QWidget* _paren
   : Superclass( _parent )
   , d_ptr( new qSlicerCoronaryMainModuleWidgetPrivate(*this) )
 {
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -69,17 +70,19 @@ qSlicerCoronaryMainModuleWidget::~qSlicerCoronaryMainModuleWidget()
 //-----------------------------------------------------------------------------
 void qSlicerCoronaryMainModuleWidget::setup()
 {
-  Q_D(qSlicerCoronaryMainModuleWidget);
-  d->setupUi(this);
-  this->Superclass::setup();
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	d->setupUi(this);
+	this->Superclass::setup();
 
-  this->VolumeNode = NULL;
-  this->TransformCoronaryNode = NULL;
+	this->VolumeNode = NULL;
+	this->TransformCoronaryNode = NULL;
 
-  connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
-  connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
-  connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
-  connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
+	connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
+	connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
+	connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
+	connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
+
+	d->progressBar->setValue(0);
 }
 
 #define DisableAllButtons()\
@@ -112,7 +115,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 	if (logic != NULL)
 	{
 	//	DisableAllButtons();
-		logic->DetectLandmarksLogic(VolumeNode);
+		logic->DetectLandmarksLogic(VolumeNode, d->progressBar);
 	//	EnableAllButtons();
 	}
 
@@ -125,19 +128,23 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-		if (logic->DetectCenterlinesLogic(VolumeNode, TransformCoronaryNode))
+		if (logic->DetectCenterlinesLogic(d->progressBar))
 			logic->BuildMeshLogic();
 	}
 	return true;
 }
+
 bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 {
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-		logic->DetectLumenLogic(VolumeNode, TransformCoronaryNode);
+		logic->DetectLumenLogic();
 	}
+
+	d->progressBar->setValue(50);
+
 	return true;
 }
 
