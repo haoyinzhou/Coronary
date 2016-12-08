@@ -51,6 +51,8 @@
 #include "itkImageFileWriter.h"
 
 #include "qprogressbar.h"
+#include "QThread.h"
+
 
 #include "psimpl.h"
 
@@ -77,6 +79,7 @@ namespace SmartCoronary
 		NUMBER_OF_LVCOR_LANDMARKS
 	};
 }
+
 
 
 void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtkImageInterpolator* interpolator);

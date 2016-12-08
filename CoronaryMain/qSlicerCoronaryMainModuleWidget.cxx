@@ -23,6 +23,9 @@
 #include "ui_qSlicerCoronaryMainModuleWidget.h"
 #include "vtkSlicerCoronaryMainLogic.h"
 
+
+
+
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerCoronaryMainModuleWidgetPrivate: public Ui_qSlicerCoronaryMainModuleWidget
@@ -35,7 +38,6 @@ protected:
 public:
 	qSlicerCoronaryMainModuleWidgetPrivate(qSlicerCoronaryMainModuleWidget& object);
 	vtkSlicerCoronaryMainLogic* logic() const;
-
 };
 
 //-----------------------------------------------------------------------------
@@ -143,8 +145,6 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 		logic->DetectLumenLogic();
 	}
 
-	d->progressBar->setValue(50);
-
 	return true;
 }
 
@@ -158,5 +158,11 @@ bool qSlicerCoronaryMainModuleWidget::BuildMesh()
 		logic->BuildMeshLogic();
 	}
 	return true;
+}
+
+void qSlicerCoronaryMainModuleWidget::updateprogressbar(int i)
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	d->progressBar->setValue(i);
 }
 

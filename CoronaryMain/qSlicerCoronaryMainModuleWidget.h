@@ -23,6 +23,7 @@
 
 #include "qSlicerCoronaryMainModuleExport.h"
 
+
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
@@ -31,38 +32,41 @@
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_CORONARYMAIN_EXPORT qSlicerCoronaryMainModuleWidget :
   public qSlicerAbstractModuleWidget
 {
-  Q_OBJECT
+	Q_OBJECT
 
 public:
 
-  typedef qSlicerAbstractModuleWidget Superclass;
-  qSlicerCoronaryMainModuleWidget(QWidget *parent=0);
-  virtual ~qSlicerCoronaryMainModuleWidget();
+	typedef qSlicerAbstractModuleWidget Superclass;
+	qSlicerCoronaryMainModuleWidget(QWidget *parent=0);
+	virtual ~qSlicerCoronaryMainModuleWidget();
+
 
 public slots:
 	bool DetectLandmarksButtonFunc();
 	bool DetectCenterlinesButtonFunc();
 	bool DetectLumenButtonFunc();
 	void SetVolumn(vtkMRMLNode* node);
-	//void SetVolumn(vtkMRMLScene* node);
+
+	void updateprogressbar(int i);
 
 public:
 	bool BuildMesh();
 
 protected:
-  QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
-  virtual void setup();
+	QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
+	virtual void setup();
 
-  vtkMRMLScalarVolumeNode* VolumeNode;
-  vtkMRMLLinearTransformNode* TransformCoronaryNode;
+	vtkMRMLScalarVolumeNode* VolumeNode;
+	vtkMRMLLinearTransformNode* TransformCoronaryNode;
 
 private:
-  Q_DECLARE_PRIVATE(qSlicerCoronaryMainModuleWidget);
-  Q_DISABLE_COPY(qSlicerCoronaryMainModuleWidget);
+	Q_DECLARE_PRIVATE(qSlicerCoronaryMainModuleWidget);
+	Q_DISABLE_COPY(qSlicerCoronaryMainModuleWidget);
 };
 
 #endif

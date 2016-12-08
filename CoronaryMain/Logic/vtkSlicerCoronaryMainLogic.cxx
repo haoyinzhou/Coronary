@@ -106,16 +106,14 @@ bool vtkSlicerCoronaryMainLogic
 	}
 
 	//-------// 
-	progressbar->setValue(0);
+	progressbar->setValue(1);
 
 	VolumnNode->GetOrigin(NodeOrigin);
 	VolumnNode->GetSpacing(NodeSpaceing);
-	NodeOrigin[0] = -NodeOrigin[0];
-	NodeOrigin[1] = -NodeOrigin[1];
 
 	imageData_original = VolumnNode->GetImageData();
 	imageData->DeepCopy(imageData_original);
-	imageData->SetOrigin(NodeOrigin);
+	imageData->SetOrigin(-NodeOrigin[0], -NodeOrigin[1], NodeOrigin[2]);
 	imageData->SetSpacing(NodeSpaceing);
 
 	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
@@ -181,17 +179,14 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "DetectCenterlinesLogic Begin! " << std::endl;
 
 	//-------// 
-	progressbar->setValue(5);
+	progressbar->setValue(1);
 
 	vtkSmartPointer<vtkImageData> hessianImage = vtkSmartPointer<vtkImageData>::New();
 	GenerateHessianImage(imageData, hessianImage, interpolator, progressbar);
 	std::cout << "GenerateHessianImage done!" << std::endl;
 
 	//-------//
-	progressbar->setValue(30);
-
-//	SaveVTKImage(imageData, "C:\\work\\Coronary_Slicer\\testdata\\imageData.mha");
-//	SaveVTKImage(hessianImage, "C:\\work\\Coronary_Slicer\\testdata\\hessianImage.mha");
+	progressbar->setValue(50);
 
 	double leftOstium[3], rightOstium[3];
 	for (int l = 0; l < 3; l++) leftOstium[l] = landmarks[SmartCoronary::LEFT_CORONARY_OSTIUM][l];
@@ -200,25 +195,8 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	DetectCenterline_core(imageData, hessianImage, centerlineModel, leftOstium, rightOstium, progressbar);
 
-/*	vtkSmartPointer<vtkTransform> translation =	vtkSmartPointer<vtkTransform>::New();
-	double spaceing[3], origin[3];
-	for (int l = 0; l < 3; l++) spaceing[l] = 1 / NodeSpaceing[l];
-	for (int l = 0; l < 3; l++) origin[l] = -NodeOrigin[l];
-	translation->Scale(spaceing);
-	translation->Translate(origin);
-
-	vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
-	transformFilter->SetInputData(centerlineModel);
-	transformFilter->SetTransform(translation);
-	transformFilter->Update();
-
-	std::cout << "NodeOrigins: " << " x: " << NodeOrigin[0] << " y: " << NodeOrigin[1] << " z: " << NodeOrigin[2] << std::endl;
-	std::cout << "NodeSpacings: " << " x: " << NodeSpaceing[0] << " y: " << NodeSpaceing[1] << " z: " << NodeSpaceing[2] << std::endl;
-	
-	centerlineModel = transformFilter->GetOutput();
-*/
-	//SaveVTKImage(imageData_original, "C:\\work\\Coronary_Slicer\\testdata\\imageData_original.mha");
-	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
+//	SaveVTKImage(imageData_original, "C:\\work\\Coronary_Slicer\\testdata\\imageData_original.mha");
+//	SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
 	std::cout << "DetectCenterlinesLogic Done! " << std::endl;
 
@@ -234,6 +212,7 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 
 
+
 	std::cout << "DetectLumenLogic Done! " << std::endl;
 	return true;
 }
@@ -245,8 +224,30 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "number of cl points: " << centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
 
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
-		
-	vtkMRMLModelNode* clNode = vtkMRMLModelNode::New();
+
+	vtkSmartPointer<ExtendTubeFilter> centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
+	centerlineTube->SetInputData(centerlineModel);
+	centerlineTube->SetInputImageData(imageData);
+	centerlineTube->Update();
+	LumenModel = centerlineTube->GetOutput(2);
+
+	// transform
+	for (int i = 0; i < centerlineModel->GetPoints()->GetNumberOfPoints(); i++)
+	{
+		double coord[3];
+		centerlineModel->GetPoints()->GetPoint(i, coord);
+		for (int l = 0; l < 2; l++) coord[l] = -coord[l];
+		centerlineModel->GetPoints()->SetPoint(i, coord);
+	}
+	for (int i = 0; i < LumenModel->GetPoints()->GetNumberOfPoints(); i++)
+	{
+		double coord[3];
+		LumenModel->GetPoints()->GetPoint(i, coord);
+		for (int l = 0; l < 2; l++) coord[l] = -coord[l];
+		LumenModel->GetPoints()->SetPoint(i, coord);
+	}
+
+	vtkMRMLModelNode* clNode = vtkMRMLModelNode::New();	
 	vtkMRMLModelDisplayNode* clDisplayNode = vtkMRMLModelDisplayNode::New();
 	clNode->SetAndObservePolyData(centerlineModel);
 	this->GetMRMLScene()->AddNode(clNode);
@@ -255,12 +256,7 @@ bool vtkSlicerCoronaryMainLogic
 	this->GetMRMLScene()->AddNode(clDisplayNode);
 	clNode->SetAndObserveDisplayNodeID(clDisplayNode->GetID());
 
-	vtkSmartPointer<ExtendTubeFilter> centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
-	centerlineTube->SetInputData(centerlineModel);
-	centerlineTube->SetInputImageData(imageData);
-	centerlineTube->Update();
 
-	LumenModel = centerlineTube->GetOutput(2);
 	std::cout << "number of LumenModel points: " << LumenModel->GetPoints()->GetNumberOfPoints() << std::endl;
 	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 

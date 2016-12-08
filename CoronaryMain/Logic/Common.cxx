@@ -5,6 +5,7 @@
 
 
 
+
 void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtkImageInterpolator* interpolator)
 {
 	int	 imageDims[3];
@@ -230,9 +231,8 @@ void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, v
 	//-------//
 	progressbar->setValue(10);
 
-
 	FillSumImage(sumImage, interpolator);
-	std::cout << "FillSumImage done!" << std::endl;
+
 	//-------//
 	progressbar->setValue(15);
 
@@ -313,7 +313,7 @@ void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, v
 	}
 
 	//-------//
-	progressbar->setValue(20);
+	progressbar->setValue(30);
 
 	{
 		typedef itk::Image<short, 3>  ImageType;
@@ -358,7 +358,7 @@ void GenerateHessianImage(vtkImageData *imageData, vtkImageData *hessianImage, v
 	}
 
 	//-------//
-	progressbar->setValue(25);
+	progressbar->setValue(40);
 	
 	{
 		typedef itk::Image<short, 3>  ImageType;
@@ -1276,7 +1276,7 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 	for (dim[2] = 10; dim[2] < imageDims[2] - 10; dim[2]++)
 	{
 		//-------// 
-		if (dim[2] % 10 == 0) progressbar->setValue(40 + 50 * dim[2] / (imageDims[2] - 20));
+		if (dim[2] % 10 == 0)	progressbar->setValue(40 + 50 * dim[2] / (imageDims[2] - 20));
 
 		for (dim[1] = 20; dim[1] < imageDims[1] - 20; dim[1]++)
 		{
@@ -1329,7 +1329,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		ImageType::Pointer vesselnessImage = hessianToImageFilter->GetOutput();
 
 		//-------// 
-		progressbar->setValue(40);
+		progressbar->setValue(60);
 
 		ImageType::PointType leftOstiumPoint, rightOstiumPoint;
 		for (int k = 0; k < 3; k++) leftOstiumPoint[k] = leftOstium[k];
@@ -1347,7 +1347,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 //		std::cout << "l1 nIt.Size() = " << nIt.Size() << std::endl;
 
 		//-------// 
-		progressbar->setValue(50);
+		progressbar->setValue(70);
 
 		for (size_t i = 0; i < nIt.Size(); i++)
 		{
@@ -1368,7 +1368,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 //		std::cout << "r1 nIt.Size() = " << nIt.Size() << std::endl;
 
 		//-------// 
-		progressbar->setValue(60);
+		progressbar->setValue(80);
 
 		for (size_t i = 0; i < nIt.Size(); i++)
 		{
@@ -1388,7 +1388,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		std::cout << "rightOstiumIndex 2: " << rightOstiumIndex << std::endl;
 
 		//-------// 
-		progressbar->setValue(70);
+		progressbar->setValue(85);
 
 		typedef itk::ConnectedThresholdImageFilter<ImageType, BinaryImageType> ThresholdFilterType;
 		ThresholdFilterType::Pointer thresholdFilter1 = ThresholdFilterType::New();
@@ -1416,7 +1416,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		thresholdFilter1->Update();
 
 		//-------// 
-		progressbar->setValue(80);
+		progressbar->setValue(90);
 
 
 	/*	typedef itk::CastImageFilter< BinaryImageType, ImageType > CastFilterType;
@@ -1492,7 +1492,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		std::cout << "rightOstiumIndex 3: " << rightOstiumIndex << std::endl;
 
 		//-------// 
-		progressbar->setValue(90);
+		progressbar->setValue(95);
 
 	}
 

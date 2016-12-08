@@ -27,6 +27,7 @@
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
 
+
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
@@ -59,7 +60,6 @@
 #include "ExtendTubeFilter.h"
 
 
-
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT vtkSlicerCoronaryMainLogic :
   public vtkSlicerModuleLogic
@@ -90,7 +90,6 @@ protected:
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
 private:
-
 	Learning learn;
 	vtkSmartPointer<vtkImageData> imageData;
 	vtkSmartPointer<vtkImageData> imageData_original;
@@ -101,7 +100,6 @@ private:
 
 	double NodeOrigin[3];
 	double NodeSpaceing[3];
-
 
 private:
 
