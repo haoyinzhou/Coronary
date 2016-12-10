@@ -109,6 +109,7 @@ struct CEndFacePoint
 {
 	vtkIdType index[2]; // index[0] is the vessel segment id, index[1] is the point id.
 	double coord[3];
+	double realcoord[3];
 };
 
 struct CBifurcationTriangle
@@ -132,7 +133,7 @@ void AxisCenterline(vtkPolyData* clModel, double planenormal[3] = NULL);
 
 
 int findConvexPoint(int fid, int pid, int pid2, vector<CEndFace> endfaces, CBifurcationTriangle* trianglemesh_out);
-int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle> triangles);
+int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle>& triangles);
 
 
 void SaveVTKImage(vtkImageData *image, const char* fileName);

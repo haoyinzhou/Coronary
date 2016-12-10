@@ -548,7 +548,7 @@ int ExtendTubeFilter::RequestData(
 			}
 		}
 
-		std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
+	/*	std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
 		for (int i = 0; i < Bifurcations.size(); i++)
 		{
 			std::cout << i << " ==========" << std::endl;
@@ -569,15 +569,13 @@ int ExtendTubeFilter::RequestData(
 			std::cout << std::endl;
 		}
 		std::cout << "=========" << std::endl;
-
+	*/
 		for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
 		{
 			HeadPID[CellId] = 0;
 			TailPID[CellId] = npts - 1;
-
-			std::cout << CellId << ", [" << HeadPID[CellId] << ", " << TailPID[CellId] << "]" << std::endl;
 		}
-
+	
 
 	/*******************************************************/
 		//double* VesselRadius = new double[NumofInsectParts * 20];
@@ -590,6 +588,7 @@ int ExtendTubeFilter::RequestData(
 		for (int i = 0; i < Bifurcations.size(); i ++)
 		//for (int i = 0; i < 1; i ++)
 		{
+	//		cout << "Bifurcation ID = " << i << endl;
 			vector<double> vesselradius_mean;
 			vesselradius_mean.resize(Bifurcations[i].VesselID.size());
 
@@ -605,7 +604,7 @@ int ExtendTubeFilter::RequestData(
 				CircleEndface[j].realrz.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
 			}
 
-			std::cout << clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1) << std::endl;
+		//	std::cout << clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1) << std::endl;
 
 			for (BifurcationRadius[i] = 2.0; BifurcationRadius[i] < 8.0; BifurcationRadius[i] += 0.1)
 			{
@@ -613,13 +612,12 @@ int ExtendTubeFilter::RequestData(
 
 				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
 				{
-					std::cout << "Bifurcations[i].VesselID.size() = " << Bifurcations[i].VesselID.size() << std::endl;
+			//		std::cout << "Bifurcations[i].VesselID.size() = " << Bifurcations[i].VesselID.size() << std::endl;
 					for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
 					{
 						if (CellId == Bifurcations[i].VesselID[j])
 							break;
 					}
-					std::cout << "CellId = " << CellId << std::endl;
 
 					double clcoord[3];
 					double distance_choosen = 100.0;
@@ -667,8 +665,6 @@ int ExtendTubeFilter::RequestData(
 						vesselradius_mean[j] += refineradii[l];
 
 					vesselradius_mean[j] = vesselradius_mean[j] / (clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-
-					std::cout << "j = " << j << " vesselradius_mean[j] = " << vesselradius_mean[j] << std::endl;
 
 					if (vesselradius_mean[j] >= BifurcationRadius[i])
 					{
@@ -744,7 +740,6 @@ int ExtendTubeFilter::RequestData(
 							CircleEndface[j].realrx[k] = coord[0];
 							CircleEndface[j].realry[k] = coord[1];
 							CircleEndface[j].realrz[k] = coord[2];
-
 						}
 					}
 					for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
@@ -765,19 +760,30 @@ int ExtendTubeFilter::RequestData(
 				}
 			}
 
+		/*	for (int k = 0; k < CircleEndface.size(); k++)
+			{
+				cout << "Bifur ID = " << i << endl;
+				cout << CircleEndface[k].x << ", " << CircleEndface[k].y << ", " << CircleEndface[k].z << ", " << endl;
+				for (int kk = 0; kk < CircleEndface[k].rx.size(); kk++)
+				{
+					cout << CircleEndface[k].rx[kk] << ", " << CircleEndface[k].ry[kk] << ", " << CircleEndface[k].rz[kk] << "] [" << CircleEndface[k].realrx[kk] << ", " << CircleEndface[k].realry[kk] << ", " << CircleEndface[k].realrz[kk] << endl;
+				}
+			}
+		*/
 
-	//		vector<CBifurcationTriangle> triangles;
-	//		triangles.resize(0);
-	//		int MergeResult = 1;
-	//		if (findBifurcaationRadius[i])
-	//		{
-	//			MergeResult = MergeAlgorithm(CircleEndface, Bifurcations[i].CenterCoord, triangles);
-	//			BifurcationTriangles.push_back(triangles);
-	//		}
-	
+			vector<CBifurcationTriangle> triangles;
+			triangles.resize(0);
+			int MergeResult = 1;
+			if (findBifurcaationRadius[i])
+			{
+				MergeResult = MergeAlgorithm(CircleEndface, Bifurcations[i].CenterCoord, triangles);
+				BifurcationTriangles.push_back(triangles);
+			}
+		//	cout << "triangles.size() = " << triangles.size() << ", " << MergeResult << endl;
+		//	cout << "BifurcationTriangles.size() = " << BifurcationTriangles.size() << endl;
 		}
 		
-		std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
+	/*	std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
 		for (int i = 0; i < Bifurcations.size(); i++)
 		{
 			std::cout << i << " ==========" << std::endl;
@@ -810,7 +816,7 @@ int ExtendTubeFilter::RequestData(
 			std::cout << BifurcationRadius[i] << ", ";
 		}
 		std::cout << std::endl;
-
+	*/
 	/*******************************************************/
 
 		vtkPoints *out1Points = vtkPoints::New();
@@ -834,9 +840,6 @@ int ExtendTubeFilter::RequestData(
 		vtkSmartPointer<vtkIntArray>isBifurcation = vtkSmartPointer<vtkIntArray>::New();
 		isBifurcation->SetName("isBifurcation");
 		isBifurcation->SetNumberOfComponents(1);
-		vtkDoubleArray* bifurcationPoints = vtkDoubleArray::New();
-		bifurcationPoints->SetNumberOfComponents(3);
-		bifurcationPoints->SetName("BifurcationPoints");
 		
 		vtkPoints *out3Points = vtkPoints::New();
 		vtkCellArray *out3Strips = vtkCellArray::New();
@@ -910,8 +913,6 @@ int ExtendTubeFilter::RequestData(
 
 					idlist2curr->InsertNextId(out2Points->InsertNextPoint(coord));
 
-					double temp[3] = {0.0, 0.0, 0.0};
-					bifurcationPoints->InsertNextTuple(temp);
 
 					out2Param->InsertNextTuple2(longiparam, circumparam[k]);
 					out2Radius->InsertNextValue(refineradii[k]);
@@ -980,29 +981,28 @@ int ExtendTubeFilter::RequestData(
 			idlist3curr->Delete();
 		}
 
-	
-/*		for (int i = 0; i < NumofInsectParts; i ++)
+		for (int i = 0; i < Bifurcations.size(); i ++)
 		{
-		//	if (EndFaceisfind[i] == false)
-		//		continue;
-			if (flag_Radius_of_bifur_isfound[i] == false)
+			std::cout << "i = " << i << ", findBifurcaationRadius[i] = " << findBifurcaationRadius[i] << endl;
+			if (findBifurcaationRadius[i] == false)
 				continue;
 
 			double coordtemp[3];
 			vtkIdType existID = 0;
-			vtkIdType npts_Before = out2Points->GetNumberOfPoints();
+			vtkIdType npts_before = out2Points->GetNumberOfPoints();
 
-			bool finditinexistOut2points = false;
-			for (int j = 0; j < NumContour_list[i]; j ++)
+			bool findthispoint = false;
+			for (int j = 0; j < BifurcationTriangles[i].size(); j++)
 			{
-				for (int k = 0; k < PointNuminEachContour_list[i][j]; k ++)
+				for (int k = 0; k < BifurcationTriangles[i][j].EndFacePoint.size(); k++)
 				{
-					coord[0] = contour_out_list[i][j * MaxNumofPointsInEachContour + k].x;
-					coord[1] = contour_out_list[i][j * MaxNumofPointsInEachContour + k].y;
-					coord[2] = contour_out_list[i][j * MaxNumofPointsInEachContour + k].z;
+					for (int l = 0; l < 3; l ++)
+						coord[l] = BifurcationTriangles[i][j].EndFacePoint[k].realcoord[l];
+					std::cout << coord[0] << ", " << coord[1] << ", " << coord[2] << endl;
+
 					// find this coord in exist out5Points
-					finditinexistOut2points = false;
-					if(contour_out_list[i][j * MaxNumofPointsInEachContour + k].l > -1)
+					findthispoint = false;
+					if (BifurcationTriangles[i][j].EndFacePoint[k].index[0] > -1)
 					{
 						for (vtkIdType kk = 0; kk < out2Points->GetNumberOfPoints(); kk ++)
 						{
@@ -1011,7 +1011,7 @@ int ExtendTubeFilter::RequestData(
 								&& abs(coord[1] - coordtemp[1]) < 1e-4
 								&& abs(coord[2] - coordtemp[2]) < 1e-4)
 							{
-								finditinexistOut2points = true;
+								findthispoint = true;
 								existID = kk;
 								break;
 							}
@@ -1019,28 +1019,25 @@ int ExtendTubeFilter::RequestData(
 					}
 					else
 					{
-						for (vtkIdType kk = npts_Before; kk < out2Points->GetNumberOfPoints(); kk ++)
+						for (vtkIdType kk = npts_before; kk < out2Points->GetNumberOfPoints(); kk ++)
 						{
 							out2Points->GetPoint(kk, coordtemp);
 							if (abs(coord[0] - coordtemp[0]) < 1e-4
 								&& abs(coord[1] - coordtemp[1]) < 1e-4
 								&& abs(coord[2] - coordtemp[2]) < 1e-4)
 							{
-								finditinexistOut2points = true;
+								findthispoint = true;
 								existID = kk;
 								break;
 							}
 						}
 					}			
-					if (finditinexistOut2points == false)
+					if (npts_before == false)
 					{
 						mergeTriangle->GetPointIds()->SetId(k, out2Points->InsertNextPoint(coord));
 						out2Param->InsertNextTuple2(-1.0, -2.0);
 						out2Radius->InsertNextValue(1.0);
 						isBifurcation->InsertNextValue(i);
-
-						double temp[3] = {0.0, 0.0, 0.0};
-						bifurcationPoints->InsertNextTuple(temp);
 					}
 					else
 						mergeTriangle->GetPointIds()->SetId(k, existID);
@@ -1049,9 +1046,8 @@ int ExtendTubeFilter::RequestData(
 				vtkIdType outcellId = out2Strips->InsertNextCell(mergeTriangle);
 				output2->GetCellData()->CopyData(output0->GetCellData(),0,outcellId);  // temp
 			}
-			bifurcationPoints->SetTuple(i, InsertPart[i].coord);
 		}
-*/
+
 		output1->SetPoints(out1Points); out1Points->Delete();
 		output2->SetPoints(out2Points); 
 		output3->SetPoints(out3Points); out3Points->Delete();

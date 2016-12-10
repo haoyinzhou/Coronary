@@ -1575,10 +1575,12 @@ void SavePolyData(vtkPolyData *poly, const char* fileName)
 }
 
 
-int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle> triangles)
+int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle>& triangles)
 {
 	int number_endfaces = endfaces.size();
 	int number_ringpoints = endfaces[0].rx.size();
+
+//	cout << "number_endfaces = " << number_endfaces << ", number_ringpoints = " << number_ringpoints << endl;
 
 /*	vector< vector<bool> > Lflag;
 	Lflag.resize(number_endfaces);
@@ -1594,12 +1596,19 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 	{
 		for (int pid = 0; pid < number_ringpoints; pid++)
 		{
-			int pid2 = (pid == number_ringpoints - 1) ? pid + 1 : 0;
+			int pid2 = (pid == number_ringpoints - 1) ? 0 : pid + 1;
 		//	if (Lflag[fid][pid] == false)
 			{
 				CBifurcationTriangle thistrianglemesh;
 				findConvexPoint(fid, pid, pid2, endfaces, &thistrianglemesh);
+			//	cout << "fid = " << fid << ", pid,pid2 = " << pid << ", " << pid2 << endl;
+			//	cout << "thistrianglemesh.EndFacePoint.size() = " << thistrianglemesh.EndFacePoint.size() << endl;
+			//	cout << thistrianglemesh.EndFacePoint[0].index[0] << ", " << thistrianglemesh.EndFacePoint[0].index[1] << endl;
+			//	cout << thistrianglemesh.EndFacePoint[1].index[0] << ", " << thistrianglemesh.EndFacePoint[1].index[1] << endl;
+			//	cout << thistrianglemesh.EndFacePoint[2].index[0] << ", " << thistrianglemesh.EndFacePoint[2].index[1] << endl;
+				
 				triangles.push_back(thistrianglemesh);
+			//	cout << "in func triangles.size = " << triangles.size() << endl;
 			}
 		}
 	}
@@ -1710,6 +1719,9 @@ int findConvexPoint(int fid
 	EndFacePoint.coord[0] = endfaces[fid].rx[pid];
 	EndFacePoint.coord[1] = endfaces[fid].ry[pid];
 	EndFacePoint.coord[2] = endfaces[fid].rz[pid];
+	EndFacePoint.realcoord[0] = endfaces[fid].realrx[pid];
+	EndFacePoint.realcoord[1] = endfaces[fid].realry[pid];
+	EndFacePoint.realcoord[2] = endfaces[fid].realrz[pid];
 	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
 
 	EndFacePoint.index[0] = fid;
@@ -1717,6 +1729,9 @@ int findConvexPoint(int fid
 	EndFacePoint.coord[0] = endfaces[fid].rx[pid2];
 	EndFacePoint.coord[1] = endfaces[fid].ry[pid2];
 	EndFacePoint.coord[2] = endfaces[fid].rz[pid2];
+	EndFacePoint.realcoord[0] = endfaces[fid].realrx[pid2];
+	EndFacePoint.realcoord[1] = endfaces[fid].realry[pid2];
+	EndFacePoint.realcoord[2] = endfaces[fid].realrz[pid2];
 	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
 
 	EndFacePoint.index[0] = IDl;
@@ -1724,6 +1739,9 @@ int findConvexPoint(int fid
 	EndFacePoint.coord[0] = endfaces[IDl].rx[IDj];
 	EndFacePoint.coord[1] = endfaces[IDl].ry[IDj];
 	EndFacePoint.coord[2] = endfaces[IDl].rz[IDj];
+	EndFacePoint.realcoord[0] = endfaces[IDl].realrx[IDj];
+	EndFacePoint.realcoord[1] = endfaces[IDl].realry[IDj];
+	EndFacePoint.realcoord[2] = endfaces[IDl].realrz[IDj];
 	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
 
 	return 0;
