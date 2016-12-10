@@ -81,6 +81,41 @@ namespace SmartCoronary
 }
 
 
+class CBifurcation
+{
+public:
+	vtkIdType CenterPID;
+	double CenterCoord[3];
+	std::vector< vtkIdType > VesselID;
+	std::vector< int > VesselDir;
+	std::vector< vtkIdType > EndfacePID;
+
+public:
+	CBifurcation();
+};
+
+struct CEndFace
+{
+	double x, y, z;
+	std::vector<double> rx;
+	std::vector<double> ry;
+	std::vector<double> rz;
+	std::vector<double> realrx;
+	std::vector<double> realry;
+	std::vector<double> realrz;
+};
+
+struct CEndFacePoint
+{
+	vtkIdType index[2]; // index[0] is the vessel segment id, index[1] is the point id.
+	double coord[3];
+};
+
+struct CBifurcationTriangle
+{
+	std::vector<CEndFacePoint> EndFacePoint;
+};
+
 
 void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtkImageInterpolator* interpolator);
 void IntegralImageHist(vtkImageData* intergalImage, int corner1[3], int corner2[3], double hist[6]);
@@ -94,6 +129,11 @@ void SumImageHist(vtkImageData* sumImage, double* sumimage, int corner1[3], int 
 void Hessian(vtkImageData* sumImage, double* sumimage, double coord[3], double eigvalue[3], double eigvector[3][3], int cellsize);
 void GetRotationMatrix(double axis[3], double angle, double rot[3][3]);
 void AxisCenterline(vtkPolyData* clModel, double planenormal[3] = NULL);
+
+
+int findConvexPoint(int fid, int pid, int pid2, vector<CEndFace> endfaces, CBifurcationTriangle* trianglemesh_out);
+int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle> triangles);
+
 
 void SaveVTKImage(vtkImageData *image, const char* fileName);
 void SavePolyData(vtkPolyData *poly, const char* fileName);

@@ -5,6 +5,14 @@
 
 
 
+CBifurcation::CBifurcation()
+{
+	this->CenterPID = 0;
+	this->VesselID.resize(0);
+	this->EndfacePID.resize(0);
+	this->VesselDir.resize(0);
+}
+
 
 void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtkImageInterpolator* interpolator)
 {
@@ -1564,4 +1572,159 @@ void SavePolyData(vtkPolyData *poly, const char* fileName)
 		std::cerr << "Error occurs when writing " << fileName << std::endl;
 		return;
 	}
+}
+
+
+int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle> triangles)
+{
+	int number_endfaces = endfaces.size();
+	int number_ringpoints = endfaces[0].rx.size();
+
+/*	vector< vector<bool> > Lflag;
+	Lflag.resize(number_endfaces);
+	for (int fid = 0; fid < number_endfaces; fid ++)
+	{
+		Lflag[fid].resize(number_ringpoints);
+		for (int pid = 0; pid < number_ringpoints; pid ++)
+			Lflag[fid][pid] = false;
+	}
+*/
+
+	for (int fid = 0; fid < number_endfaces; fid ++)
+	{
+		for (int pid = 0; pid < number_ringpoints; pid++)
+		{
+			int pid2 = (pid == number_ringpoints - 1) ? pid + 1 : 0;
+		//	if (Lflag[fid][pid] == false)
+			{
+				CBifurcationTriangle thistrianglemesh;
+				findConvexPoint(fid, pid, pid2, endfaces, &thistrianglemesh);
+				triangles.push_back(thistrianglemesh);
+			}
+		}
+	}
+	
+	return 0;
+}
+
+int findConvexPoint(int fid
+	, int pid, int pid2
+	, vector<CEndFace> endfaces
+	, CBifurcationTriangle* trianglemesh_out)
+{
+	int NUM_SEGMENT = endfaces.size();
+	int RING_SIZE = endfaces[0].rx.size();
+
+	double x = endfaces[fid].x;
+	double y = endfaces[fid].y;
+	double z = endfaces[fid].z;
+
+	double ax = endfaces[fid].rx[pid2] - endfaces[fid].rx[pid];
+	double ay = endfaces[fid].ry[pid2] - endfaces[fid].ry[pid];
+	double az = endfaces[fid].rz[pid2] - endfaces[fid].rz[pid];
+
+	double temp = sqrt(ax * ax + ay * ay + az * az);
+	ax = ax / temp;
+	ay = ay / temp;
+	az = az / temp;
+
+	double p[3], q[3], qp[3];
+	p[0] = endfaces[fid].rx[0] - x;
+	p[1] = endfaces[fid].ry[0] - y;
+	p[2] = endfaces[fid].rz[0] - z;
+	q[0] = endfaces[fid].rx[4] - x;
+	q[1] = endfaces[fid].ry[4] - y;
+	q[2] = endfaces[fid].rz[4] - z;
+	vtkMath::Cross(p, q, qp);
+	double dx = qp[0];
+	double dy = qp[1];
+	double dz = qp[2];
+
+	temp = sqrt(dx * dx + dy * dy + dz * dz);
+	dx = dx / temp;
+	dy = dy / temp;
+	dz = dz / temp;
+
+	double ox = endfaces[fid].rx[pid];
+	double oy = endfaces[fid].ry[pid];
+	double oz = endfaces[fid].rz[pid];
+
+	double cx = endfaces[fid].rx[pid] - x;
+	double cy = endfaces[fid].ry[pid] - y;
+	double cz = endfaces[fid].rz[pid] - z;
+	double adx = ay * dz - az * dy;
+	double ady = az * dx - dz * ax;
+	double adz = ax * dy - ay * dx;
+
+	if (adx * cx + ady * cy + adz * cz < 0)
+	{
+		adx = -adx;
+		ady = -ady;
+		adz = -adz;
+	}
+
+	double maxTh = std::numeric_limits<double>::lowest();
+	double th = 0.0;
+
+	int IDl = 0;		// one convex point of line (j,j2) is 
+	int IDj = 0;
+	double outx, outy, outz;
+
+	double px, py, pz;
+
+	for (int l = 0; l < NUM_SEGMENT; l++)
+	{
+		if (l == fid)
+			continue;
+
+		for (int j = 0; j < RING_SIZE; j++)
+		{
+			px = endfaces[l].rx[j] - ox - (ax * (endfaces[l].rx[j] - ox) + ay * (endfaces[l].ry[j] - oy) + az * (endfaces[l].rz[j] - oz)) * ax;
+			py = endfaces[l].ry[j] - oy - (ax * (endfaces[l].rx[j] - ox) + ay * (endfaces[l].ry[j] - oy) + az * (endfaces[l].rz[j] - oz)) * ay;
+			pz = endfaces[l].rz[j] - oz - (ax * (endfaces[l].rx[j] - ox) + ay * (endfaces[l].ry[j] - oy) + az * (endfaces[l].rz[j] - oz)) * az;
+
+			temp = sqrt(px * px + py * py + pz * pz);
+			px = px / temp;
+			py = py / temp;
+			pz = pz / temp;
+
+			th = px * adx + py * ady + pz * adz;
+
+			if (th > maxTh)
+			{
+				maxTh = th;
+
+				IDl = l;
+				IDj = j;
+				outx = endfaces[l].rx[j];
+				outy = endfaces[l].ry[j];
+				outz = endfaces[l].rz[j];
+			}
+		}
+	}
+
+	CEndFacePoint EndFacePoint;
+
+	EndFacePoint.index[0] = fid;
+	EndFacePoint.index[1] = pid;
+	EndFacePoint.coord[0] = endfaces[fid].rx[pid];
+	EndFacePoint.coord[1] = endfaces[fid].ry[pid];
+	EndFacePoint.coord[2] = endfaces[fid].rz[pid];
+	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
+
+	EndFacePoint.index[0] = fid;
+	EndFacePoint.index[1] = pid2;
+	EndFacePoint.coord[0] = endfaces[fid].rx[pid2];
+	EndFacePoint.coord[1] = endfaces[fid].ry[pid2];
+	EndFacePoint.coord[2] = endfaces[fid].rz[pid2];
+	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
+
+	EndFacePoint.index[0] = IDl;
+	EndFacePoint.index[1] = IDj;
+	EndFacePoint.coord[0] = endfaces[IDl].rx[IDj];
+	EndFacePoint.coord[1] = endfaces[IDl].ry[IDj];
+	EndFacePoint.coord[2] = endfaces[IDl].rz[IDj];
+	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
+
+	return 0;
 }

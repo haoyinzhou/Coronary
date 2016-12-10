@@ -7,6 +7,9 @@
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkImageData.h"
 
+#include <iostream>
+#include <vector>
+
 class vtkCellArray;
 class vtkCellData;
 class vtkDataArray;
@@ -15,18 +18,7 @@ class vtkPointData;
 class vtkPoints;
 class vtkCardinalSpline;
 
-//#define NumberOfOutputPorts 5
 
-class CInsectPart
-{
-public:
-	int NumofSeg;
-	vtkIdType ts;
-	double coord[3];
-	vtkIdType SegIDs[20];
-	vtkIdType endfaceids[20];
-	int SegDir[20];
-};
 
 //class VTKFILTERSCORE_EXPORT ExtendTubeFilter : public vtkPolyDataAlgorithm
 class ExtendTubeFilter: public vtkPolyDataAlgorithm
@@ -92,8 +84,6 @@ private:
   ExtendTubeFilter(const ExtendTubeFilter&);  // Not implemented.
   void operator=(const ExtendTubeFilter&);  // Not implemented.
   
-  void GetRotationMatrix(double axis[3], double angle, double rot[3][3]);
-
   vtkPolyData *out0cache;
 };
 
