@@ -131,12 +131,16 @@ void Hessian(vtkImageData* sumImage, double* sumimage, double coord[3], double e
 void GetRotationMatrix(double axis[3], double angle, double rot[3][3]);
 void AxisCenterline(vtkPolyData* clModel, double planenormal[3] = NULL);
 
+void fillBifurcationTriangle(CBifurcationTriangle* t
+	, vtkIdType p1_idx0, vtkIdType p1_idx1, double p1_rx, double p1_ry, double p1_rz, double p1_realrx, double p1_realry, double p1_realrz
+	, vtkIdType p2_idx0, vtkIdType p2_idx1, double p2_rx, double p2_ry, double p2_rz, double p2_realrx, double p2_realry, double p2_realrz
+	, vtkIdType p3_idx0, vtkIdType p3_idx1, double p3_rx, double p3_ry, double p3_rz, double p3_realrx, double p3_realry, double p3_realrz);
 
 int findConvexPoint(int fid, int pid, int pid2, vector<CEndFace> endfaces, CBifurcationTriangle* trianglemesh_out);
 int findConvexPoint_fill_big_triangle_hole(int fid1, int fid2, int fid3, int pid1, int pid2, int pid3, vector<CEndFace> endfaces, CBifurcationTriangle* trianglemesh_out);
 int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle>& triangles);
 
-
+int smoothvtkpolydata(vtkPolyData* Poly, int iternum, int TYPE = 1);
 void SaveVTKImage(vtkImageData *image, const char* fileName);
 void SavePolyData(vtkPolyData *poly, const char* fileName);
 

@@ -99,6 +99,156 @@ void IntegralImageHist(vtkImageData* intergalImage, int corner1[3], int corner2[
 	}
 }
 
+
+int smoothvtkpolydata(vtkPolyData* Poly, int iternum, int TYPE)
+{
+	vtkPoints* Points = Poly->GetPoints();
+	vtkCellArray* Strips = Poly->GetPolys();
+	if (Strips->GetNumberOfCells() == 0)
+	{
+		Strips = Poly->GetStrips();
+	}
+
+//	if (TYPE == 1)
+//		Strips = Poly->GetPolys();
+//	else
+//		Strips = Poly->GetStrips();
+
+	if (Strips->GetNumberOfCells() == 0)
+	{
+		std::cerr << "Cannot find cell data" << std::endl;
+		return 0;
+	}
+
+	vtkIdType CellId = 0;
+	vtkIdType npts = 0, *pts = NULL;
+
+	int* adjcent = (int*)malloc(Points->GetNumberOfPoints() * 10 * sizeof(int));
+	int* num_adjcent = (int*)malloc(Points->GetNumberOfPoints() * sizeof(int));
+
+	for (vtkIdType pid = 0; pid < Points->GetNumberOfPoints(); pid++)
+	{
+		num_adjcent[pid] = 0;
+	}
+	for (CellId = 0, Strips->InitTraversal(); Strips->GetNextCell(npts, pts); CellId++)
+	{
+		if (npts != 3)
+		{
+			std::cout << "not triangle, smooth cannot work!" << std::endl;
+			return 0;
+		}
+		for (int i = 0; i < npts; i++)
+		{
+			int p[2];
+			int pidx = 0;
+			for (int k = 0; k < npts; k++)
+			{
+				if (k != i)
+				{
+					p[pidx] = k;
+					pidx++;
+				}
+			}
+			for (int l = 0; l < 2; l++)
+			{
+				bool find_pl_in_adjofptsi = false;
+				for (int k = 0; k < num_adjcent[pts[i]]; k++)
+				{
+					if (adjcent[pts[i] * 10 + k] == pts[p[l]])
+					{
+						find_pl_in_adjofptsi = true;
+						break;
+					}
+				}
+
+				if (find_pl_in_adjofptsi == false)
+				{
+					adjcent[pts[i] * 10 + num_adjcent[pts[i]]] = pts[p[l]];
+					num_adjcent[pts[i]] ++;
+				}
+			}
+		}
+	}
+
+
+	// the smooth algorithm
+	{
+		vtkSmartPointer<vtkPoints> Points_orig = vtkSmartPointer<vtkPoints>::New();
+		vtkSmartPointer<vtkPoints> Points_last = vtkSmartPointer<vtkPoints>::New();
+		Points_orig->DeepCopy(Points);
+
+		double* b = (double*)malloc(Points->GetNumberOfPoints() * 3 * sizeof(double));
+		double pi[3], qi[3], oi[3];
+		const double alpha = 0.1, beta = 0.2;
+
+		for (int iter = 0; iter < iternum; iter++)
+		{
+			Points_last->DeepCopy(Points);
+			for (vtkIdType pid = 0; pid < Points->GetNumberOfPoints(); pid++)
+			{
+				if (num_adjcent[pid] > 0)
+				{
+					pi[0] = 0;
+					pi[1] = 0;
+					pi[2] = 0;
+					for (int j = 0; j < num_adjcent[pid]; j++)
+					{
+						Points_last->GetPoint(adjcent[pid * 10 + j], qi);
+						pi[0] += qi[0];
+						pi[1] += qi[1];
+						pi[2] += qi[2];
+					}
+					pi[0] = pi[0] / num_adjcent[pid];
+					pi[1] = pi[1] / num_adjcent[pid];
+					pi[2] = pi[2] / num_adjcent[pid];
+					Points->SetPoint(pid, pi);
+					Points_orig->GetPoint(pid, oi);
+					Points_last->GetPoint(pid, qi);
+
+					b[pid * 3 + 0] = pi[0] - (alpha * oi[0] + (1.0 - alpha) * qi[0]);
+					b[pid * 3 + 1] = pi[1] - (alpha * oi[1] + (1.0 - alpha) * qi[1]);
+					b[pid * 3 + 2] = pi[2] - (alpha * oi[2] + (1.0 - alpha) * qi[2]);
+
+				}
+			}
+			for (vtkIdType pid = 0; pid < Points->GetNumberOfPoints(); pid++)
+			{
+				if (num_adjcent[pid] > 0)
+				{
+					double sumbj[3];
+					sumbj[0] = 0;
+					sumbj[1] = 0;
+					sumbj[2] = 0;
+
+					for (int j = 0; j < num_adjcent[pid]; j++)
+					{
+						sumbj[0] += b[adjcent[pid * 10 + j] * 3 + 0];
+						sumbj[1] += b[adjcent[pid * 10 + j] * 3 + 1];
+						sumbj[2] += b[adjcent[pid * 10 + j] * 3 + 2];
+					}
+					sumbj[0] = sumbj[0] / num_adjcent[pid];
+					sumbj[1] = sumbj[1] / num_adjcent[pid];
+					sumbj[2] = sumbj[2] / num_adjcent[pid];
+
+					Points->GetPoint(pid, pi);
+
+					pi[0] = pi[0] - (beta * b[pid * 3 + 0] + (1.0 - beta) * sumbj[0]);
+					pi[1] = pi[1] - (beta * b[pid * 3 + 1] + (1.0 - beta) * sumbj[1]);
+					pi[2] = pi[2] - (beta * b[pid * 3 + 2] + (1.0 - beta) * sumbj[2]);
+
+					Points->SetPoint(pid, pi);
+				}
+			}
+		}
+		Points_orig->Reset();
+		Points_last->Reset();
+		free(b);
+	}
+
+	Poly->SetPoints(Points);
+	return 1;
+}
+
 void ImageFeatures(vtkImageData* intergalImage, double coord[3], cv::Mat& featureRow)
 {
 	double* origin = intergalImage->GetOrigin();
@@ -1580,6 +1730,8 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 	int number_endfaces = endfaces.size();
 	int number_ringpoints = endfaces[0].rx.size();
 
+	vector<CBifurcationTriangle> triangles_orignal;
+
 //	cout << "number_endfaces = " << number_endfaces << ", number_ringpoints = " << number_ringpoints << endl;
 
 /*	vector< vector<bool> > Lflag;
@@ -1607,40 +1759,40 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 			//	cout << thistrianglemesh.EndFacePoint[1].index[0] << ", " << thistrianglemesh.EndFacePoint[1].index[1] << endl;
 			//	cout << thistrianglemesh.EndFacePoint[2].index[0] << ", " << thistrianglemesh.EndFacePoint[2].index[1] << endl;
 				
-				triangles.push_back(thistrianglemesh);
+				triangles_orignal.push_back(thistrianglemesh);
 			}
 		}
 	}
 
 
-	int trianglesize_orignal = triangles.size();
+	int trianglesize_orignal = triangles_orignal.size();
 //	int i2 = 0, ii2 = 0;
 	bool findthisedge = false;
 	for (int tid = 0; tid < trianglesize_orignal; tid ++)
 	{
-		for (int pid = 0; pid < triangles[tid].EndFacePoint.size(); pid ++)
+		for (int pid = 0; pid < triangles_orignal[tid].EndFacePoint.size(); pid++)
 		{
-			int pid2 = (pid == triangles[tid].EndFacePoint.size() - 1) ? 0 : pid + 1;
+			int pid2 = (pid == triangles_orignal[tid].EndFacePoint.size() - 1) ? 0 : pid + 1;
 			findthisedge = false;
 
-			if (triangles[tid].EndFacePoint[pid].index[0] == triangles[tid].EndFacePoint[pid2].index[0])
+			if (triangles_orignal[tid].EndFacePoint[pid].index[0] == triangles_orignal[tid].EndFacePoint[pid2].index[0])
 				continue;
 
-			for (int tid_inside = 0; tid_inside < triangles.size(); tid_inside ++)
+			for (int tid_inside = 0; tid_inside < triangles_orignal.size(); tid_inside++)
 			{
 				if (tid_inside == tid)	continue;
 
-				for (int pid_inside = 0; pid_inside < triangles[tid_inside].EndFacePoint.size(); pid_inside ++)
+				for (int pid_inside = 0; pid_inside < triangles_orignal[tid_inside].EndFacePoint.size(); pid_inside++)
 				{
-					int pid2_inside = (pid_inside == triangles[tid_inside].EndFacePoint.size() - 1) ? 0 : pid_inside + 1;
+					int pid2_inside = (pid_inside == triangles_orignal[tid_inside].EndFacePoint.size() - 1) ? 0 : pid_inside + 1;
 
-					if (triangles[tid_inside].EndFacePoint[pid_inside].index[0] == triangles[tid_inside].EndFacePoint[pid2_inside].index[0])
+					if (triangles_orignal[tid_inside].EndFacePoint[pid_inside].index[0] == triangles_orignal[tid_inside].EndFacePoint[pid2_inside].index[0])
 						continue;
 
-					if ((triangles[tid_inside].EndFacePoint[pid_inside].index[0] == triangles[tid].EndFacePoint[pid].index[0] && triangles[tid_inside].EndFacePoint[pid_inside].index[1] == triangles[tid].EndFacePoint[pid].index[1]
-						&& triangles[tid_inside].EndFacePoint[pid2_inside].index[0] == triangles[tid].EndFacePoint[pid2].index[0] && triangles[tid_inside].EndFacePoint[pid2_inside].index[1] == triangles[tid].EndFacePoint[pid2].index[1])
-						|| (triangles[tid_inside].EndFacePoint[pid_inside].index[0] == triangles[tid].EndFacePoint[pid2].index[0] && triangles[tid_inside].EndFacePoint[pid_inside].index[1] == triangles[tid].EndFacePoint[pid2].index[1]
-						&& triangles[tid_inside].EndFacePoint[pid2_inside].index[0] == triangles[tid].EndFacePoint[pid].index[0] && triangles[tid_inside].EndFacePoint[pid2_inside].index[1] == triangles[tid].EndFacePoint[pid].index[1]))
+					if ((triangles_orignal[tid_inside].EndFacePoint[pid_inside].index[0] == triangles_orignal[tid].EndFacePoint[pid].index[0] && triangles_orignal[tid_inside].EndFacePoint[pid_inside].index[1] == triangles_orignal[tid].EndFacePoint[pid].index[1]
+						&& triangles_orignal[tid_inside].EndFacePoint[pid2_inside].index[0] == triangles_orignal[tid].EndFacePoint[pid2].index[0] && triangles_orignal[tid_inside].EndFacePoint[pid2_inside].index[1] == triangles_orignal[tid].EndFacePoint[pid2].index[1])
+						|| (triangles_orignal[tid_inside].EndFacePoint[pid_inside].index[0] == triangles_orignal[tid].EndFacePoint[pid2].index[0] && triangles_orignal[tid_inside].EndFacePoint[pid_inside].index[1] == triangles_orignal[tid].EndFacePoint[pid2].index[1]
+						&& triangles_orignal[tid_inside].EndFacePoint[pid2_inside].index[0] == triangles_orignal[tid].EndFacePoint[pid].index[0] && triangles_orignal[tid_inside].EndFacePoint[pid2_inside].index[1] == triangles_orignal[tid].EndFacePoint[pid].index[1]))
 					{
 						findthisedge = true;
 						break;
@@ -1652,7 +1804,7 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 
 			int pid3 = 0;
 			// notice 			for (i3 = 0; i3 < localPointNuminEachContour[k] - 1; i3 ++)
-			for (pid3 = 0; pid3 < triangles[tid].EndFacePoint.size(); pid3 ++)
+			for (pid3 = 0; pid3 < triangles_orignal[tid].EndFacePoint.size(); pid3++)
 			{
 				if (pid3 != pid && pid3 != pid2)
 					break;
@@ -1660,14 +1812,272 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 
 			CBifurcationTriangle thistrianglemesh;
 
-			findConvexPoint_fill_big_triangle_hole(triangles[tid].EndFacePoint[pid].index[0], triangles[tid].EndFacePoint[pid2].index[0], triangles[tid].EndFacePoint[pid3].index[0]
-												 , triangles[tid].EndFacePoint[pid].index[1], triangles[tid].EndFacePoint[pid2].index[1], triangles[tid].EndFacePoint[pid3].index[1]
+			findConvexPoint_fill_big_triangle_hole(triangles_orignal[tid].EndFacePoint[pid].index[0], triangles_orignal[tid].EndFacePoint[pid2].index[0], triangles_orignal[tid].EndFacePoint[pid3].index[0]
+												 , triangles_orignal[tid].EndFacePoint[pid].index[1], triangles_orignal[tid].EndFacePoint[pid2].index[1], triangles_orignal[tid].EndFacePoint[pid3].index[1]
 												 , endfaces, &thistrianglemesh);
 	
+			triangles_orignal.push_back(thistrianglemesh);
+		}
+	}
+	
+	//std::cout << "triangles_orignal.size() = " << triangles_orignal.size() << endl;
+	//std::cout << "triangles.size() = " << triangles.size() << endl;
+
+	// manually sub divide convex hull triangles
+	for (int i = 0; i < triangles_orignal.size(); i++)
+	{
+		// triangles_no_subdivision[i].EndFacePoint.index[0];
+		int j1, j2, j3;
+		
+		if (   triangles_orignal[i].EndFacePoint[0].index[0]
+			== triangles_orignal[i].EndFacePoint[1].index[0])
+		{
+			j1 = 2;
+			j2 = 0;
+			j3 = 1;
+		}
+		else if (triangles_orignal[i].EndFacePoint[0].index[0]
+			  == triangles_orignal[i].EndFacePoint[2].index[0])
+		{
+			j1 = 1;
+			j2 = 0;
+			j3 = 2;
+		}
+		else if (triangles_orignal[i].EndFacePoint[1].index[0]
+			  == triangles_orignal[i].EndFacePoint[2].index[0])
+		{
+			j1 = 0;
+			j2 = 1;
+			j3 = 2;
+		}
+		else
+		{
+			j1 = -1;
+			j2 = -1;
+			j3 = -1;
+		}
+
+		if (j1 != -1)
+		{
+			double mid1[3], mid2[3];			// divide 1/2
+			double sub1[3], sub2[3], sub3[3], sub4[3]; // divide 1/4
+
+			for (int l = 0; l < 3; l++)
+			{
+				mid1[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j1].realcoord[l] + triangles_orignal[i].EndFacePoint[j2].realcoord[l]);
+				mid2[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j1].realcoord[l] + triangles_orignal[i].EndFacePoint[j3].realcoord[l]);
+			}
+			for (int l = 0; l < 3; l++)
+			{
+				sub1[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j1].realcoord[l] + mid1[l]);
+				sub2[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j1].realcoord[l] + mid2[l]);
+				sub3[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j2].realcoord[l] + mid1[l]);
+				sub4[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j3].realcoord[l] + mid2[l]);
+			}
+		//	cout << "mid1: " << mid1[0] << ", " << mid1[1] << ", " << mid1[2] << endl;
+		//	cout << "mid2: " << mid2[0] << ", " << mid2[1] << ", " << mid2[2] << endl;
+		//	cout << "sub1: " << sub1[0] << ", " << sub1[1] << ", " << sub1[2] << endl;
+		//	cout << "sub2: " << sub2[0] << ", " << sub2[1] << ", " << sub2[2] << endl;
+		//	cout << "sub3: " << sub3[0] << ", " << sub3[1] << ", " << sub3[2] << endl;
+		//	cout << "sub4: " << sub4[0] << ", " << sub4[1] << ", " << sub4[2] << endl;
+			CBifurcationTriangle thistrianglemesh;
+
+			// [i][j1] sub1 sub2
+			fillBifurcationTriangle(&thistrianglemesh
+				, triangles_orignal[i].EndFacePoint[j1].index[0], triangles_orignal[i].EndFacePoint[j1].index[1], triangles_orignal[i].EndFacePoint[j1].coord[0], triangles_orignal[i].EndFacePoint[j1].coord[1], triangles_orignal[i].EndFacePoint[j1].coord[2], triangles_orignal[i].EndFacePoint[j1].realcoord[0], triangles_orignal[i].EndFacePoint[j1].realcoord[1], triangles_orignal[i].EndFacePoint[j1].realcoord[2]
+				, -1, -1, sub1[0], sub1[1], sub1[2], sub1[0], sub1[1], sub1[2]
+				, -1, -1, sub2[0], sub2[1], sub2[2], sub2[0], sub2[1], sub2[2]);
 			triangles.push_back(thistrianglemesh);
+
+			// midcoord1 sub1 sub2
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid1[0], mid1[1], mid1[2], mid1[0], mid1[1], mid1[2]
+				, -1, -1, sub1[0], sub1[1], sub1[2], sub1[0], sub1[1], sub1[2]
+				, -1, -1, sub2[0], sub2[1], sub2[2], sub2[0], sub2[1], sub2[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// midcoord1 midcoord2 sub2
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid1[0], mid1[1], mid1[2], mid1[0], mid1[1], mid1[2]
+				, -1, -1, mid2[0], mid2[1], mid2[2], mid2[0], mid2[1], mid2[2]
+				, -1, -1, sub2[0], sub2[1], sub2[2], sub2[0], sub2[1], sub2[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// midcoord1 midcoord2 sub3
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid1[0], mid1[1], mid1[2], mid1[0], mid1[1], mid1[2]
+				, -1, -1, mid2[0], mid2[1], mid2[2], mid2[0], mid2[1], mid2[2]
+				, -1, -1, sub3[0], sub3[1], sub3[2], sub3[0], sub3[1], sub3[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// midcoord2 sub3 sub4
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid2[0], mid2[1], mid2[2], mid2[0], mid2[1], mid2[2]
+				, -1, -1, sub3[0], sub3[1], sub3[2], sub3[0], sub3[1], sub3[2]
+				, -1, -1, sub4[0], sub4[1], sub4[2], sub4[0], sub4[1], sub4[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// j2 sub3 sub4
+			fillBifurcationTriangle(&thistrianglemesh
+				, triangles_orignal[i].EndFacePoint[j2].index[0], triangles_orignal[i].EndFacePoint[j2].index[1], triangles_orignal[i].EndFacePoint[j2].coord[0], triangles_orignal[i].EndFacePoint[j2].coord[1], triangles_orignal[i].EndFacePoint[j2].coord[2], triangles_orignal[i].EndFacePoint[j2].realcoord[0], triangles_orignal[i].EndFacePoint[j2].realcoord[1], triangles_orignal[i].EndFacePoint[j2].realcoord[2]
+				, -1, -1, sub3[0], sub3[1], sub3[2], sub3[0], sub3[1], sub3[2]
+				, -1, -1, sub4[0], sub4[1], sub4[2], sub4[0], sub4[1], sub4[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// j2 j3 sub4
+			fillBifurcationTriangle(&thistrianglemesh
+				, triangles_orignal[i].EndFacePoint[j2].index[0], triangles_orignal[i].EndFacePoint[j2].index[1], triangles_orignal[i].EndFacePoint[j2].coord[0], triangles_orignal[i].EndFacePoint[j2].coord[1], triangles_orignal[i].EndFacePoint[j2].coord[2], triangles_orignal[i].EndFacePoint[j2].realcoord[0], triangles_orignal[i].EndFacePoint[j2].realcoord[1], triangles_orignal[i].EndFacePoint[j2].realcoord[2]
+				, triangles_orignal[i].EndFacePoint[j3].index[0], triangles_orignal[i].EndFacePoint[j3].index[1], triangles_orignal[i].EndFacePoint[j3].coord[0], triangles_orignal[i].EndFacePoint[j3].coord[1], triangles_orignal[i].EndFacePoint[j3].coord[2], triangles_orignal[i].EndFacePoint[j3].realcoord[0], triangles_orignal[i].EndFacePoint[j3].realcoord[1], triangles_orignal[i].EndFacePoint[j3].realcoord[2]
+				, -1, -1, sub4[0], sub4[1], sub4[2], sub4[0], sub4[1], sub4[2]);
+			triangles.push_back(thistrianglemesh);
+		}
+	//	if (0)
+		else
+		{
+			double mid1[3], mid2[3], mid3[3];
+			double sub11[3], sub12[3], sub13[3];
+			double sub21[3], sub22[3], sub23[3];
+			double sub31[3], sub32[3], sub33[3];
+
+			for (int l = 0; l < 3; l++)
+			{
+				mid1[l] = 0.5 * (triangles_orignal[i].EndFacePoint[0].realcoord[l] + triangles_orignal[i].EndFacePoint[1].realcoord[l]);
+				mid2[l] = 0.5 * (triangles_orignal[i].EndFacePoint[1].realcoord[l] + triangles_orignal[i].EndFacePoint[2].realcoord[l]);
+				mid3[l] = 0.5 * (triangles_orignal[i].EndFacePoint[2].realcoord[l] + triangles_orignal[i].EndFacePoint[0].realcoord[l]);
+			}
+			for (int l = 0; l < 3; l++)
+			{
+				sub11[l] = 0.5 * (triangles_orignal[i].EndFacePoint[0].realcoord[l] + mid1[l]);
+				sub12[l] = 0.5 * (triangles_orignal[i].EndFacePoint[0].realcoord[l] + mid3[l]);
+				sub13[l] = 0.5 * (mid1[l] + mid3[l]);
+				sub21[l] = 0.5 * (triangles_orignal[i].EndFacePoint[1].realcoord[l] + mid1[l]);
+				sub22[l] = 0.5 * (triangles_orignal[i].EndFacePoint[1].realcoord[l] + mid2[l]);
+				sub23[l] = 0.5 * (mid1[l] + mid2[l]);
+				sub31[l] = 0.5 * (triangles_orignal[i].EndFacePoint[2].realcoord[l] + mid2[l]);
+				sub32[l] = 0.5 * (triangles_orignal[i].EndFacePoint[2].realcoord[l] + mid3[l]);
+				sub33[l] = 0.5 * (mid2[l] + mid3[l]);
+			}
+
+			CBifurcationTriangle thistrianglemesh;
+
+			// 0 sub11 sub12
+			fillBifurcationTriangle(&thistrianglemesh
+				, triangles_orignal[i].EndFacePoint[0].index[0], triangles_orignal[i].EndFacePoint[0].index[1], triangles_orignal[i].EndFacePoint[0].coord[0], triangles_orignal[i].EndFacePoint[0].coord[1], triangles_orignal[i].EndFacePoint[0].coord[2], triangles_orignal[i].EndFacePoint[0].realcoord[0], triangles_orignal[i].EndFacePoint[0].realcoord[1], triangles_orignal[i].EndFacePoint[0].realcoord[2]
+				, -1, -1, sub11[0], sub11[1], sub11[2], sub11[0], sub11[1], sub11[2]
+				, -1, -1, sub12[0], sub12[1], sub12[2], sub12[0], sub12[1], sub12[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid1 sub11 sub13
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid1[0], mid1[1], mid1[2], mid1[0], mid1[1], mid1[2]
+				, -1, -1, sub11[0], sub11[1], sub11[2], sub11[0], sub11[1], sub11[2]
+				, -1, -1, sub13[0], sub13[1], sub13[2], sub13[0], sub13[1], sub13[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid3 sub12 sub13
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid3[0], mid3[1], mid3[2], mid3[0], mid3[1], mid3[2]
+				, -1, -1, sub12[0], sub12[1], sub12[2], sub12[0], sub12[1], sub12[2]
+				, -1, -1, sub13[0], sub13[1], sub13[2], sub13[0], sub13[1], sub13[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// sub11 sub12 sub13
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, sub11[0], sub11[1], sub11[2], sub11[0], sub11[1], sub11[2]
+				, -1, -1, sub12[0], sub12[1], sub12[2], sub12[0], sub12[1], sub12[2]
+				, -1, -1, sub13[0], sub13[1], sub13[2], sub13[0], sub13[1], sub13[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// 1 sub21 sub22
+			fillBifurcationTriangle(&thistrianglemesh
+				, triangles_orignal[i].EndFacePoint[1].index[0], triangles_orignal[i].EndFacePoint[1].index[1], triangles_orignal[i].EndFacePoint[1].coord[0], triangles_orignal[i].EndFacePoint[1].coord[1], triangles_orignal[i].EndFacePoint[1].coord[2], triangles_orignal[i].EndFacePoint[1].realcoord[0], triangles_orignal[i].EndFacePoint[1].realcoord[1], triangles_orignal[i].EndFacePoint[1].realcoord[2]
+				, -1, -1, sub21[0], sub21[1], sub21[2], sub21[0], sub21[1], sub21[2]
+				, -1, -1, sub22[0], sub22[1], sub22[2], sub22[0], sub22[1], sub22[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid1 sub21 sub23
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid1[0], mid1[1], mid1[2], mid1[0], mid1[1], mid1[2]
+				, -1, -1, sub21[0], sub21[1], sub21[2], sub21[0], sub21[1], sub21[2]
+				, -1, -1, sub23[0], sub23[1], sub23[2], sub23[0], sub23[1], sub23[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid2 sub22 sub23
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid2[0], mid2[1], mid2[2], mid2[0], mid2[1], mid2[2]
+				, -1, -1, sub22[0], sub22[1], sub22[2], sub22[0], sub22[1], sub22[2]
+				, -1, -1, sub23[0], sub23[1], sub23[2], sub23[0], sub23[1], sub23[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// sub21 sub22 sub23
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, sub21[0], sub21[1], sub21[2], sub21[0], sub21[1], sub21[2]
+				, -1, -1, sub22[0], sub22[1], sub22[2], sub22[0], sub22[1], sub22[2]
+				, -1, -1, sub23[0], sub23[1], sub23[2], sub23[0], sub23[1], sub23[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// 2 sub31 sub32
+			fillBifurcationTriangle(&thistrianglemesh
+				, triangles_orignal[i].EndFacePoint[2].index[0], triangles_orignal[i].EndFacePoint[2].index[1], triangles_orignal[i].EndFacePoint[2].coord[0], triangles_orignal[i].EndFacePoint[2].coord[1], triangles_orignal[i].EndFacePoint[2].coord[2], triangles_orignal[i].EndFacePoint[2].realcoord[0], triangles_orignal[i].EndFacePoint[2].realcoord[1], triangles_orignal[i].EndFacePoint[2].realcoord[2]
+				, -1, -1, sub31[0], sub31[1], sub31[2], sub31[0], sub31[1], sub31[2]
+				, -1, -1, sub32[0], sub32[1], sub32[2], sub32[0], sub32[1], sub32[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid2 sub31 sub33
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid2[0], mid2[1], mid2[2], mid2[0], mid2[1], mid2[2]
+				, -1, -1, sub31[0], sub31[1], sub31[2], sub31[0], sub31[1], sub31[2]
+				, -1, -1, sub33[0], sub33[1], sub33[2], sub33[0], sub33[1], sub33[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid3 sub32 sub33
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid3[0], mid3[1], mid3[2], mid3[0], mid3[1], mid3[2]
+				, -1, -1, sub32[0], sub32[1], sub32[2], sub32[0], sub32[1], sub32[2]
+				, -1, -1, sub33[0], sub33[1], sub33[2], sub33[0], sub33[1], sub33[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// sub31 sub32 sub33
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, sub31[0], sub31[1], sub31[2], sub31[0], sub31[1], sub31[2]
+				, -1, -1, sub32[0], sub32[1], sub32[2], sub32[0], sub32[1], sub32[2]
+				, -1, -1, sub33[0], sub33[1], sub33[2], sub33[0], sub33[1], sub33[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid1 sub23 sub13
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid1[0], mid1[1], mid1[2], mid1[0], mid1[1], mid1[2]
+				, -1, -1, sub23[0], sub23[1], sub23[2], sub23[0], sub23[1], sub23[2]
+				, -1, -1, sub13[0], sub13[1], sub13[2], sub13[0], sub13[1], sub13[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid2 sub23 sub33
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid2[0], mid2[1], mid2[2], mid2[0], mid2[1], mid2[2]
+				, -1, -1, sub23[0], sub23[1], sub23[2], sub23[0], sub23[1], sub23[2]
+				, -1, -1, sub33[0], sub33[1], sub33[2], sub33[0], sub33[1], sub33[2]);
+			triangles.push_back(thistrianglemesh);
+
+			// mid3 sub13 sub33
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, mid3[0], mid3[1], mid3[2], mid3[0], mid3[1], mid3[2]
+				, -1, -1, sub13[0], sub13[1], sub13[2], sub13[0], sub13[1], sub13[2]
+				, -1, -1, sub33[0], sub33[1], sub33[2], sub33[0], sub33[1], sub33[2]);
+			triangles.push_back(thistrianglemesh);
+
+			//sub13 sub23 sub33
+			fillBifurcationTriangle(&thistrianglemesh
+				, -1, -1, sub13[0], sub13[1], sub13[2], sub13[0], sub13[1], sub13[2]
+				, -1, -1, sub23[0], sub23[1], sub23[2], sub23[0], sub23[1], sub23[2]
+				, -1, -1, sub33[0], sub33[1], sub33[2], sub33[0], sub33[1], sub33[2]);
+			triangles.push_back(thistrianglemesh);
+
 		}
 	}
 
+//	std::cout << "triangles.size() = " << triangles.size() << endl;
+
+//	std::cout << "==========================" << endl;
 	
 	return 0;
 }
@@ -1768,37 +2178,11 @@ int findConvexPoint(int fid
 		}
 	}
 
-	CEndFacePoint EndFacePoint;
+	fillBifurcationTriangle(trianglemesh_out
+		, fid, pid, endfaces[fid].rx[pid], endfaces[fid].ry[pid], endfaces[fid].rz[pid], endfaces[fid].realrx[pid], endfaces[fid].realry[pid], endfaces[fid].realrz[pid]
+		, fid, pid2, endfaces[fid].rx[pid2], endfaces[fid].ry[pid2], endfaces[fid].rz[pid2], endfaces[fid].realrx[pid2], endfaces[fid].realry[pid2], endfaces[fid].realrz[pid2]
+		, IDl, IDj, endfaces[IDl].rx[IDj], endfaces[IDl].ry[IDj], endfaces[IDl].rz[IDj], endfaces[IDl].realrx[IDj], endfaces[IDl].realry[IDj], endfaces[IDl].realrz[IDj]);
 
-	EndFacePoint.index[0] = fid;
-	EndFacePoint.index[1] = pid;
-	EndFacePoint.coord[0] = endfaces[fid].rx[pid];
-	EndFacePoint.coord[1] = endfaces[fid].ry[pid];
-	EndFacePoint.coord[2] = endfaces[fid].rz[pid];
-	EndFacePoint.realcoord[0] = endfaces[fid].realrx[pid];
-	EndFacePoint.realcoord[1] = endfaces[fid].realry[pid];
-	EndFacePoint.realcoord[2] = endfaces[fid].realrz[pid];
-	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
-
-	EndFacePoint.index[0] = fid;
-	EndFacePoint.index[1] = pid2;
-	EndFacePoint.coord[0] = endfaces[fid].rx[pid2];
-	EndFacePoint.coord[1] = endfaces[fid].ry[pid2];
-	EndFacePoint.coord[2] = endfaces[fid].rz[pid2];
-	EndFacePoint.realcoord[0] = endfaces[fid].realrx[pid2];
-	EndFacePoint.realcoord[1] = endfaces[fid].realry[pid2];
-	EndFacePoint.realcoord[2] = endfaces[fid].realrz[pid2];
-	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
-
-	EndFacePoint.index[0] = IDl;
-	EndFacePoint.index[1] = IDj;
-	EndFacePoint.coord[0] = endfaces[IDl].rx[IDj];
-	EndFacePoint.coord[1] = endfaces[IDl].ry[IDj];
-	EndFacePoint.coord[2] = endfaces[IDl].rz[IDj];
-	EndFacePoint.realcoord[0] = endfaces[IDl].realrx[IDj];
-	EndFacePoint.realcoord[1] = endfaces[IDl].realry[IDj];
-	EndFacePoint.realcoord[2] = endfaces[IDl].realrz[IDj];
-	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
 
 	return 0;
 }
@@ -1898,38 +2282,50 @@ int findConvexPoint_fill_big_triangle_hole(int fid1, int fid2, int fid3
 			}
 		}
 	}
-
-	CEndFacePoint EndFacePoint;
-
-	EndFacePoint.index[0] = fid1;
-	EndFacePoint.index[1] = pid1;
-	EndFacePoint.coord[0] = endfaces[fid1].rx[pid1];
-	EndFacePoint.coord[1] = endfaces[fid1].ry[pid1];
-	EndFacePoint.coord[2] = endfaces[fid1].rz[pid1];
-	EndFacePoint.realcoord[0] = endfaces[fid1].realrx[pid1];
-	EndFacePoint.realcoord[1] = endfaces[fid1].realry[pid1];
-	EndFacePoint.realcoord[2] = endfaces[fid1].realrz[pid1];
-	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
-
-	EndFacePoint.index[0] = fid2;
-	EndFacePoint.index[1] = pid2;
-	EndFacePoint.coord[0] = endfaces[fid2].rx[pid2];
-	EndFacePoint.coord[1] = endfaces[fid2].ry[pid2];
-	EndFacePoint.coord[2] = endfaces[fid2].rz[pid2];
-	EndFacePoint.realcoord[0] = endfaces[fid2].realrx[pid2];
-	EndFacePoint.realcoord[1] = endfaces[fid2].realry[pid2];
-	EndFacePoint.realcoord[2] = endfaces[fid2].realrz[pid2];
-	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
-
-	EndFacePoint.index[0] = IDl;
-	EndFacePoint.index[1] = IDj;
-	EndFacePoint.coord[0] = endfaces[IDl].rx[IDj];
-	EndFacePoint.coord[1] = endfaces[IDl].ry[IDj];
-	EndFacePoint.coord[2] = endfaces[IDl].rz[IDj];
-	EndFacePoint.realcoord[0] = endfaces[IDl].realrx[IDj];
-	EndFacePoint.realcoord[1] = endfaces[IDl].realry[IDj];
-	EndFacePoint.realcoord[2] = endfaces[IDl].realrz[IDj];
-	trianglemesh_out->EndFacePoint.push_back(EndFacePoint);
+	fillBifurcationTriangle(trianglemesh_out
+		, fid1, pid1, endfaces[fid1].rx[pid1], endfaces[fid1].ry[pid1], endfaces[fid1].rz[pid1], endfaces[fid1].realrx[pid1], endfaces[fid1].realry[pid1], endfaces[fid1].realrz[pid1]
+		, fid2, pid2, endfaces[fid2].rx[pid2], endfaces[fid2].ry[pid2], endfaces[fid2].rz[pid2], endfaces[fid2].realrx[pid2], endfaces[fid2].realry[pid2], endfaces[fid2].realrz[pid2]
+		, IDl, IDj, endfaces[IDl].rx[IDj], endfaces[IDl].ry[IDj], endfaces[IDl].rz[IDj], endfaces[IDl].realrx[IDj], endfaces[IDl].realry[IDj], endfaces[IDl].realrz[IDj]);
 
 	return 0;
 }
+
+void fillBifurcationTriangle(CBifurcationTriangle* t
+	, vtkIdType p1_idx0, vtkIdType p1_idx1, double p1_rx, double p1_ry, double p1_rz, double p1_realrx, double p1_realry, double p1_realrz
+	, vtkIdType p2_idx0, vtkIdType p2_idx1, double p2_rx, double p2_ry, double p2_rz, double p2_realrx, double p2_realry, double p2_realrz
+	, vtkIdType p3_idx0, vtkIdType p3_idx1, double p3_rx, double p3_ry, double p3_rz, double p3_realrx, double p3_realry, double p3_realrz)
+{
+	t->EndFacePoint.clear();
+	CEndFacePoint EndFacePoint;
+
+	EndFacePoint.index[0] = p1_idx0;
+	EndFacePoint.index[1] = p1_idx1;
+	EndFacePoint.coord[0] = p1_rx;
+	EndFacePoint.coord[1] = p1_ry;
+	EndFacePoint.coord[2] = p1_rz;
+	EndFacePoint.realcoord[0] = p1_realrx;
+	EndFacePoint.realcoord[1] = p1_realry;
+	EndFacePoint.realcoord[2] = p1_realrz;
+	t->EndFacePoint.push_back(EndFacePoint);
+
+	EndFacePoint.index[0] = p2_idx0;
+	EndFacePoint.index[1] = p2_idx1;
+	EndFacePoint.coord[0] = p2_rx;
+	EndFacePoint.coord[1] = p2_ry;
+	EndFacePoint.coord[2] = p2_rz;
+	EndFacePoint.realcoord[0] = p2_realrx;
+	EndFacePoint.realcoord[1] = p2_realry;
+	EndFacePoint.realcoord[2] = p2_realrz;
+	t->EndFacePoint.push_back(EndFacePoint);
+
+	EndFacePoint.index[0] = p3_idx0;
+	EndFacePoint.index[1] = p3_idx1;
+	EndFacePoint.coord[0] = p3_rx;
+	EndFacePoint.coord[1] = p3_ry;
+	EndFacePoint.coord[2] = p3_rz;
+	EndFacePoint.realcoord[0] = p3_realrx;
+	EndFacePoint.realcoord[1] = p3_realry;
+	EndFacePoint.realcoord[2] = p3_realrz;
+	t->EndFacePoint.push_back(EndFacePoint);
+}
+

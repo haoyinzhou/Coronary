@@ -785,7 +785,7 @@ int ExtendTubeFilter::RequestData(
 				MergeResult = MergeAlgorithm(CircleEndface, Bifurcations[i].CenterCoord, triangles);
 				BifurcationTriangles.push_back(triangles);
 			}
-		//	cout << "triangles.size() = " << triangles.size() << ", " << MergeResult << endl;
+			cout << "triangles.size() = " << triangles.size() << ", " << MergeResult << endl;
 		//	cout << "BifurcationTriangles.size() = " << BifurcationTriangles.size() << endl;
 		}
 		
@@ -997,7 +997,6 @@ int ExtendTubeFilter::RequestData(
 			vtkIdType existID = 0;
 			vtkIdType npts_before = out2Points->GetNumberOfPoints();
 
-			std::cout << "BifurcationTriangles[i].size = " << BifurcationTriangles[i].size() << endl;
 			bool findthispoint = false;
 			for (int j = 0; j < BifurcationTriangles[i].size(); j++)
 			{
@@ -1007,7 +1006,7 @@ int ExtendTubeFilter::RequestData(
 						coord[l] = BifurcationTriangles[i][j].EndFacePoint[k].realcoord[l];
 				//	std::cout << coord[0] << ", " << coord[1] << ", " << coord[2] << endl;
 
-					// find this coord in exist out5Points
+					// find this coord in exist outPoints
 					findthispoint = false;
 					if (BifurcationTriangles[i][j].EndFacePoint[k].index[0] > -1)
 					{
@@ -1039,7 +1038,7 @@ int ExtendTubeFilter::RequestData(
 							}
 						}
 					}			
-					if (npts_before == false)
+					if (findthispoint == false)
 					{
 						mergeTriangle->GetPointIds()->SetId(k, out2Points->InsertNextPoint(coord));
 						out2Param->InsertNextTuple2(-1.0, -2.0);
@@ -1048,8 +1047,7 @@ int ExtendTubeFilter::RequestData(
 					}
 					else
 						mergeTriangle->GetPointIds()->SetId(k, existID);
-				} 
-
+				}
 				vtkIdType outcellId = out2Strips->InsertNextCell(mergeTriangle);
 				output2->GetCellData()->CopyData(output0->GetCellData(),0,outcellId);  // temp
 			}
@@ -1068,6 +1066,9 @@ int ExtendTubeFilter::RequestData(
 		output1->SetStrips(out1Strips); out1Strips->Delete();
 		output2->SetStrips(out2Strips); 
 		output3->SetStrips(out3Strips); out3Strips->Delete();
+		
+		smoothvtkpolydata(output2, 10, 2);
+
 
 //		output2->GetPointData()->AddArray(bifurcationPoints); bifurcationPoints->Delete();
 
