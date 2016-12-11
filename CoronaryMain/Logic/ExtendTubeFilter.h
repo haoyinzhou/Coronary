@@ -48,6 +48,8 @@ public:
 
   virtual void SetUpdateSegment(vtkIdType update);
 
+  void SetWillBuildBifurcationMesh(bool);
+
   // Description:
   // Turn on/off whether to cap the ends with polygons. Initial value is off.
   vtkSetMacro(Capping,int);
@@ -76,6 +78,8 @@ protected:
   vtkImageData *InputImageData;
 
   vtkIdType UpdateSegment;
+
+  bool WillBuildBifurcationMesh; // = true: will build bifurcation mesh
 
   // Helper methods
   void InterpolateRefine(vtkCardinalSpline *spline, double *in, int insize, double *out, int refinesteps);

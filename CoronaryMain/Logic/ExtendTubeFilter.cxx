@@ -19,6 +19,8 @@ ExtendTubeFilter::ExtendTubeFilter()
 	this->UpdateSegment = -1;
 	this->firstSegment = true;
 
+	this->WillBuildBifurcationMesh = true;
+
 	this->SetNumberOfInputPorts( 1 );
 	this->SetNumberOfOutputPorts( 4 );
 
@@ -47,6 +49,12 @@ ExtendTubeFilter::~ExtendTubeFilter()
 {
 	out0cache->Delete();
 }
+
+void ExtendTubeFilter::SetWillBuildBifurcationMesh(bool inputflag)
+{
+	this->WillBuildBifurcationMesh = inputflag;
+}
+
 
 void ExtendTubeFilter::SetUpdateSegment(vtkIdType update)
 {
@@ -407,422 +415,398 @@ int ExtendTubeFilter::RequestData(
 	{
 		vector<CBifurcation> Bifurcations;
 		vector<bool> EndFaceFound;
-
-		vector< vector<CBifurcationTriangle> > BifurcationTriangles;
-
-		out0Lines = output0->GetLines();
-		vtkPolyData* centerlinepoly_copy = vtkPolyData::New();
-		centerlinepoly_copy->DeepCopy(output0);
-
-		vtkCellArray* out0Lines2 = centerlinepoly_copy->GetLines();
-		vtkIdType CellId = 0;
-		vtkIdType npts = 0, *pts = NULL;
-	
-		for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
-		{
-			CBifurcation BifurcationatHead, BifurcationatTail;
-			bool HeadAlreadyIn = false, TailAlreadyIn = false;
-
-			BifurcationatHead.CenterPID = pts[0];
-			out0Points->GetPoint(pts[0], BifurcationatHead.CenterCoord);
-			BifurcationatHead.VesselID.push_back(CellId);
-			BifurcationatHead.VesselDir.push_back(1);
-
-			BifurcationatTail.CenterPID = pts[npts - 1];
-			out0Points->GetPoint(pts[npts - 1], BifurcationatTail.CenterCoord);
-			BifurcationatTail.VesselID.push_back(CellId);
-			BifurcationatTail.VesselDir.push_back(-1);
-
-			for (int i = 0; i < Bifurcations.size(); i++)
-			{
-				if (vtkMath::Distance2BetweenPoints(BifurcationatHead.CenterCoord, Bifurcations.at(i).CenterCoord) < 1e-3)
-				{
-					HeadAlreadyIn = true;
-					break;
-				}
-			}
-			for (int i = 0; i < Bifurcations.size(); i++)
-			{
-				if (vtkMath::Distance2BetweenPoints(BifurcationatTail.CenterCoord, Bifurcations.at(i).CenterCoord) < 1e-3)
-				{
-					TailAlreadyIn = true;
-					break;
-				}
-			}
-
-			if (HeadAlreadyIn == true && TailAlreadyIn == true) 	continue;
-
-			vtkIdType CellId2 = 0;
-			vtkIdType npts2 = 0, *pts2 = NULL;
-			for(CellId2 = 0, out0Lines2->InitTraversal(); out0Lines2->GetNextCell(npts2, pts2); CellId2 ++)
-			{
-				if (CellId2 == CellId) continue;
-				double coord2_head[3], coord2_tail[3];
-				out0Points->GetPoint(pts2[0], coord2_head);
-				out0Points->GetPoint(pts2[npts2 - 1], coord2_tail);
-
-			//	std::cout << "[" << BifurcationatHead.CenterPID << ", " << BifurcationatTail.CenterPID << "]   [" << pts2[0] << ", " << pts2[npts2-1] << "]" << std::endl;
-
-				if (vtkMath::Distance2BetweenPoints(BifurcationatHead.CenterCoord, coord2_head) < 1e-3)
-				{
-					BifurcationatHead.VesselID.push_back(CellId2);
-					BifurcationatHead.VesselDir.push_back(1);
-				}
-				else if (vtkMath::Distance2BetweenPoints(BifurcationatHead.CenterCoord, coord2_tail) < 1e-3)
-				{
-					BifurcationatHead.VesselID.push_back(CellId2);
-					BifurcationatHead.VesselDir.push_back(-1);
-				}
-
-				if (vtkMath::Distance2BetweenPoints(BifurcationatTail.CenterCoord, coord2_head) < 1e-3)
-				{
-					BifurcationatTail.VesselID.push_back(CellId2);
-					BifurcationatTail.VesselDir.push_back(1);
-				}
-				else if (vtkMath::Distance2BetweenPoints(BifurcationatTail.CenterCoord, coord2_tail) < 1e-3)
-				{
-					BifurcationatTail.VesselID.push_back(CellId2);
-					BifurcationatTail.VesselDir.push_back(-1);
-				}
-			}
-
-	//		std::cout << "CellId = " << CellId << std::endl;
-	//		std::cout << HeadAlreadyIn << ", " << TailAlreadyIn << std::endl;
-	//		std::cout << BifurcationatHead.VesselID.size() << ", " << BifurcationatTail.VesselID.size() << std::endl;
-
-			if (HeadAlreadyIn == false)
-			{
-				if (BifurcationatHead.VesselID.size() > 1)
-				{
-					Bifurcations.push_back(BifurcationatHead);
-				}
-			}
-			if (TailAlreadyIn == false)
-			{
-				if (BifurcationatTail.VesselID.size() > 1)
-				{
-					Bifurcations.push_back(BifurcationatTail);
-				}
-			}
-		}
-
-
-
-	//	int NumofDeletedVessel = 0;
-	//	int CellIdofDeletedVessel[20];
-
-
-	//	int Idx[2];
-	//	CInsectPart MergedInsertPart;  // find very closed bifurcations
-
-	//////////////////////////////////////////
-
-		vtkSmartPointer<vtkTriangle> mergeTriangle = vtkSmartPointer<vtkTriangle>::New();
+		vector<bool> findBifurcaationRadius;
+		vector<double> BifurcationRadius;
 		vtkIdType* HeadPID = new vtkIdType[out0Lines->GetNumberOfCells()];
 		vtkIdType* TailPID = new vtkIdType[out0Lines->GetNumberOfCells()];
-	//	CSegment** Segment_lumn_list = (CSegment**)malloc(NumofInsectParts * sizeof(CSegment*));
+		vtkIdType CellId = 0;
+		vtkIdType npts = 0, *pts = NULL;
 
-		output0->BuildCells();
-		
-		for (int i = 0; i < Bifurcations.size(); i ++)
-		{
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-			{
-				vtkCell* thisline = output0->GetCell(Bifurcations[i].VesselID[j]);
-				vtkIdList* thislinepids = thisline->GetPointIds();
-				npts = thislinepids->GetNumberOfIds();
-		
-				if (Bifurcations[i].VesselDir[j] == 1)
-				{
-					Bifurcations[i].EndfacePID.push_back(1);
-				}
-				else
-				{
-					Bifurcations[i].EndfacePID.push_back(npts - 2 > 0? npts - 2: 0);
-				}
-			//	double coord[3];
-			//	out0Points->GetPoint(thislinepids->GetId([Bifurcations[i].EndfacePID[j]), coord);
-			//	CircleEndface[j].x = coord[0];
-			//	CircleEndface[j].y = coord[1];
-			//	CircleEndface[j].z = coord[2];
-			}
-		}
-
-	/*	std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
-		for (int i = 0; i < Bifurcations.size(); i++)
-		{
-			std::cout << i << " ==========" << std::endl;
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-			{
-				std::cout << " " << Bifurcations[i].VesselID[j];
-			}
-			std::cout << std::endl;
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-			{
-				std::cout << " " << Bifurcations[i].VesselDir[j];
-			}
-			std::cout << std::endl;
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-			{
-				std::cout << " " << Bifurcations[i].EndfacePID[j];
-			}
-			std::cout << std::endl;
-		}
-		std::cout << "=========" << std::endl;
-	*/
-		for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
+		for (CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId++)
 		{
 			HeadPID[CellId] = 0;
 			TailPID[CellId] = npts - 1;
 		}
-	
 
-	/*******************************************************/
-		//double* VesselRadius = new double[NumofInsectParts * 20];
-		
-		vector<bool> findBifurcaationRadius;
-		vector<double> BifurcationRadius;
-	//	findBifurcaationRadius.resize(Bifurcations.size());
-	//	BifurcationRadius.resize(Bifurcations.size());
-		for (int i = 0; i < Bifurcations.size(); i++)
+		vector< vector<CBifurcationTriangle> > BifurcationTriangles;
+		out0Lines = output0->GetLines();
+
+		if (this->WillBuildBifurcationMesh == true)
 		{
-			findBifurcaationRadius.push_back(false);
-			BifurcationRadius.push_back(2.0);
-		}
-
-
-		for (int i = 0; i < Bifurcations.size(); i ++)
-	//	for (int i = 0; i < 1; i ++)
-		{
-	//		cout << "Bifurcation ID = " << i << endl;
-			vector<double> vesselradius_mean;
-			vesselradius_mean.resize(Bifurcations[i].VesselID.size());
-
-			vector<CEndFace> CircleEndface;
-			CircleEndface.resize(Bifurcations[i].VesselID.size());
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+			vtkPolyData* centerlinepoly_copy = vtkPolyData::New();
+			centerlinepoly_copy->DeepCopy(output0);
+			vtkCellArray* out0Lines2 = centerlinepoly_copy->GetLines();	
+			for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
 			{
-				CircleEndface[j].rx.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-				CircleEndface[j].ry.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-				CircleEndface[j].rz.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-				CircleEndface[j].realrx.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-				CircleEndface[j].realry.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-				CircleEndface[j].realrz.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-			}
+				CBifurcation BifurcationatHead, BifurcationatTail;
+				bool HeadAlreadyIn = false, TailAlreadyIn = false;
 
-		//	std::cout << clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1) << std::endl;
+				BifurcationatHead.CenterPID = pts[0];
+				out0Points->GetPoint(pts[0], BifurcationatHead.CenterCoord);
+				BifurcationatHead.VesselID.push_back(CellId);
+				BifurcationatHead.VesselDir.push_back(1);
 
-			for (BifurcationRadius[i] = 2.0; BifurcationRadius[i] < 8.0; BifurcationRadius[i] += 0.1)
-			{
-				findBifurcaationRadius[i] = true;
+				BifurcationatTail.CenterPID = pts[npts - 1];
+				out0Points->GetPoint(pts[npts - 1], BifurcationatTail.CenterCoord);
+				BifurcationatTail.VesselID.push_back(CellId);
+				BifurcationatTail.VesselDir.push_back(-1);
 
-				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				for (int i = 0; i < Bifurcations.size(); i++)
 				{
-			//		std::cout << "Bifurcations[i].VesselID.size() = " << Bifurcations[i].VesselID.size() << std::endl;
-					for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
+					if (vtkMath::Distance2BetweenPoints(BifurcationatHead.CenterCoord, Bifurcations.at(i).CenterCoord) < 1e-3)
 					{
-						if (CellId == Bifurcations[i].VesselID[j])
-							break;
+						HeadAlreadyIn = true;
+						break;
 					}
-
-					double clcoord[3];
-					double distance_choosen = 100.0;
-					if (Bifurcations[i].VesselDir[j] == 1)
+				}
+				for (int i = 0; i < Bifurcations.size(); i++)
+				{
+					if (vtkMath::Distance2BetweenPoints(BifurcationatTail.CenterCoord, Bifurcations.at(i).CenterCoord) < 1e-3)
 					{
-						for (int k = 1; k < npts; k ++)
-						{
-							out0Points->GetPoint(pts[k], clcoord);
-							double distance = sqrt(vtkMath::Distance2BetweenPoints(clcoord, Bifurcations[i].CenterCoord));
-							if (abs(distance - BifurcationRadius[i]) < abs(distance_choosen - BifurcationRadius[i]))
-							{
-								distance_choosen = distance;
-								Bifurcations[i].EndfacePID[j] = k;
-								CircleEndface[j].x = clcoord[0];
-								CircleEndface[j].y = clcoord[1];
-								CircleEndface[j].z = clcoord[2];
-							}
-							if (abs(distance_choosen - BifurcationRadius[i]) < 0.1)
-								break;
-						}
-					}
-					else
-					{
-						for (int k = npts - 2; k >= 0; k --)
-						{
-							out0Points->GetPoint(pts[k], clcoord);
-							double distance = sqrt(vtkMath::Distance2BetweenPoints(clcoord, Bifurcations[i].CenterCoord));
-							if (abs(distance - BifurcationRadius[i]) < abs(distance_choosen - BifurcationRadius[i]))
-							{
-								distance_choosen = distance;
-								Bifurcations[i].EndfacePID[j] = k;
-								CircleEndface[j].x = clcoord[0];
-								CircleEndface[j].y = clcoord[1];
-								CircleEndface[j].z = clcoord[2];
-							}
-							if (abs(distance_choosen - BifurcationRadius[i]) < 0.1)
-								break;
-						}
-					}
-
-					out0LumenRadius->GetTuple(pts[Bifurcations[i].EndfacePID[j]], refineradii);
-
-					vesselradius_mean[j] = 0.0;
-					for (int l = 0; l < clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1); l ++)
-						vesselradius_mean[j] += refineradii[l];
-
-					vesselradius_mean[j] = vesselradius_mean[j] / (clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
-
-					if (vesselradius_mean[j] >= BifurcationRadius[i])
-					{
-						findBifurcaationRadius[i] = false;
+						TailAlreadyIn = true;
 						break;
 					}
 				}
 
-				if (findBifurcaationRadius[i] == false)
-					continue;
+				if (HeadAlreadyIn == true && TailAlreadyIn == true) 	continue;
 
-				for (int j1 = 0; j1 < Bifurcations[i].VesselID.size() - 1; j1 ++)
+				vtkIdType CellId2 = 0;
+				vtkIdType npts2 = 0, *pts2 = NULL;
+				for(CellId2 = 0, out0Lines2->InitTraversal(); out0Lines2->GetNextCell(npts2, pts2); CellId2 ++)
 				{
-					double dirj1[3], dirj2[3];
-					double anglej1, anglej2;
-					dirj1[0] = CircleEndface[j1].x - Bifurcations[i].CenterCoord[0];
-					dirj1[1] = CircleEndface[j1].y - Bifurcations[i].CenterCoord[1];
-					dirj1[2] = CircleEndface[j1].z - Bifurcations[i].CenterCoord[2];
-					vtkMath::Normalize(dirj1);
-					anglej1 = asin(vesselradius_mean[j1] / BifurcationRadius[i]);
-					for (int j2 = j1 + 1; j2 < Bifurcations[i].VesselID.size(); j2++)
+					if (CellId2 == CellId) continue;
+					double coord2_head[3], coord2_tail[3];
+					out0Points->GetPoint(pts2[0], coord2_head);
+					out0Points->GetPoint(pts2[npts2 - 1], coord2_tail);
+
+				//	std::cout << "[" << BifurcationatHead.CenterPID << ", " << BifurcationatTail.CenterPID << "]   [" << pts2[0] << ", " << pts2[npts2-1] << "]" << std::endl;
+
+					if (vtkMath::Distance2BetweenPoints(BifurcationatHead.CenterCoord, coord2_head) < 1e-3)
 					{
-						dirj2[0] = CircleEndface[j2].x - Bifurcations[i].CenterCoord[0];
-						dirj2[1] = CircleEndface[j2].y - Bifurcations[i].CenterCoord[1];
-						dirj2[2] = CircleEndface[j2].z - Bifurcations[i].CenterCoord[2];
-						vtkMath::Normalize(dirj2);
+						BifurcationatHead.VesselID.push_back(CellId2);
+						BifurcationatHead.VesselDir.push_back(1);
+					}
+					else if (vtkMath::Distance2BetweenPoints(BifurcationatHead.CenterCoord, coord2_tail) < 1e-3)
+					{
+						BifurcationatHead.VesselID.push_back(CellId2);
+						BifurcationatHead.VesselDir.push_back(-1);
+					}
 
-						anglej2 = asin(vesselradius_mean[j2] / BifurcationRadius[i]);
-						double angle_j1j2 = acos(vtkMath::Dot(dirj1, dirj2));
+					if (vtkMath::Distance2BetweenPoints(BifurcationatTail.CenterCoord, coord2_head) < 1e-3)
+					{
+						BifurcationatTail.VesselID.push_back(CellId2);
+						BifurcationatTail.VesselDir.push_back(1);
+					}
+					else if (vtkMath::Distance2BetweenPoints(BifurcationatTail.CenterCoord, coord2_tail) < 1e-3)
+					{
+						BifurcationatTail.VesselID.push_back(CellId2);
+						BifurcationatTail.VesselDir.push_back(-1);
+					}
+				}
 
-						if (angle_j1j2 < anglej1 + anglej2 + 2.0*M_PI/180.0)
+				if (HeadAlreadyIn == false)
+				{
+					if (BifurcationatHead.VesselID.size() > 1)
+					{
+						Bifurcations.push_back(BifurcationatHead);
+					}
+				}
+				if (TailAlreadyIn == false)
+				{
+					if (BifurcationatTail.VesselID.size() > 1)
+					{
+						Bifurcations.push_back(BifurcationatTail);
+					}
+				}
+			}
+
+			output0->BuildCells();
+			for (int i = 0; i < Bifurcations.size(); i ++)
+			{
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					vtkCell* thisline = output0->GetCell(Bifurcations[i].VesselID[j]);
+					vtkIdList* thislinepids = thisline->GetPointIds();
+					npts = thislinepids->GetNumberOfIds();
+		
+					if (Bifurcations[i].VesselDir[j] == 1)
+					{
+						Bifurcations[i].EndfacePID.push_back(1);
+					}
+					else
+					{
+						Bifurcations[i].EndfacePID.push_back(npts - 2 > 0? npts - 2: 0);
+					}
+				}
+			}
+
+		/*	std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
+			for (int i = 0; i < Bifurcations.size(); i++)
+			{
+				std::cout << i << " ==========" << std::endl;
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					std::cout << " " << Bifurcations[i].VesselID[j];
+				}
+				std::cout << std::endl;
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					std::cout << " " << Bifurcations[i].VesselDir[j];
+				}
+				std::cout << std::endl;
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					std::cout << " " << Bifurcations[i].EndfacePID[j];
+				}
+				std::cout << std::endl;
+			}
+			std::cout << "=========" << std::endl;
+		*/
+	
+
+		/*******************************************************/
+			//double* VesselRadius = new double[NumofInsectParts * 20];
+		
+		//	findBifurcaationRadius.resize(Bifurcations.size());
+		//	BifurcationRadius.resize(Bifurcations.size());
+			for (int i = 0; i < Bifurcations.size(); i++)
+			{
+				findBifurcaationRadius.push_back(false);
+				BifurcationRadius.push_back(2.0);
+			}
+
+
+			for (int i = 0; i < Bifurcations.size(); i ++)
+		//	for (int i = 0; i < 1; i ++)
+			{
+		//		cout << "Bifurcation ID = " << i << endl;
+				vector<double> vesselradius_mean;
+				vesselradius_mean.resize(Bifurcations[i].VesselID.size());
+
+				vector<CEndFace> CircleEndface;
+				CircleEndface.resize(Bifurcations[i].VesselID.size());
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					CircleEndface[j].rx.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+					CircleEndface[j].ry.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+					CircleEndface[j].rz.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+					CircleEndface[j].realrx.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+					CircleEndface[j].realry.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+					CircleEndface[j].realrz.resize(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+				}
+
+			//	std::cout << clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1) << std::endl;
+
+				for (BifurcationRadius[i] = 1.5; BifurcationRadius[i] < 8.0; BifurcationRadius[i] += 0.1)
+				{
+					findBifurcaationRadius[i] = true;
+
+					for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+					{
+				//		std::cout << "Bifurcations[i].VesselID.size() = " << Bifurcations[i].VesselID.size() << std::endl;
+						for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
+						{
+							if (CellId == Bifurcations[i].VesselID[j])
+								break;
+						}
+
+						double clcoord[3];
+						double distance_choosen = 100.0;
+						if (Bifurcations[i].VesselDir[j] == 1)
+						{
+							for (int k = 1; k < npts; k ++)
+							{
+								out0Points->GetPoint(pts[k], clcoord);
+								double distance = sqrt(vtkMath::Distance2BetweenPoints(clcoord, Bifurcations[i].CenterCoord));
+								if (abs(distance - BifurcationRadius[i]) < abs(distance_choosen - BifurcationRadius[i]))
+								{
+									distance_choosen = distance;
+									Bifurcations[i].EndfacePID[j] = k;
+									CircleEndface[j].x = clcoord[0];
+									CircleEndface[j].y = clcoord[1];
+									CircleEndface[j].z = clcoord[2];
+								}
+								if (abs(distance_choosen - BifurcationRadius[i]) < 0.1)
+									break;
+							}
+						}
+						else
+						{
+							for (int k = npts - 2; k >= 0; k --)
+							{
+								out0Points->GetPoint(pts[k], clcoord);
+								double distance = sqrt(vtkMath::Distance2BetweenPoints(clcoord, Bifurcations[i].CenterCoord));
+								if (abs(distance - BifurcationRadius[i]) < abs(distance_choosen - BifurcationRadius[i]))
+								{
+									distance_choosen = distance;
+									Bifurcations[i].EndfacePID[j] = k;
+									CircleEndface[j].x = clcoord[0];
+									CircleEndface[j].y = clcoord[1];
+									CircleEndface[j].z = clcoord[2];
+								}
+								if (abs(distance_choosen - BifurcationRadius[i]) < 0.1)
+									break;
+							}
+						}
+
+						out0LumenRadius->GetTuple(pts[Bifurcations[i].EndfacePID[j]], refineradii);
+
+						vesselradius_mean[j] = 0.0;
+						for (int l = 0; l < clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1); l ++)
+							vesselradius_mean[j] += refineradii[l];
+
+						vesselradius_mean[j] = vesselradius_mean[j] / (clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps + 1));
+
+						if (vesselradius_mean[j] >= BifurcationRadius[i])
 						{
 							findBifurcaationRadius[i] = false;
 							break;
 						}
 					}
+
 					if (findBifurcaationRadius[i] == false)
-						break;
-				}
-		
-				if (findBifurcaationRadius[i] == true)
-				{
-					for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-					{
-						for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
-						{
-							if (CellId == Bifurcations[i].VesselID[j])
-								break;
-						}
+						continue;
 
-						out0Axis1->GetTuple(pts[Bifurcations[i].EndfacePID[j]], axis1);
-						out0Axis2->GetTuple(pts[Bifurcations[i].EndfacePID[j]], axis2);
-						out0LumenRadius->GetTuple(pts[Bifurcations[i].EndfacePID[j]], refineradii);
+					for (int j1 = 0; j1 < Bifurcations[i].VesselID.size() - 1; j1 ++)
+					{
+						double dirj1[3], dirj2[3];
+						double anglej1, anglej2;
+						dirj1[0] = CircleEndface[j1].x - Bifurcations[i].CenterCoord[0];
+						dirj1[1] = CircleEndface[j1].y - Bifurcations[i].CenterCoord[1];
+						dirj1[2] = CircleEndface[j1].z - Bifurcations[i].CenterCoord[2];
+						vtkMath::Normalize(dirj1);
+						anglej1 = asin(vesselradius_mean[j1] / BifurcationRadius[i]);
+						for (int j2 = j1 + 1; j2 < Bifurcations[i].VesselID.size(); j2++)
+						{
+							dirj2[0] = CircleEndface[j2].x - Bifurcations[i].CenterCoord[0];
+							dirj2[1] = CircleEndface[j2].y - Bifurcations[i].CenterCoord[1];
+							dirj2[2] = CircleEndface[j2].z - Bifurcations[i].CenterCoord[2];
+							vtkMath::Normalize(dirj2);
+
+							anglej2 = asin(vesselradius_mean[j2] / BifurcationRadius[i]);
+							double angle_j1j2 = acos(vtkMath::Dot(dirj1, dirj2));
+
+							if (angle_j1j2 < anglej1 + anglej2 + 2.0*M_PI/180.0)
+							{
+								findBifurcaationRadius[i] = false;
+								break;
+							}
+						}
+						if (findBifurcaationRadius[i] == false)
+							break;
+					}
+		
+					if (findBifurcaationRadius[i] == true)
+					{
+						for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+						{
+							for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
+							{
+								if (CellId == Bifurcations[i].VesselID[j])
+									break;
+							}
+
+							out0Axis1->GetTuple(pts[Bifurcations[i].EndfacePID[j]], axis1);
+							out0Axis2->GetTuple(pts[Bifurcations[i].EndfacePID[j]], axis2);
+							out0LumenRadius->GetTuple(pts[Bifurcations[i].EndfacePID[j]], refineradii);
 						
-						for (int k = 0; k < clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1); k ++)
-						{
-							coord[0] = CircleEndface[j].x + vesselradius_mean[j] * this->RadiusScale* (cos(k*cirstep) * axis1[0] + sin(k*cirstep) * axis2[0]);
-							coord[1] = CircleEndface[j].y + vesselradius_mean[j] * this->RadiusScale* (cos(k*cirstep) * axis1[1] + sin(k*cirstep) * axis2[1]);
-							coord[2] = CircleEndface[j].z + vesselradius_mean[j] * this->RadiusScale* (cos(k*cirstep) * axis1[2] + sin(k*cirstep) * axis2[2]);
+							for (int k = 0; k < clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1); k ++)
+							{
+								coord[0] = CircleEndface[j].x + vesselradius_mean[j] * this->RadiusScale* (cos(k*cirstep) * axis1[0] + sin(k*cirstep) * axis2[0]);
+								coord[1] = CircleEndface[j].y + vesselradius_mean[j] * this->RadiusScale* (cos(k*cirstep) * axis1[1] + sin(k*cirstep) * axis2[1]);
+								coord[2] = CircleEndface[j].z + vesselradius_mean[j] * this->RadiusScale* (cos(k*cirstep) * axis1[2] + sin(k*cirstep) * axis2[2]);
 
-							for (int l = 0; l < 3; l ++) dir[l] = coord[l] - Bifurcations[i].CenterCoord[l];
-							vtkMath::Normalize(dir);
-							for (int l = 0; l < 3; l++) coord[l] = Bifurcations[i].CenterCoord[l] + BifurcationRadius[i] * dir[l];
+								for (int l = 0; l < 3; l ++) dir[l] = coord[l] - Bifurcations[i].CenterCoord[l];
+								vtkMath::Normalize(dir);
+								for (int l = 0; l < 3; l++) coord[l] = Bifurcations[i].CenterCoord[l] + BifurcationRadius[i] * dir[l];
 
-							CircleEndface[j].rx[k] = coord[0];
-							CircleEndface[j].ry[k] = coord[1];
-							CircleEndface[j].rz[k] = coord[2];
+								CircleEndface[j].rx[k] = coord[0];
+								CircleEndface[j].ry[k] = coord[1];
+								CircleEndface[j].rz[k] = coord[2];
 
-							coord[0] = CircleEndface[j].x + refineradii[k] * this->RadiusScale* (cos(k*cirstep) * axis1[0] + sin(k*cirstep) * axis2[0]);
-							coord[1] = CircleEndface[j].y + refineradii[k] * this->RadiusScale* (cos(k*cirstep) * axis1[1] + sin(k*cirstep) * axis2[1]);
-							coord[2] = CircleEndface[j].z + refineradii[k] * this->RadiusScale* (cos(k*cirstep) * axis1[2] + sin(k*cirstep) * axis2[2]);
+								coord[0] = CircleEndface[j].x + refineradii[k] * this->RadiusScale* (cos(k*cirstep) * axis1[0] + sin(k*cirstep) * axis2[0]);
+								coord[1] = CircleEndface[j].y + refineradii[k] * this->RadiusScale* (cos(k*cirstep) * axis1[1] + sin(k*cirstep) * axis2[1]);
+								coord[2] = CircleEndface[j].z + refineradii[k] * this->RadiusScale* (cos(k*cirstep) * axis1[2] + sin(k*cirstep) * axis2[2]);
 
-							CircleEndface[j].realrx[k] = coord[0];
-							CircleEndface[j].realry[k] = coord[1];
-							CircleEndface[j].realrz[k] = coord[2];
+								CircleEndface[j].realrx[k] = coord[0];
+								CircleEndface[j].realry[k] = coord[1];
+								CircleEndface[j].realrz[k] = coord[2];
+							}
 						}
-					}
-					for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-					{
-						for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
+						for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
 						{
-							if (CellId == Bifurcations[i].VesselID[j])
-								break;
-						}
+							for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
+							{
+								if (CellId == Bifurcations[i].VesselID[j])
+									break;
+							}
 
-						if (Bifurcations[i].VesselDir[j] == 1)
-							HeadPID[CellId] = Bifurcations[i].EndfacePID[j];
-						else
-							TailPID[CellId] = Bifurcations[i].EndfacePID[j];
-					}
+							if (Bifurcations[i].VesselDir[j] == 1)
+								HeadPID[CellId] = Bifurcations[i].EndfacePID[j];
+							else
+								TailPID[CellId] = Bifurcations[i].EndfacePID[j];
+						}
 			
-					break;
+						break;
+					}
 				}
-			}
 
-		/*	for (int k = 0; k < CircleEndface.size(); k++)
-			{
-				cout << "Bifur ID = " << i << endl;
-				cout << CircleEndface[k].x << ", " << CircleEndface[k].y << ", " << CircleEndface[k].z << ", " << endl;
-				for (int kk = 0; kk < CircleEndface[k].rx.size(); kk++)
+			/*	for (int k = 0; k < CircleEndface.size(); k++)
 				{
-					cout << CircleEndface[k].rx[kk] << ", " << CircleEndface[k].ry[kk] << ", " << CircleEndface[k].rz[kk] << "] [" << CircleEndface[k].realrx[kk] << ", " << CircleEndface[k].realry[kk] << ", " << CircleEndface[k].realrz[kk] << endl;
+					cout << "Bifur ID = " << i << endl;
+					cout << CircleEndface[k].x << ", " << CircleEndface[k].y << ", " << CircleEndface[k].z << ", " << endl;
+					for (int kk = 0; kk < CircleEndface[k].rx.size(); kk++)
+					{
+						cout << CircleEndface[k].rx[kk] << ", " << CircleEndface[k].ry[kk] << ", " << CircleEndface[k].rz[kk] << "] [" << CircleEndface[k].realrx[kk] << ", " << CircleEndface[k].realry[kk] << ", " << CircleEndface[k].realrz[kk] << endl;
+					}
+				}
+			*/
+
+				vector<CBifurcationTriangle> triangles;
+				triangles.resize(0);
+				int MergeResult = 1;
+				if (findBifurcaationRadius[i])
+				{
+					MergeResult = MergeAlgorithm(CircleEndface, Bifurcations[i].CenterCoord, triangles);
+					BifurcationTriangles.push_back(triangles);
 				}
 			}
-		*/
-
-			vector<CBifurcationTriangle> triangles;
-			triangles.resize(0);
-			int MergeResult = 1;
-			if (findBifurcaationRadius[i])
-			{
-				MergeResult = MergeAlgorithm(CircleEndface, Bifurcations[i].CenterCoord, triangles);
-				BifurcationTriangles.push_back(triangles);
-			}
-			cout << "triangles.size() = " << triangles.size() << ", " << MergeResult << endl;
-		//	cout << "BifurcationTriangles.size() = " << BifurcationTriangles.size() << endl;
-		}
 		
-/*		std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
-		for (int i = 0; i < Bifurcations.size(); i++)
-		{
-			std::cout << i << " ==========" << std::endl;
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+	/*		std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
+			for (int i = 0; i < Bifurcations.size(); i++)
 			{
-				std::cout << " " << Bifurcations[i].VesselID[j];
+				std::cout << i << " ==========" << std::endl;
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					std::cout << " " << Bifurcations[i].VesselID[j];
+				}
+				std::cout << std::endl;
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					std::cout << " " << Bifurcations[i].VesselDir[j];
+				}
+				std::cout << std::endl;
+				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
+				{
+					std::cout << " " << Bifurcations[i].EndfacePID[j];
+				}
+				std::cout << std::endl;
 			}
-			std::cout << std::endl;
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-			{
-				std::cout << " " << Bifurcations[i].VesselDir[j];
-			}
-			std::cout << std::endl;
-			for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
-			{
-				std::cout << " " << Bifurcations[i].EndfacePID[j];
-			}
-			std::cout << std::endl;
-		}
-		std::cout << "=========" << std::endl;
+			std::cout << "=========" << std::endl;
 
-		for (CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId++)
-		{
-			std::cout << CellId << ", [" << HeadPID[CellId] << ", " << TailPID[CellId] << "]" << std::endl;
-		}
+			for (CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId++)
+			{
+				std::cout << CellId << ", [" << HeadPID[CellId] << ", " << TailPID[CellId] << "]" << std::endl;
+			}
 
-		std::cout << "BifurcationRadius: " << std::endl;
-		for (int i = 0; i < Bifurcations.size(); i++)
-		{
-			std::cout << BifurcationRadius[i] << ", ";
+			std::cout << "BifurcationRadius: " << std::endl;
+			for (int i = 0; i < Bifurcations.size(); i++)
+			{
+				std::cout << BifurcationRadius[i] << ", ";
+			}
+			std::cout << std::endl;
+		*/
 		}
-		std::cout << std::endl;
-	*/
 	/*******************************************************/
 
 		vtkPoints *out1Points = vtkPoints::New();
@@ -866,19 +850,6 @@ int ExtendTubeFilter::RequestData(
 
 		for(inCellId=0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts,pts); inCellId++)
 		{
-	/*		bool thisisadeletedvessel = false;
-			for (int i = 0; i < NumofDeletedVessel; i ++)
-			{
-				if (inCellId == CellIdofDeletedVessel[i])
-				{
-					thisisadeletedvessel = true;
-					break;
-				}
-			}
-			if (thisisadeletedvessel == true)
-				continue;
-	*/
-
 			vtkIdList *idlist1prev = vtkIdList::New();
 			vtkIdList *idlist1curr = vtkIdList::New();
 			vtkIdList *idlist2prev = vtkIdList::New();
@@ -987,72 +958,78 @@ int ExtendTubeFilter::RequestData(
 			idlist3curr->Delete();
 		}
 
-		for (int i = 0; i < Bifurcations.size(); i ++)
+		if (this->WillBuildBifurcationMesh == true)
 		{
-		//	std::cout << "i = " << i << ", findBifurcaationRadius[i] = " << findBifurcaationRadius[i] << endl;
-			if (findBifurcaationRadius[i] == false)
-				continue;
-
-			double coordtemp[3];
-			vtkIdType existID = 0;
-			vtkIdType npts_before = out2Points->GetNumberOfPoints();
-
-			bool findthispoint = false;
-			for (int j = 0; j < BifurcationTriangles[i].size(); j++)
+			for (int i = 0; i < Bifurcations.size(); i ++)
 			{
-				for (int k = 0; k < BifurcationTriangles[i][j].EndFacePoint.size(); k++)
-				{
-					for (int l = 0; l < 3; l ++)
-						coord[l] = BifurcationTriangles[i][j].EndFacePoint[k].realcoord[l];
-				//	std::cout << coord[0] << ", " << coord[1] << ", " << coord[2] << endl;
+			//	std::cout << "i = " << i << ", findBifurcaationRadius[i] = " << findBifurcaationRadius[i] << endl;
+				if (findBifurcaationRadius[i] == false)
+					continue;
 
-					// find this coord in exist outPoints
-					findthispoint = false;
-					if (BifurcationTriangles[i][j].EndFacePoint[k].index[0] > -1)
+				double coordtemp[3];
+				vtkIdType existID = 0;
+				vtkIdType npts_before = out2Points->GetNumberOfPoints();
+
+				bool findthispoint = false;
+
+				vtkSmartPointer<vtkTriangle> mergeTriangle = vtkSmartPointer<vtkTriangle>::New();
+
+				for (int j = 0; j < BifurcationTriangles[i].size(); j++)
+				{
+					for (int k = 0; k < BifurcationTriangles[i][j].EndFacePoint.size(); k++)
 					{
-						for (vtkIdType kk = 0; kk < out2Points->GetNumberOfPoints(); kk ++)
+						for (int l = 0; l < 3; l ++)
+							coord[l] = BifurcationTriangles[i][j].EndFacePoint[k].realcoord[l];
+					//	std::cout << coord[0] << ", " << coord[1] << ", " << coord[2] << endl;
+
+						// find this coord in exist outPoints
+						findthispoint = false;
+						if (BifurcationTriangles[i][j].EndFacePoint[k].index[0] > -1)
 						{
-							out2Points->GetPoint(kk, coordtemp);
-							if (abs(coord[0] - coordtemp[0]) < 1e-4
-								&& abs(coord[1] - coordtemp[1]) < 1e-4
-								&& abs(coord[2] - coordtemp[2]) < 1e-4)
+							for (vtkIdType kk = 0; kk < out2Points->GetNumberOfPoints(); kk ++)
 							{
-								findthispoint = true;
-								existID = kk;
-								break;
+								out2Points->GetPoint(kk, coordtemp);
+								if (abs(coord[0] - coordtemp[0]) < 1e-4
+									&& abs(coord[1] - coordtemp[1]) < 1e-4
+									&& abs(coord[2] - coordtemp[2]) < 1e-4)
+								{
+									findthispoint = true;
+									existID = kk;
+									break;
+								}
 							}
 						}
-					}
-					else
-					{
-						for (vtkIdType kk = npts_before; kk < out2Points->GetNumberOfPoints(); kk ++)
+						else
 						{
-							out2Points->GetPoint(kk, coordtemp);
-							if (abs(coord[0] - coordtemp[0]) < 1e-4
-								&& abs(coord[1] - coordtemp[1]) < 1e-4
-								&& abs(coord[2] - coordtemp[2]) < 1e-4)
+							for (vtkIdType kk = npts_before; kk < out2Points->GetNumberOfPoints(); kk ++)
 							{
-								findthispoint = true;
-								existID = kk;
-								break;
+								out2Points->GetPoint(kk, coordtemp);
+								if (abs(coord[0] - coordtemp[0]) < 1e-4
+									&& abs(coord[1] - coordtemp[1]) < 1e-4
+									&& abs(coord[2] - coordtemp[2]) < 1e-4)
+								{
+									findthispoint = true;
+									existID = kk;
+									break;
+								}
 							}
 						}
-					}			
-					if (findthispoint == false)
-					{
-						mergeTriangle->GetPointIds()->SetId(k, out2Points->InsertNextPoint(coord));
-						out2Param->InsertNextTuple2(-1.0, -2.0);
-						out2Radius->InsertNextValue(1.0);
-						isBifurcation->InsertNextValue(i);
+
+						if (findthispoint == false)
+						{
+							mergeTriangle->GetPointIds()->SetId(k, out2Points->InsertNextPoint(coord));
+							out2Param->InsertNextTuple2(-1.0, -2.0);
+							out2Radius->InsertNextValue(1.0);
+							isBifurcation->InsertNextValue(i);
+						}
+						else
+							mergeTriangle->GetPointIds()->SetId(k, existID);
 					}
-					else
-						mergeTriangle->GetPointIds()->SetId(k, existID);
+					vtkIdType outcellId = out2Strips->InsertNextCell(mergeTriangle);
+					output2->GetCellData()->CopyData(output0->GetCellData(),0,outcellId);  // temp
 				}
-				vtkIdType outcellId = out2Strips->InsertNextCell(mergeTriangle);
-				output2->GetCellData()->CopyData(output0->GetCellData(),0,outcellId);  // temp
 			}
 		}
-
 		output1->SetPoints(out1Points); out1Points->Delete();
 		output2->SetPoints(out2Points); 
 		output3->SetPoints(out3Points); out3Points->Delete();

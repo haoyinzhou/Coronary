@@ -100,6 +100,7 @@ public:
   vtkSetClampMacro(TextureLength,double,0.000001,VTK_INT_MAX);
   vtkGetMacro(TextureLength,double);
 
+
 protected:
   ExtendSplineFilter();
   ~ExtendSplineFilter();
@@ -117,6 +118,7 @@ protected:
   vtkSpline *ZSpline;
   int       GenerateTCoords;
   double     TextureLength; //this length is mapped to [0,1) texture space
+
 
   //helper methods
   int GeneratePoints(vtkIdList *idlist, vtkIdType npts, vtkIdType *pts,

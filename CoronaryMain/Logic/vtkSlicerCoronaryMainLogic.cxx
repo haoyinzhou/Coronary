@@ -226,6 +226,7 @@ bool vtkSlicerCoronaryMainLogic
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
 	vtkSmartPointer<ExtendTubeFilter> centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
+	centerlineTube->SetWillBuildBifurcationMesh(true);
 	centerlineTube->SetInputData(centerlineModel);
 	centerlineTube->SetInputImageData(imageData);
 	centerlineTube->Update();
