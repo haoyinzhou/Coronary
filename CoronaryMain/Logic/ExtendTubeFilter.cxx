@@ -581,12 +581,18 @@ int ExtendTubeFilter::RequestData(
 		//double* VesselRadius = new double[NumofInsectParts * 20];
 		
 		vector<bool> findBifurcaationRadius;
-		findBifurcaationRadius.resize(Bifurcations.size());
 		vector<double> BifurcationRadius;
-		BifurcationRadius.resize(Bifurcations.size());
+	//	findBifurcaationRadius.resize(Bifurcations.size());
+	//	BifurcationRadius.resize(Bifurcations.size());
+		for (int i = 0; i < Bifurcations.size(); i++)
+		{
+			findBifurcaationRadius.push_back(false);
+			BifurcationRadius.push_back(2.0);
+		}
+
 
 		for (int i = 0; i < Bifurcations.size(); i ++)
-		//for (int i = 0; i < 1; i ++)
+	//	for (int i = 0; i < 1; i ++)
 		{
 	//		cout << "Bifurcation ID = " << i << endl;
 			vector<double> vesselradius_mean;
@@ -783,7 +789,7 @@ int ExtendTubeFilter::RequestData(
 		//	cout << "BifurcationTriangles.size() = " << BifurcationTriangles.size() << endl;
 		}
 		
-	/*	std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
+/*		std::cout << "Number of Bifurcations: " << Bifurcations.size() << std::endl;
 		for (int i = 0; i < Bifurcations.size(); i++)
 		{
 			std::cout << i << " ==========" << std::endl;
@@ -983,7 +989,7 @@ int ExtendTubeFilter::RequestData(
 
 		for (int i = 0; i < Bifurcations.size(); i ++)
 		{
-			std::cout << "i = " << i << ", findBifurcaationRadius[i] = " << findBifurcaationRadius[i] << endl;
+		//	std::cout << "i = " << i << ", findBifurcaationRadius[i] = " << findBifurcaationRadius[i] << endl;
 			if (findBifurcaationRadius[i] == false)
 				continue;
 
@@ -991,6 +997,7 @@ int ExtendTubeFilter::RequestData(
 			vtkIdType existID = 0;
 			vtkIdType npts_before = out2Points->GetNumberOfPoints();
 
+			std::cout << "BifurcationTriangles[i].size = " << BifurcationTriangles[i].size() << endl;
 			bool findthispoint = false;
 			for (int j = 0; j < BifurcationTriangles[i].size(); j++)
 			{
@@ -998,7 +1005,7 @@ int ExtendTubeFilter::RequestData(
 				{
 					for (int l = 0; l < 3; l ++)
 						coord[l] = BifurcationTriangles[i][j].EndFacePoint[k].realcoord[l];
-					std::cout << coord[0] << ", " << coord[1] << ", " << coord[2] << endl;
+				//	std::cout << coord[0] << ", " << coord[1] << ", " << coord[2] << endl;
 
 					// find this coord in exist out5Points
 					findthispoint = false;
@@ -1104,9 +1111,6 @@ int ExtendTubeFilter::RequestData(
 		//	smoothvtkpolydata2(output2, 10);		// just smooth the bifurcation mesh
 		}
 */
-		printf("ExtendTubeFilter end!\n");
-
-
 
 /*
 		vtkSmartPointer<vtkLoopSubdivisionFilter> subdivisionFilter2 = vtkSmartPointer<vtkLoopSubdivisionFilter>::New();
@@ -1119,6 +1123,7 @@ int ExtendTubeFilter::RequestData(
 		output2->DeepCopy(subdivisionFilter2->GetOutput());
 */
 	
+		std::cout << "ExtendTubuFilter end!" << std::endl;
 		out2Points->Delete();
 		out2Param->Delete();
 		out2Radius->Delete();

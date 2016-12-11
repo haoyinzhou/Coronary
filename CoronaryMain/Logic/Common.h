@@ -133,6 +133,7 @@ void AxisCenterline(vtkPolyData* clModel, double planenormal[3] = NULL);
 
 
 int findConvexPoint(int fid, int pid, int pid2, vector<CEndFace> endfaces, CBifurcationTriangle* trianglemesh_out);
+int findConvexPoint_fill_big_triangle_hole(int fid1, int fid2, int fid3, int pid1, int pid2, int pid3, vector<CEndFace> endfaces, CBifurcationTriangle* trianglemesh_out);
 int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle>& triangles);
 
 
