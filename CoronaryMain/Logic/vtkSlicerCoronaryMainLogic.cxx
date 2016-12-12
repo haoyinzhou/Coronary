@@ -250,53 +250,57 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineTube->SetInputImageData(imageData);
 	centerlineTube->Update();
 	LumenModel = centerlineTube->GetOutput(2);
-
-	// transform
-	for (int i = 0; i < centerlineModel->GetPoints()->GetNumberOfPoints(); i++)
-	{
-		double coord[3];
-		centerlineModel->GetPoints()->GetPoint(i, coord);
-		for (int l = 0; l < 2; l++) coord[l] = -coord[l];
-		centerlineModel->GetPoints()->SetPoint(i, coord);
-	}
-	for (int i = 0; i < LumenModel->GetPoints()->GetNumberOfPoints(); i++)
-	{
-		double coord[3];
-		LumenModel->GetPoints()->GetPoint(i, coord);
-		for (int l = 0; l < 2; l++) coord[l] = -coord[l];
-		LumenModel->GetPoints()->SetPoint(i, coord);
-	}
-
 	std::cout << "number of LumenModel points: " << LumenModel->GetPoints()->GetNumberOfPoints() << std::endl;
 	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 
-	vtkMRMLNode* thisaddednode;
+
+	//
 	clNode = vtkMRMLModelNode::New();
-	clNode->SetAndObservePolyData(centerlineModel);
+	clDisplayNode = vtkMRMLModelDisplayNode::New();
+	LumenNode = vtkMRMLModelNode::New();
+	LumenDisplayNode = vtkMRMLModelDisplayNode::New();
+
+	vtkSmartPointer<vtkMatrix4x4> transformMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+	transformMatrix->SetElement(0, 0, -1); transformMatrix->SetElement(0, 1, 0);  transformMatrix->SetElement(0, 2, 0);  transformMatrix->SetElement(0, 3, 0);
+	transformMatrix->SetElement(1, 0, 0);  transformMatrix->SetElement(1, 1, -1); transformMatrix->SetElement(1, 2, 0);  transformMatrix->SetElement(1, 3, 0);
+	transformMatrix->SetElement(2, 0, 0);  transformMatrix->SetElement(2, 1, 0);  transformMatrix->SetElement(2, 2, 1);  transformMatrix->SetElement(2, 3, 0);
+	transformMatrix->SetElement(3, 0, 0);  transformMatrix->SetElement(3, 1, 0);  transformMatrix->SetElement(3, 2, 0);  transformMatrix->SetElement(3, 3, 1);
+
+	this->GetMRMLScene()->SaveStateForUndo();
+	vtkMRMLNode* thisaddednode;
+
 	thisaddednode = this->GetMRMLScene()->AddNode(clNode);
 	addednode.push_back(thisaddednode);
-	clDisplayNode = vtkMRMLModelDisplayNode::New();
-	clDisplayNode->SetColor(1, 0, 0);
-	clDisplayNode->SetScene(this->GetMRMLScene());
 	thisaddednode = this->GetMRMLScene()->AddNode(clDisplayNode);
 	addednode.push_back(thisaddednode);
+	clDisplayNode->SetScene(this->GetMRMLScene());
+	clNode->SetScene(this->GetMRMLScene());
+	clNode->SetName("centerline model");
 	clNode->SetAndObserveDisplayNodeID(clDisplayNode->GetID());
+	clNode->Modified();
+	clDisplayNode->Modified();
 
-	std::cout << this->GetMRMLScene()->GetNumberOfNodes() << endl;
-
-
-	
-	LumenNode = vtkMRMLModelNode::New();
-	LumenNode->SetAndObservePolyData(LumenModel);
 	thisaddednode = this->GetMRMLScene()->AddNode(LumenNode);
 	addednode.push_back(thisaddednode);
-	LumenDisplayNode = vtkMRMLModelDisplayNode::New();
-	LumenDisplayNode->SetColor(0, 0, 1);
-	LumenDisplayNode->SetScene(this->GetMRMLScene());
 	thisaddednode = this->GetMRMLScene()->AddNode(LumenDisplayNode);
 	addednode.push_back(thisaddednode);
+	LumenDisplayNode->SetScene(this->GetMRMLScene());
+	LumenNode->SetScene(this->GetMRMLScene());
+	LumenNode->SetName("lumen model");
 	LumenNode->SetAndObserveDisplayNodeID(LumenDisplayNode->GetID());
-	
+	LumenNode->Modified();
+	LumenDisplayNode->Modified();
+
+
+	clDisplayNode->SetColor(1, 0, 0);
+	clNode->SetAndObservePolyData(centerlineModel);
+	clNode->ApplyTransformMatrix(transformMatrix);
+
+	LumenDisplayNode->SetColor(0, 0, 1);
+	LumenNode->SetAndObservePolyData(LumenModel);
+	LumenNode->ApplyTransformMatrix(transformMatrix);
+
+
 	std::cout << "BuildMeshLogic Done! " << std::endl;
 	return true;
 }
