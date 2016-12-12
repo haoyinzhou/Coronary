@@ -109,8 +109,7 @@ private:
 	vtkMRMLModelNode* LumenNode;
 	vtkMRMLModelDisplayNode* LumenDisplayNode;
 
-	vtkMRMLNode* addednode1;
-	vtkMRMLNode* addednode2;
+	vector<vtkMRMLNode*> addednode;
 
 
 public:

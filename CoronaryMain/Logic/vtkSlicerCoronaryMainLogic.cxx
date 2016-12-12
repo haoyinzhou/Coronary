@@ -47,8 +47,7 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 	LumenNode = vtkMRMLModelNode::New();
 	LumenDisplayNode = vtkMRMLModelDisplayNode::New();
 
-	addednode1 = NULL;
-	addednode2 = NULL;
+	addednode.resize(0);
 }
 
 //----------------------------------------------------------------------------
@@ -219,7 +218,6 @@ bool vtkSlicerCoronaryMainLogic
 {
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 
-	std::cout << addednode1 << ", " << addednode2 << endl;
 
 	std::cout << "DetectLumenLogic Done! " << std::endl;
 	return true;
@@ -235,11 +233,11 @@ bool vtkSlicerCoronaryMainLogic
 		return false;
 	}	
 
-	if (addednode1 != NULL)
+	if (addednode.size() != 0)
 	{
-		std::cout << "removing node" << endl;
-		this->GetMRMLScene()->RemoveNode(addednode1);
-		this->GetMRMLScene()->RemoveNode(addednode2);
+		for (int i = 0; i < addednode.size(); i ++)
+			this->GetMRMLScene()->RemoveNode(addednode.at(i));
+		addednode.clear();
 	}
 
 	std::cout << "number of cl points: " << centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
@@ -272,29 +270,33 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "number of LumenModel points: " << LumenModel->GetPoints()->GetNumberOfPoints() << std::endl;
 	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 
-
+	vtkMRMLNode* thisaddednode;
 	clNode = vtkMRMLModelNode::New();
 	clNode->SetAndObservePolyData(centerlineModel);
-	addednode1 = this->GetMRMLScene()->AddNode(clNode);
+	thisaddednode = this->GetMRMLScene()->AddNode(clNode);
+	addednode.push_back(thisaddednode);
 	clDisplayNode = vtkMRMLModelDisplayNode::New();
 	clDisplayNode->SetColor(1, 0, 0);
 	clDisplayNode->SetScene(this->GetMRMLScene());
-	addednode2 = this->GetMRMLScene()->AddNode(clDisplayNode);
+	thisaddednode = this->GetMRMLScene()->AddNode(clDisplayNode);
+	addednode.push_back(thisaddednode);
 	clNode->SetAndObserveDisplayNodeID(clDisplayNode->GetID());
 
 	std::cout << this->GetMRMLScene()->GetNumberOfNodes() << endl;
 
 
-	/*
+	
 	LumenNode = vtkMRMLModelNode::New();
 	LumenNode->SetAndObservePolyData(LumenModel);
-	this->GetMRMLScene()->AddNode(LumenNode);
+	thisaddednode = this->GetMRMLScene()->AddNode(LumenNode);
+	addednode.push_back(thisaddednode);
 	LumenDisplayNode = vtkMRMLModelDisplayNode::New();
 	LumenDisplayNode->SetColor(0, 0, 1);
 	LumenDisplayNode->SetScene(this->GetMRMLScene());
-	this->GetMRMLScene()->AddNode(LumenDisplayNode);
+	thisaddednode = this->GetMRMLScene()->AddNode(LumenDisplayNode);
+	addednode.push_back(thisaddednode);
 	LumenNode->SetAndObserveDisplayNodeID(LumenDisplayNode->GetID());
-	*/
+	
 	std::cout << "BuildMeshLogic Done! " << std::endl;
 	return true;
 }
