@@ -74,6 +74,9 @@ public:
   bool DetectLumenLogic();
   bool BuildMeshLogic();
   
+  bool SaveLandmarksLogic();
+  bool SaveCenterlinesLogic();
+
   
 
 protected:

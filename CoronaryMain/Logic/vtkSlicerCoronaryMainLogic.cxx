@@ -305,6 +305,22 @@ bool vtkSlicerCoronaryMainLogic
 	return true;
 }
 
+bool vtkSlicerCoronaryMainLogic::SaveLandmarksLogic()
+{
+	std::cout << "Save Landmarks Logic begin!" << std::endl;
+
+	return true;
+}
+
+bool vtkSlicerCoronaryMainLogic::SaveCenterlinesLogic()
+{
+	std::cout << "Save Centerlines Logic begin!" << std::endl;
+
+
+	return true;
+}
+
+
 
 
 

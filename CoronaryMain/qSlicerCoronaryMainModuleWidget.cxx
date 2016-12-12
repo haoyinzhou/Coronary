@@ -83,6 +83,8 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
 	connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
 	connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
+	connect(d->SaveLandmarks, SIGNAL(clicked()), this, SLOT(SaveLandmarksButtonFunc()));
+	connect(d->SaveCenterlines, SIGNAL(clicked()), this, SLOT(SaveCenterlinesButtonFunc()));
 	connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
@@ -172,6 +174,29 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 	return true;
 }
 
+bool qSlicerCoronaryMainModuleWidget::SaveLandmarksButtonFunc()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic != NULL)
+	{
+		logic->SaveLandmarksLogic();
+	}
+
+	return true;
+}
+
+bool qSlicerCoronaryMainModuleWidget::SaveCenterlinesButtonFunc()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic != NULL)
+	{
+		logic->SaveCenterlinesLogic();
+	}
+
+	return true;
+}
 
 bool qSlicerCoronaryMainModuleWidget::BuildMesh()
 {

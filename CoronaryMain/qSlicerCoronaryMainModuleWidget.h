@@ -50,6 +50,8 @@ public slots:
 	bool DetectLandmarksButtonFunc();
 	bool DetectCenterlinesButtonFunc();
 	bool DetectLumenButtonFunc();
+	bool SaveLandmarksButtonFunc();
+	bool SaveCenterlinesButtonFunc();
 	void SetVolumn(vtkMRMLNode* node);
 
 	void SetCheckBoxBuildBifurcationMesh(int);
