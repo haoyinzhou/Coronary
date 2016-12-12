@@ -52,6 +52,8 @@ public slots:
 	bool DetectLumenButtonFunc();
 	void SetVolumn(vtkMRMLNode* node);
 
+	void SetCheckBoxBuildBifurcationMesh(int);
+
 	void updateprogressbar(int i);
 
 public:

@@ -17,6 +17,7 @@
 
 // Qt includes
 #include <QDebug>
+#include <QMessageBox>
 
 // SlicerQt includes
 #include "qSlicerCoronaryMainModuleWidget.h"
@@ -83,6 +84,7 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
 	connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
 	connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
+	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
 	d->progressBar->setValue(0);
 }
@@ -109,6 +111,28 @@ void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
 		this->VolumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(node);
 	}
 }
+
+void qSlicerCoronaryMainModuleWidget::SetCheckBoxBuildBifurcationMesh(int state)
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+	if (logic == NULL)
+		return;
+
+	if (state)
+	{
+		std::cout << "Will build bifurcation mesh" << std::endl;
+		logic->WillBuildBifurcationMesh = true;
+	}
+	else
+	{
+		std::cout << "Will not build bifurcation mesh" << std::endl;
+		logic->WillBuildBifurcationMesh = false;
+	}
+
+	logic->BuildMeshLogic();
+}
+
 
 bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 {

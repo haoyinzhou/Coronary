@@ -45,19 +45,19 @@
         </spacer>
        </item>
        <item>
-        <widget class="qMRMLNodeComboBox" name="MRMLNodeReadVolumn" native="true">
-         <property name="nodeTypes" stdset="0">
+        <widget class="qMRMLNodeComboBox" name="MRMLNodeReadVolumn">
+         <property name="nodeTypes">
           <stringlist>
            <string>vtkMRMLScalarVolumeNode</string>
           </stringlist>
          </property>
-         <property name="noneEnabled" stdset="0">
+         <property name="noneEnabled">
           <bool>true</bool>
          </property>
-         <property name="addEnabled" stdset="0">
+         <property name="addEnabled">
           <bool>false</bool>
          </property>
-         <property name="removeEnabled" stdset="0">
+         <property name="removeEnabled">
           <bool>false</bool>
          </property>
         </widget>
@@ -91,6 +91,13 @@
     </layout>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBox_buildbifurcationmesh">
+     <property name="text">
+      <string>Build Bifurcation Mesh</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QProgressBar" name="progressBar">
      <property name="value">
       <number>24</number>
@@ -113,6 +120,7 @@
   </layout>
   <zorder>verticalSpacer</zorder>
   <zorder>progressBar</zorder>
+  <zorder>checkBox_buildbifurcationmesh</zorder>
  </widget>
  <customwidgets>
   <customwidget>
@@ -141,8 +149,8 @@
      <y>71</y>
     </hint>
     <hint type="destinationlabel">
-     <x>258</x>
-     <y>57</y>
+     <x>32575</x>
+     <y>32108</y>
     </hint>
    </hints>
   </connection>

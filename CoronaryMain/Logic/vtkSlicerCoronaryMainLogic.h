@@ -74,6 +74,7 @@ public:
   bool DetectLumenLogic();
   bool BuildMeshLogic();
   
+  
 
 protected:
   vtkSlicerCoronaryMainLogic();
@@ -89,6 +90,7 @@ protected:
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
+
 private:
 	Learning learn;
 	vtkSmartPointer<vtkImageData> imageData;
@@ -100,6 +102,19 @@ private:
 
 	double NodeOrigin[3];
 	double NodeSpaceing[3];
+
+
+	vtkMRMLModelNode* clNode;
+	vtkMRMLModelDisplayNode* clDisplayNode;
+	vtkMRMLModelNode* LumenNode;
+	vtkMRMLModelDisplayNode* LumenDisplayNode;
+
+	vtkMRMLNode* addednode1;
+	vtkMRMLNode* addednode2;
+
+
+public:
+	bool WillBuildBifurcationMesh;
 
 private:
 
