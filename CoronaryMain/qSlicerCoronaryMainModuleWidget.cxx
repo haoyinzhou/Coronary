@@ -172,6 +172,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 		else
 		{
 			std::cout << "load landmarks..." << std::endl;
+			d->progressBar->setValue(0);
+
 			const QString DEFAULT_DIR_KEY("default_dir");
 			QSettings MySettings;
 			QString suggestName(QDir::separator());
@@ -238,6 +240,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		}
 		else
 		{
+			d->progressBar->setValue(0);
 			const QString DEFAULT_DIR_KEY("default_dir");
 			QSettings MySettings;
 			QString suggestName(QDir::separator());

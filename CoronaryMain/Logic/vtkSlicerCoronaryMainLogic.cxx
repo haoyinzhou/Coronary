@@ -246,6 +246,20 @@ bool vtkSlicerCoronaryMainLogic
 {
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 
+	if (imageData->GetNumberOfCells() == 0)
+	{
+		std::cerr << "cannot find image data" << std::endl;
+		return false;
+	}
+
+	if (centerlineModel->GetNumberOfCells() == 0)
+	{
+		std::cerr << "cannot find centerline" << std::endl;
+		return false;
+	}
+
+
+
 
 	std::cout << "DetectLumenLogic Done! " << std::endl;
 	return true;
