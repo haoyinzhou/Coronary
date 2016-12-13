@@ -29,6 +29,14 @@
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 
+// qt
+#include "qsettings.h"
+#include "qdir.h"
+#include "qfiledialog.h"
+
+#include "vtkXMLPolyDataReader.h"
+#include "vtkMetaImageReader.h"
+
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 
@@ -45,7 +53,9 @@ public:
 	qSlicerCoronaryMainModuleWidget(QWidget *parent=0);
 	virtual ~qSlicerCoronaryMainModuleWidget();
 
-
+public:
+	QString baseName;
+	
 public slots:
 	bool DetectLandmarksButtonFunc();
 	bool DetectCenterlinesButtonFunc();
@@ -60,6 +70,9 @@ public slots:
 
 public:
 	bool BuildMesh();
+
+	void SavePolyData(vtkPolyData *poly, const char* fileName);
+	void SaveVTKImage(vtkImageData *image, const char* fileName);
 
 protected:
 	QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;

@@ -62,7 +62,7 @@ qSlicerCoronaryMainModuleWidget::qSlicerCoronaryMainModuleWidget(QWidget* _paren
   : Superclass( _parent )
   , d_ptr( new qSlicerCoronaryMainModuleWidgetPrivate(*this) )
 {
-	
+	baseName = "landmarks";
 }
 
 //-----------------------------------------------------------------------------
@@ -110,7 +110,23 @@ void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
 {
 	if (node != NULL)
 	{
+		Q_D(qSlicerCoronaryMainModuleWidget);
+		vtkSlicerCoronaryMainLogic *logic = d->logic();
+
 		this->VolumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(node);
+
+		this->VolumeNode->GetOrigin(logic->NodeOrigin);
+		this->VolumeNode->GetSpacing(logic->NodeSpaceing);
+
+		logic->imageData_original = this->VolumeNode->GetImageData();
+		logic->imageData->DeepCopy(logic->imageData_original);
+		logic->imageData->SetOrigin(-(logic->NodeOrigin[0]), -(logic->NodeOrigin[1]), logic->NodeOrigin[2]);
+		logic->imageData->SetSpacing(logic->NodeSpaceing);
+
+		logic->interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
+		logic->interpolator->SetInterpolationModeToLinear();
+		logic->interpolator->SetOutValue(-3024.0);
+		logic->interpolator->Initialize(logic->imageData);
 	}
 }
 
@@ -142,9 +158,59 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-	//	DisableAllButtons();
-		logic->DetectLandmarksLogic(VolumeNode, d->progressBar);
-	//	EnableAllButtons();
+		if (d->checkBox_loadlandmarks->isChecked() == false)
+		{
+		//	DisableAllButtons();
+			logic->DetectLandmarksLogic(VolumeNode, d->progressBar);
+			for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+			{
+				std::cout << "landmarkcoord " << i << " = " << logic->landmarks[i][0] << ", " << logic->landmarks[i][1] << ", " << logic->landmarks[i][2] << std::endl;
+			}
+
+		//	EnableAllButtons();
+		}
+		else
+		{
+			std::cout << "load landmarks..." << std::endl;
+			const QString DEFAULT_DIR_KEY("default_dir");
+			QSettings MySettings;
+			QString suggestName(QDir::separator());
+		//	suggestName += baseName + tr("-lvcorlm.vtp");
+			suggestName += tr("landmarks.vtp");
+			QString fileName = QFileDialog::getOpenFileName(this, tr("Open Landmark File"), MySettings.value(DEFAULT_DIR_KEY).toString() + suggestName, tr("Landmark File (*.vtp)"));
+			if (fileName.isEmpty()) return false;
+			QByteArray fileNameByte = fileName.toLocal8Bit();
+			vtkSmartPointer< vtkXMLPolyDataReader > reader = vtkSmartPointer< vtkXMLPolyDataReader >::New();
+			reader->SetFileName(fileNameByte.data());
+			try
+			{
+				reader->Update();
+			}
+			catch (...)
+			{
+				std::cerr << "Error occurs when reading " << fileNameByte.data() << std::endl;
+				return false;
+			}
+
+			QFileInfo fileInfo(fileName);
+		//	baseName = fileInfo.baseName();
+			MySettings.setValue(DEFAULT_DIR_KEY, fileInfo.absolutePath());
+
+			vtkPolyData* lmPoly = reader->GetOutput();
+			if (lmPoly->GetNumberOfPoints() < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS)
+			{
+				std::cerr << "The number of points in the file " << fileNameByte.data() << " is incorrect" << std::endl;
+				return false;
+			}
+			double coord[3];
+			for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+			{
+				lmPoly->GetPoint(i, coord);
+				std::cout << "landmarkcoord " << i << " = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
+				logic->SetLandMarksCoord(i, coord);
+			}
+			d->progressBar->setValue(100);
+		}
 	}
 
 	return true;
@@ -154,10 +220,84 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 {
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
 	if (logic != NULL)
 	{
-		if (logic->DetectCenterlinesLogic(d->progressBar))
+		if (logic->imageData->GetNumberOfCells() == 0)
+		{
+			std::cerr << "cannot find image data" << std::endl;
+			return false;
+		}
+
+		if (d->checkBox_loadcenterlines->isChecked() == false)
+		{
+			if (logic->DetectCenterlinesLogic(d->progressBar))
+			{
+				logic->BuildMeshLogic();
+			}
+		}
+		else
+		{
+			const QString DEFAULT_DIR_KEY("default_dir");
+			QSettings MySettings;
+			QString suggestName(QDir::separator());
+		//	suggestName += baseName + tr("-centerline.vtp");
+			suggestName += tr("centerlines.vtp");
+			QString fileName = QFileDialog::getOpenFileName(this, tr("Open Centerline File"), MySettings.value(DEFAULT_DIR_KEY).toString() + suggestName, tr("Landmark File (*.vtp)"));
+			if (fileName.isEmpty()) return false;
+			QByteArray fileNameByte = fileName.toLocal8Bit();
+			vtkSmartPointer< vtkXMLPolyDataReader > reader = vtkSmartPointer< vtkXMLPolyDataReader >::New();
+			reader->SetFileName(fileNameByte.data());
+			try
+			{
+				reader->Update();
+			}
+			catch (...)
+			{
+				std::cerr << "Error occurs when reading " << fileNameByte.data() << std::endl;
+				return false;
+			}
+
+			QFileInfo fileInfo(fileName);
+		//	baseName = fileInfo.baseName();
+			MySettings.setValue(DEFAULT_DIR_KEY, fileInfo.absolutePath());
+		//	std::cout << "baseName = " << baseName.toStdString() << endl;
+
+			logic->centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->centerlineModel->DeepCopy(reader->GetOutput());
+			//remove "SegmentId" if there is one in the loaded centerline because we will generate the ids with idfilter
+			if (logic->centerlineModel->GetCellData()->HasArray("SegmentId"))	logic->centerlineModel->GetCellData()->RemoveArray("SegmentId");
+
+			QFileInfo fi(fileName);
+			//	QString fileName2 = fi.absolutePath() + "/" + fi.baseName() + "-hessian.mha";
+			QString fileName2 = fi.absolutePath() + "/" + "hessian.mha";
+			QFile hessianFile(fileName2);
+			if (hessianFile.exists())
+			{
+				fileNameByte = fileName2.toLocal8Bit();
+				vtkSmartPointer< vtkMetaImageReader > hessianReader = vtkSmartPointer< vtkMetaImageReader >::New();
+				hessianReader->SetFileName(fileNameByte.data());
+				try
+				{
+					hessianReader->Update();
+					logic->hessianImage = vtkSmartPointer<vtkImageData>::New();
+					logic->hessianImage->DeepCopy(hessianReader->GetOutput());
+				}
+				catch (...)
+				{
+					std::cerr << "Error occurs when reading " << fileNameByte.data() << std::endl;
+				}
+			}
+			else
+			{
+				std::cerr << "cannot find hessianImage" << std::endl;
+				return false;
+			}
+
 			logic->BuildMeshLogic();
+
+			d->progressBar->setValue(100);
+		}
 	}
 	return true;
 }
@@ -180,7 +320,35 @@ bool qSlicerCoronaryMainModuleWidget::SaveLandmarksButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-		logic->SaveLandmarksLogic();
+		const QString DEFAULT_DIR_KEY("default_dir");
+		QSettings MySettings;
+		QString suggestName(QDir::separator());
+	//	suggestName += baseName + tr("-lvcorlm.vtp");
+		suggestName += tr("landmarks.vtp");
+		QString fileName = QFileDialog::getSaveFileName(this, tr("Save Landmark File"), MySettings.value(DEFAULT_DIR_KEY).toString() + suggestName, tr("Model Files (*.vtp)"));
+		if (fileName.isEmpty()) return false;
+		QByteArray fileNameByte = fileName.toLocal8Bit();
+
+		QFileInfo fileInfo(fileName);
+	//	baseName = fileInfo.baseName();
+		MySettings.setValue(DEFAULT_DIR_KEY, fileInfo.absolutePath());
+
+		vtkSmartPointer<vtkPolyData> lmPoly = vtkSmartPointer<vtkPolyData>::New();
+		lmPoly->Allocate(SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS);
+		vtkSmartPointer<vtkPoints> lmPoints = vtkSmartPointer<vtkPoints>::New();
+		lmPoints->SetNumberOfPoints(SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS);
+		double landmarkcoord[3];
+		for (vtkIdType i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+		{
+			logic->GetLandMarksCoord(i, landmarkcoord);
+			std::cout << "landmarkcoord " << i << " = " << landmarkcoord[0] << ", " << landmarkcoord[1] << ", " << landmarkcoord[2] << std::endl;
+			lmPoints->SetPoint(i, landmarkcoord);
+		}
+		for (vtkIdType i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+			lmPoly->InsertNextCell(VTK_VERTEX, 1, &i);
+		lmPoly->SetPoints(lmPoints);
+		std::cout << "save " << fileNameByte.data() << std::endl;
+		qSlicerCoronaryMainModuleWidget::SavePolyData(lmPoly, fileNameByte.data());
 	}
 
 	return true;
@@ -190,9 +358,49 @@ bool qSlicerCoronaryMainModuleWidget::SaveCenterlinesButtonFunc()
 {
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
-	if (logic != NULL)
+	if (logic == NULL)
+		return false;
+	if (logic->centerlineModel->GetPointData()->GetNumberOfArrays() == 0)
 	{
-		logic->SaveCenterlinesLogic();
+		std::cerr << "cannot find centerline model" << std::endl;
+		return false;
+	}	
+
+	const QString DEFAULT_DIR_KEY("default_dir");
+	QSettings MySettings;
+	QString suggestName(QDir::separator());
+	//suggestName += baseName + tr("-centerline.vtp");
+	suggestName += tr("centerlines.vtp");
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Centerline File"), MySettings.value(DEFAULT_DIR_KEY).toString() + suggestName, tr("Model Files (*.vtp)"));
+	if (fileName.isEmpty()) return false;
+	QByteArray fileNameByte = fileName.toLocal8Bit();
+
+	QFileInfo fileInfo(fileName);
+//	baseName = fileInfo.baseName();
+	MySettings.setValue(DEFAULT_DIR_KEY, fileInfo.absolutePath());
+
+	SavePolyData(logic->centerlineModel, fileNameByte.data());
+
+	if (logic->hessianImage)
+	{
+		QFileInfo fi(fileName);
+		//	QString fileName2 = fi.absolutePath() + "/" + fi.baseName() + "-hessian.mha";
+		QString fileName2 = fi.absolutePath() + "/" + "hessian.mha";
+		QByteArray fileNameByte = fileName2.toLocal8Bit();
+		qSlicerCoronaryMainModuleWidget::SaveVTKImage(logic->hessianImage, fileNameByte.data());
+	}
+
+	if (logic->LumenModel->GetPointData()->GetNumberOfArrays() != 0)
+	{
+		QFileInfo fi(fileName);
+
+		QString fileName2;
+		{
+		//	fileName2 = fi.absolutePath() + "/" + fi.baseName() + "-LumenModel.vtp";
+			fileName2 = fi.absolutePath() + "/" + "LumenModel.vtp";
+			QByteArray fileNameByte = fileName2.toLocal8Bit();
+			SavePolyData(logic->LumenModel, fileNameByte.data());
+		}
 	}
 
 	return true;
@@ -215,3 +423,36 @@ void qSlicerCoronaryMainModuleWidget::updateprogressbar(int i)
 	d->progressBar->setValue(i);
 }
 
+void qSlicerCoronaryMainModuleWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
+{
+	if (!poly) return;
+	vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+	writer->SetInputData(poly);
+	writer->SetFileName(fileName);
+	writer->SetDataModeToBinary();
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}
+
+void qSlicerCoronaryMainModuleWidget::SaveVTKImage(vtkImageData *image, const char* fileName)
+{
+	vtkSmartPointer< vtkMetaImageWriter > writer = vtkSmartPointer< vtkMetaImageWriter >::New();
+	writer->SetFileName(fileName);
+	writer->SetInputData(image);
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}

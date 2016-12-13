@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>598</width>
+    <width>643</width>
     <height>685</height>
    </rect>
   </property>
@@ -19,22 +19,160 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+  <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Select CT Image</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="qMRMLNodeComboBox" name="MRMLNodeReadVolumn">
+       <property name="nodeTypes">
+        <stringlist>
+         <string>vtkMRMLScalarVolumeNode</string>
+        </stringlist>
+       </property>
+       <property name="noneEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="addEnabled">
+        <bool>false</bool>
+       </property>
+       <property name="removeEnabled">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Preferred</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>12</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QCheckBox" name="checkBox_buildbifurcationmesh">
+       <property name="text">
+        <string>Build Bifurcation Mesh</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Preferred</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>17</width>
+       <height>11</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="checkBox_loadlandmarks">
          <property name="text">
-          <string>CT Image</string>
+          <string/>
          </property>
         </widget>
        </item>
-       <item>
-        <spacer name="horizontalSpacer">
+       <item row="0" column="1">
+        <widget class="QPushButton" name="DetectLandmarks">
+         <property name="text">
+          <string>Detect Landmarks</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">buttonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QPushButton" name="SaveLandmarks">
+         <property name="text">
+          <string>Save Landmarks</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="checkBox_loadcenterlines">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="DetectCenterlines">
+         <property name="text">
+          <string>Detect Centerlines</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <spacer name="horizontalSpacer_3">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Preferred</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -44,59 +182,34 @@
          </property>
         </spacer>
        </item>
-       <item>
-        <widget class="qMRMLNodeComboBox" name="MRMLNodeReadVolumn">
-         <property name="nodeTypes">
-          <stringlist>
-           <string>vtkMRMLScalarVolumeNode</string>
-          </stringlist>
+       <item row="1" column="3">
+        <widget class="QPushButton" name="SaveCenterlines">
+         <property name="text">
+          <string>Save Centerlines</string>
          </property>
-         <property name="noneEnabled">
-          <bool>true</bool>
-         </property>
-         <property name="addEnabled">
-          <bool>false</bool>
-         </property>
-         <property name="removeEnabled">
-          <bool>false</bool>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="DetectLumen">
+         <property name="text">
+          <string>Detect Lumen</string>
          </property>
         </widget>
        </item>
       </layout>
      </item>
      <item>
-      <widget class="QPushButton" name="DetectLandmarks">
-       <property name="text">
-        <string>Detect Landmarks</string>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">buttonGroup</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="DetectCenterlines">
-       <property name="text">
-        <string>Detect Centerlines</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="DetectLumen">
-       <property name="text">
-        <string>Detect Lumen</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="verticalSpacer">
+      <spacer name="horizontalSpacer_5">
        <property name="orientation">
-        <enum>Qt::Vertical</enum>
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Expanding</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>528</width>
-         <height>333</height>
+         <width>40</width>
+         <height>20</height>
         </size>
        </property>
       </spacer>
@@ -104,38 +217,69 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBox_buildbifurcationmesh">
-     <property name="text">
-      <string>Build Bifurcation Mesh</string>
+    <spacer name="verticalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
      </property>
-    </widget>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
-    <widget class="QProgressBar" name="progressBar">
-     <property name="value">
-      <number>24</number>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QProgressBar" name="progressBar">
+       <property name="value">
+        <number>24</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Preferred</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
    <item>
-    <widget class="QPushButton" name="SaveLandmarks">
-     <property name="text">
-      <string>Save Landmarks</string>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
      </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="SaveCenterlines">
-     <property name="text">
-      <string>Save Centerlines</string>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>233</height>
+      </size>
      </property>
-    </widget>
+    </spacer>
    </item>
   </layout>
+  <zorder>verticalSpacer</zorder>
+  <zorder></zorder>
+  <zorder>verticalSpacer_2</zorder>
   <zorder>progressBar</zorder>
-  <zorder>checkBox_buildbifurcationmesh</zorder>
-  <zorder>SaveLandmarks</zorder>
-  <zorder>SaveCenterlines</zorder>
+  <zorder>verticalSpacer_3</zorder>
+  <zorder>horizontalSpacer_3</zorder>
+  <zorder>verticalSpacer_4</zorder>
  </widget>
  <customwidgets>
   <customwidget>
@@ -164,8 +308,8 @@
      <y>71</y>
     </hint>
     <hint type="destinationlabel">
-     <x>32575</x>
-     <y>32108</y>
+     <x>576</x>
+     <y>56</y>
     </hint>
    </hints>
   </connection>

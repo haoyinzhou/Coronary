@@ -41,6 +41,7 @@
 #include <cstdlib>
 
 #include "vtkSlicerCoronaryMainModuleLogicExport.h"
+#include "qSlicerAbstractModuleWidget.h"
 
 #include "vtkImageInterpolator.h"
 #include "vtkPoints.h"
@@ -53,6 +54,8 @@
 #include "vtkCaptionActor2D.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
+
+
 
 
 #include "Common.h"
@@ -74,10 +77,10 @@ public:
   bool DetectLumenLogic();
   bool BuildMeshLogic();
   
-  bool SaveLandmarksLogic();
-  bool SaveCenterlinesLogic();
 
-  
+public:
+	bool GetLandMarksCoord(int index, double coord[3]);
+	bool SetLandMarksCoord(int index, double coord[3]);
 
 protected:
   vtkSlicerCoronaryMainLogic();
@@ -94,10 +97,12 @@ protected:
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
 
-private:
+public:
+	
 	Learning learn;
 	vtkSmartPointer<vtkImageData> imageData;
 	vtkSmartPointer<vtkImageData> imageData_original;
+	vtkSmartPointer<vtkImageData> hessianImage;
 	vtkSmartPointer<vtkImageInterpolator> interpolator;
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
 	vtkSmartPointer<vtkPolyData> centerlineModel;

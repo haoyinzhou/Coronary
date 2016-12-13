@@ -102,11 +102,38 @@ void vtkSlicerCoronaryMainLogic
 }
 
 bool vtkSlicerCoronaryMainLogic
-::DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar)
+::GetLandMarksCoord(int index, double coord[3])
+{
+	if (index >= SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS)
+		return false;
+
+	for (int l = 0; l < 3; l++)
+		coord[l] = landmarks[index][l];
+
+	return true;
+}
+
+bool vtkSlicerCoronaryMainLogic
+::SetLandMarksCoord(int index, double coord[3])
+{
+	if (index >= SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS)
+		return false;
+
+	for (int l = 0; l < 3; l++)
+		this->landmarks[index][l] =	coord[l];
+
+	return true;
+}
+
+
+
+
+bool vtkSlicerCoronaryMainLogic
+::DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumeNode, QProgressBar* progressbar)
 {
 	std::cout << "DetectLandmarksLogic Begin! " << std::endl;
 
-	if (VolumnNode == NULL)
+	if (VolumeNode == NULL)
 	{
 		std::cerr << "VolumnNode is NULL" << std::endl;
 		return false;
@@ -115,8 +142,8 @@ bool vtkSlicerCoronaryMainLogic
 	//-------// 
 	progressbar->setValue(1);
 
-	VolumnNode->GetOrigin(NodeOrigin);
-	VolumnNode->GetSpacing(NodeSpaceing);
+/*	VolumeNode->GetOrigin(NodeOrigin);
+	VolumeNode->GetSpacing(NodeSpaceing);
 
 	imageData_original = VolumnNode->GetImageData();
 	imageData->DeepCopy(imageData_original);
@@ -127,6 +154,7 @@ bool vtkSlicerCoronaryMainLogic
 	interpolator->SetInterpolationModeToLinear();
 	interpolator->SetOutValue(-3024.0);
 	interpolator->Initialize(imageData);
+*/
 
 /*	int	 imageDims[3];
 	double imageOrigins[3];
@@ -188,7 +216,7 @@ bool vtkSlicerCoronaryMainLogic
 	//-------// 
 	progressbar->setValue(1);
 
-	vtkSmartPointer<vtkImageData> hessianImage = vtkSmartPointer<vtkImageData>::New();
+	hessianImage = vtkSmartPointer<vtkImageData>::New();
 	GenerateHessianImage(imageData, hessianImage, interpolator, progressbar);
 	std::cout << "GenerateHessianImage done!" << std::endl;
 
@@ -253,6 +281,11 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "number of LumenModel points: " << LumenModel->GetPoints()->GetNumberOfPoints() << std::endl;
 	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 
+	vtkSmartPointer<vtkPolyData> centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
+	vtkSmartPointer<vtkPolyData> LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
+	centerlineModel_display->DeepCopy(centerlineModel);
+	LumenModel_display->DeepCopy(LumenModel);
+
 
 	//
 	clNode = vtkMRMLModelNode::New();
@@ -293,32 +326,17 @@ bool vtkSlicerCoronaryMainLogic
 
 
 	clDisplayNode->SetColor(1, 0, 0);
-	clNode->SetAndObservePolyData(centerlineModel);
+	clNode->SetAndObservePolyData(centerlineModel_display);
 	clNode->ApplyTransformMatrix(transformMatrix);
 
 	LumenDisplayNode->SetColor(0, 0, 1);
-	LumenNode->SetAndObservePolyData(LumenModel);
+	LumenNode->SetAndObservePolyData(LumenModel_display);
 	LumenNode->ApplyTransformMatrix(transformMatrix);
-
-
+	
 	std::cout << "BuildMeshLogic Done! " << std::endl;
 	return true;
 }
 
-bool vtkSlicerCoronaryMainLogic::SaveLandmarksLogic()
-{
-	std::cout << "Save Landmarks Logic begin!" << std::endl;
-
-	return true;
-}
-
-bool vtkSlicerCoronaryMainLogic::SaveCenterlinesLogic()
-{
-	std::cout << "Save Centerlines Logic begin!" << std::endl;
-
-
-	return true;
-}
 
 
 
