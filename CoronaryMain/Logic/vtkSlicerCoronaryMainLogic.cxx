@@ -35,7 +35,6 @@ vtkStandardNewMacro(vtkSlicerCoronaryMainLogic);
 //----------------------------------------------------------------------------
 vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 {
-
 	imageData = vtkSmartPointer<vtkImageData>::New();
 	imageData_original = vtkSmartPointer<vtkImageData>::New();
 	hessianImage = vtkSmartPointer<vtkImageData>::New();
@@ -250,17 +249,17 @@ bool vtkSlicerCoronaryMainLogic
 {
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 
-	if (imageData->GetNumberOfCells() == 0)
+	if (imageData == 0)
 	{
 		std::cerr << "DetectLumenLogic: cannot find image data" << std::endl;
 		return false;
 	}
-
 	if (centerlineModel->GetNumberOfCells() == 0)
 	{
 		std::cerr << "cannot find centerline" << std::endl;
 		return false;
 	}
+	std::cout << "DetectLumenLogic has all input data, begin to detect..." << std::endl;
 
 	vtkIdTypeArray* cidarray = vtkIdTypeArray::SafeDownCast(centerlineModel->GetCellData()->GetArray("SegmentId"));
 	for (vtkIdType i = 0; i < cidarray->GetNumberOfTuples(); i++)
@@ -282,7 +281,7 @@ bool vtkSlicerCoronaryMainLogic
 ::BuildCenterlinesMeshLogic()
 {
 	std::cout << "BuildCenterlinesMeshLogic Begin! " << std::endl;
-	if (centerlineModel->GetPointData()->GetNumberOfArrays() == 0)
+	if (centerlineModel->GetNumberOfCells() == 0)
 	{
 		std::cerr << "BuildCenterlinesMeshLogic: cannot find centerline model!" << std::endl;
 		return false;
@@ -310,7 +309,7 @@ bool vtkSlicerCoronaryMainLogic
 	vtkSmartPointer<vtkPolyData> LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 	centerlineModel_display->DeepCopy(centerlineModel);
 	LumenModel_display->DeepCopy(LumenModel);
-	
+
 	//
 
 	vtkMRMLModelNode* clNode = vtkMRMLModelNode::New();

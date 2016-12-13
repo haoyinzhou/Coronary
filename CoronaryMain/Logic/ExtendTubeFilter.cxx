@@ -47,11 +47,6 @@ ExtendTubeFilter::ExtendTubeFilter()
 
 ExtendTubeFilter::~ExtendTubeFilter()
 {
-	if (InputImageData)
-	{
-		InputImageData->Delete();
-		InputImageData = NULL;
-	}
 	out0cache->Delete();
 }
 
