@@ -1729,9 +1729,6 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 	//	learnimpl->LoadLumenWallClassifiers();
 	learnimpl->LoadLumenAlongNormalsClassifiers();
 
-	//	LearningImpl *learncenterpointimpl = learncenterpoint.limpl;
-	//	learncenterpointimpl->LoadCenterPointClassifier();
-
 	vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
 	vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
 	vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
@@ -1753,13 +1750,7 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 		clModel->GetPoint(pid, center);
 		clAxis1->GetTuple(pid, axis1);
 		clAxis2->GetTuple(pid, axis2);
-	//	double intensity;
-	//	interpolator->Interpolate(center, &intensity);
-	//	if (intensity < 200)
-	//	{
-	//		RefineThisCenterpoint2MaxIntensity(interpolator, center, axis1, axis2);
-	//		clModel->GetPoints()->SetPoint(pid, center);
-	//	}
+
 		for (int k = 0; k < clLumenRadius->GetNumberOfComponents(); k++)
 		{
 			for (int l = 0; l < 3; l++) ray[0][l] = cos((k - 1)*cirstep)*axis1[l] + sin((k - 1)*cirstep)*axis2[l];
@@ -1767,7 +1758,7 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 			for (int l = 0; l < 3; l++) ray[2][l] = cos((k + 1)*cirstep)*axis1[l] + sin((k + 1)*cirstep)*axis2[l];
 			double maxpred = std::numeric_limits<double>::lowest();
 			double maxradius, maxthickness;
-			for (double radius = 0.05; radius < 2.5; radius = radius + 0.01)
+			for (double radius = 0.8; radius < 2.5; radius = radius + 0.05)
 			{
 				for (int j = 0; j < 3; j++)
 				{
@@ -1827,33 +1818,15 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 
 	vector<CBifurcationTriangle> triangles_orignal;
 
-//	cout << "number_endfaces = " << number_endfaces << ", number_ringpoints = " << number_ringpoints << endl;
-
-/*	vector< vector<bool> > Lflag;
-	Lflag.resize(number_endfaces);
-	for (int fid = 0; fid < number_endfaces; fid ++)
-	{
-		Lflag[fid].resize(number_ringpoints);
-		for (int pid = 0; pid < number_ringpoints; pid ++)
-			Lflag[fid][pid] = false;
-	}
-*/
-
 	for (int fid = 0; fid < number_endfaces; fid ++)
 	{
 		for (int pid = 0; pid < number_ringpoints; pid++)
 		{
 			int pid2 = (pid == number_ringpoints - 1) ? 0 : pid + 1;
-		//	if (Lflag[fid][pid] == false)
 			{
 				CBifurcationTriangle thistrianglemesh;
 				findConvexPoint(fid, pid, pid2, endfaces, &thistrianglemesh);
-			//	cout << "fid = " << fid << ", pid,pid2 = " << pid << ", " << pid2 << endl;
-			//	cout << "thistrianglemesh.EndFacePoint.size() = " << thistrianglemesh.EndFacePoint.size() << endl;
-			//	cout << thistrianglemesh.EndFacePoint[0].index[0] << ", " << thistrianglemesh.EndFacePoint[0].index[1] << endl;
-			//	cout << thistrianglemesh.EndFacePoint[1].index[0] << ", " << thistrianglemesh.EndFacePoint[1].index[1] << endl;
-			//	cout << thistrianglemesh.EndFacePoint[2].index[0] << ", " << thistrianglemesh.EndFacePoint[2].index[1] << endl;
-				
+			
 				triangles_orignal.push_back(thistrianglemesh);
 			}
 		}
@@ -1861,7 +1834,6 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 
 
 	int trianglesize_orignal = triangles_orignal.size();
-//	int i2 = 0, ii2 = 0;
 	bool findthisedge = false;
 	for (int tid = 0; tid < trianglesize_orignal; tid ++)
 	{
@@ -1915,8 +1887,6 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 		}
 	}
 	
-	//std::cout << "triangles_orignal.size() = " << triangles_orignal.size() << endl;
-	//std::cout << "triangles.size() = " << triangles.size() << endl;
 
 	// manually sub divide convex hull triangles
 	for (int i = 0; i < triangles_orignal.size(); i++)
@@ -1969,12 +1939,7 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 				sub3[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j2].realcoord[l] + mid1[l]);
 				sub4[l] = 0.5 * (triangles_orignal[i].EndFacePoint[j3].realcoord[l] + mid2[l]);
 			}
-		//	cout << "mid1: " << mid1[0] << ", " << mid1[1] << ", " << mid1[2] << endl;
-		//	cout << "mid2: " << mid2[0] << ", " << mid2[1] << ", " << mid2[2] << endl;
-		//	cout << "sub1: " << sub1[0] << ", " << sub1[1] << ", " << sub1[2] << endl;
-		//	cout << "sub2: " << sub2[0] << ", " << sub2[1] << ", " << sub2[2] << endl;
-		//	cout << "sub3: " << sub3[0] << ", " << sub3[1] << ", " << sub3[2] << endl;
-		//	cout << "sub4: " << sub4[0] << ", " << sub4[1] << ", " << sub4[2] << endl;
+
 			CBifurcationTriangle thistrianglemesh;
 
 			// [i][j1] sub1 sub2
@@ -2026,7 +1991,6 @@ int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vecto
 				, -1, -1, sub4[0], sub4[1], sub4[2], sub4[0], sub4[1], sub4[2]);
 			triangles.push_back(thistrianglemesh);
 		}
-	//	if (0)
 		else
 		{
 			double mid1[3], mid2[3], mid3[3];

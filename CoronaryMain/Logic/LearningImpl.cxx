@@ -22,6 +22,10 @@ LearningImpl::LearningImpl()
 
 LearningImpl::~LearningImpl()
 {
+	for (int i = 0; i < lmBoost.size(); i ++)
+		lmBoost[i].clear();
+	lmBoost.clear();
+	lwBoost.clear();
 }
 
 bool LearningImpl::LoadLandmarkClassifiers(int num)

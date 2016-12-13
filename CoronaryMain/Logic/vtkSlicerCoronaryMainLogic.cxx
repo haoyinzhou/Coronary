@@ -35,25 +35,43 @@ vtkStandardNewMacro(vtkSlicerCoronaryMainLogic);
 //----------------------------------------------------------------------------
 vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 {
-	memset(landmarks, 0.0, SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS * 3 * sizeof(double));
-	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
-	LumenModel = vtkSmartPointer<vtkPolyData>::New();
-	centerlineId = vtkSmartPointer<vtkIdFilter>::New();
+
 	imageData = vtkSmartPointer<vtkImageData>::New();
+	imageData_original = vtkSmartPointer<vtkImageData>::New();
+	hessianImage = vtkSmartPointer<vtkImageData>::New();
+	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
+
+	memset(landmarks, 0.0, SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS * 3 * sizeof(double));
 	memset(NodeOrigin, 0, 3 * sizeof(double));
 	for (int l = 0; l < 3; l++) NodeSpaceing[l] = 1.0;
 
-	clNode = vtkMRMLModelNode::New();
-	clDisplayNode = vtkMRMLModelDisplayNode::New();
-	LumenNode = vtkMRMLModelNode::New();
-	LumenDisplayNode = vtkMRMLModelDisplayNode::New();
+	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+	LumenModel = vtkSmartPointer<vtkPolyData>::New();
+	centerlineId = vtkSmartPointer<vtkIdFilter>::New();
 
-	addednode.resize(0);
+
+	addedclnode.clear();
+	addedlandmarknode.clear();
 }
 
 //----------------------------------------------------------------------------
 vtkSlicerCoronaryMainLogic::~vtkSlicerCoronaryMainLogic()
 {
+/*	if (imageData)
+		imageData->Delete();
+	if (imageData_original)
+		imageData_original->Delete();
+	if (hessianImage)
+		hessianImage->Delete();
+	if (interpolator)
+		interpolator->Delete();
+	if (centerlineModel)
+		centerlineModel->Delete();
+	if (LumenModel)
+		LumenModel->Delete();
+	if (centerlineId)
+		centerlineId->Delete();
+*/
 }
 
 //----------------------------------------------------------------------------
@@ -245,7 +263,6 @@ bool vtkSlicerCoronaryMainLogic
 	}
 
 	vtkIdTypeArray* cidarray = vtkIdTypeArray::SafeDownCast(centerlineModel->GetCellData()->GetArray("SegmentId"));
-	std::cout << "vessel number new = " << cidarray->GetNumberOfTuples() << std::endl;
 	for (vtkIdType i = 0; i < cidarray->GetNumberOfTuples(); i++)
 	{		
 		std::cout << "vessel id = " << i << std::endl;
@@ -254,29 +271,28 @@ bool vtkSlicerCoronaryMainLogic
 		{
 			centerlineModel->Modified();
 		}
-		progressbar->setValue(100 * i / cidarray->GetNumberOfTuples());
+		progressbar->setValue(100 * (i + 1) / cidarray->GetNumberOfTuples());
 	}
-	
 
 	std::cout << "DetectLumenLogic Done! " << std::endl;
 	return true;
 }
 
 bool vtkSlicerCoronaryMainLogic
-::BuildMeshLogic()
+::BuildCenterlinesMeshLogic()
 {
-	std::cout << "BuildMeshLogic Begin! " << std::endl;
+	std::cout << "BuildCenterlinesMeshLogic Begin! " << std::endl;
 	if (centerlineModel->GetPointData()->GetNumberOfArrays() == 0)
 	{
-		std::cerr << "BuildMeshLogic: cannot find centerline model!" << std::endl;
+		std::cerr << "BuildCenterlinesMeshLogic: cannot find centerline model!" << std::endl;
 		return false;
 	}	
 
-	if (addednode.size() != 0)
+	if (addedclnode.size() != 0)
 	{
-		for (int i = 0; i < addednode.size(); i ++)
-			this->GetMRMLScene()->RemoveNode(addednode.at(i));
-		addednode.clear();
+		for (int i = 0; i < addedclnode.size(); i++)
+			this->GetMRMLScene()->RemoveNode(addedclnode.at(i));
+		addedclnode.clear();
 	}
 
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
@@ -294,13 +310,13 @@ bool vtkSlicerCoronaryMainLogic
 	vtkSmartPointer<vtkPolyData> LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 	centerlineModel_display->DeepCopy(centerlineModel);
 	LumenModel_display->DeepCopy(LumenModel);
-
-
+	
 	//
-	clNode = vtkMRMLModelNode::New();
-	clDisplayNode = vtkMRMLModelDisplayNode::New();
-	LumenNode = vtkMRMLModelNode::New();
-	LumenDisplayNode = vtkMRMLModelDisplayNode::New();
+
+	vtkMRMLModelNode* clNode = vtkMRMLModelNode::New();
+	vtkMRMLModelDisplayNode* clDisplayNode = vtkMRMLModelDisplayNode::New();
+	vtkMRMLModelNode* LumenNode = vtkMRMLModelNode::New();
+	vtkMRMLModelDisplayNode* LumenDisplayNode = vtkMRMLModelDisplayNode::New();
 
 	vtkSmartPointer<vtkMatrix4x4> transformMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
 	transformMatrix->SetElement(0, 0, -1); transformMatrix->SetElement(0, 1, 0);  transformMatrix->SetElement(0, 2, 0);  transformMatrix->SetElement(0, 3, 0);
@@ -312,9 +328,9 @@ bool vtkSlicerCoronaryMainLogic
 	vtkMRMLNode* thisaddednode;
 
 	thisaddednode = this->GetMRMLScene()->AddNode(clNode);
-	addednode.push_back(thisaddednode);
+	addedclnode.push_back(thisaddednode);
 	thisaddednode = this->GetMRMLScene()->AddNode(clDisplayNode);
-	addednode.push_back(thisaddednode);
+	addedclnode.push_back(thisaddednode);
 	clDisplayNode->SetScene(this->GetMRMLScene());
 	clNode->SetScene(this->GetMRMLScene());
 	clNode->SetName("centerline model");
@@ -323,9 +339,9 @@ bool vtkSlicerCoronaryMainLogic
 	clDisplayNode->Modified();
 
 	thisaddednode = this->GetMRMLScene()->AddNode(LumenNode);
-	addednode.push_back(thisaddednode);
+	addedclnode.push_back(thisaddednode);
 	thisaddednode = this->GetMRMLScene()->AddNode(LumenDisplayNode);
-	addednode.push_back(thisaddednode);
+	addedclnode.push_back(thisaddednode);
 	LumenDisplayNode->SetScene(this->GetMRMLScene());
 	LumenNode->SetScene(this->GetMRMLScene());
 	LumenNode->SetName("lumen model");
@@ -333,20 +349,80 @@ bool vtkSlicerCoronaryMainLogic
 	LumenNode->Modified();
 	LumenDisplayNode->Modified();
 
-
 	clDisplayNode->SetColor(1, 0, 0);
 	clNode->SetAndObservePolyData(centerlineModel_display);
 	clNode->ApplyTransformMatrix(transformMatrix);
 
 	LumenDisplayNode->SetColor(0, 0, 1);
+	LumenDisplayNode->SetOpacity(0.5);
+	LumenDisplayNode->SetVisibility(1);
+	LumenDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
 	LumenNode->SetAndObservePolyData(LumenModel_display);
 	LumenNode->ApplyTransformMatrix(transformMatrix);
 	
-	std::cout << "BuildMeshLogic Done! " << std::endl;
+	std::cout << "BuildCenterlinesMeshLogic Done! " << std::endl;
 	return true;
 }
 
+bool vtkSlicerCoronaryMainLogic
+::BuildLandmarksMeshLogic()
+{
+	std::cout << "BuildLandmarksMeshLogic Begin! " << std::endl;
 
+	if (addedlandmarknode.size() != 0)
+	{
+		for (int i = 0; i < addedlandmarknode.size(); i++)
+			this->GetMRMLScene()->RemoveNode(addedlandmarknode.at(i));
+		addedlandmarknode.clear();
+	}
+
+	// show landmarks
+	vtkSmartPointer<vtkAppendPolyData> appendFilter = vtkSmartPointer<vtkAppendPolyData>::New();
+	for (int i = SmartCoronary::LEFT_CORONARY_OSTIUM; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+	{
+		vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+		sphereSource->SetCenter(landmarks[i][0], landmarks[i][1], landmarks[i][2]);
+		sphereSource->SetRadius(4.0);
+		sphereSource->Update();
+		appendFilter->AddInputData(sphereSource->GetOutput());
+	}
+	appendFilter->Update();
+	vtkSmartPointer<vtkCleanPolyData> cleanFilter = vtkSmartPointer<vtkCleanPolyData>::New();
+	cleanFilter->SetInputConnection(appendFilter->GetOutputPort());
+	cleanFilter->Update();
+
+	vtkSmartPointer<vtkMatrix4x4> transformMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+	transformMatrix->SetElement(0, 0, -1); transformMatrix->SetElement(0, 1, 0);  transformMatrix->SetElement(0, 2, 0);  transformMatrix->SetElement(0, 3, 0);
+	transformMatrix->SetElement(1, 0, 0);  transformMatrix->SetElement(1, 1, -1); transformMatrix->SetElement(1, 2, 0);  transformMatrix->SetElement(1, 3, 0);
+	transformMatrix->SetElement(2, 0, 0);  transformMatrix->SetElement(2, 1, 0);  transformMatrix->SetElement(2, 2, 1);  transformMatrix->SetElement(2, 3, 0);
+	transformMatrix->SetElement(3, 0, 0);  transformMatrix->SetElement(3, 1, 0);  transformMatrix->SetElement(3, 2, 0);  transformMatrix->SetElement(3, 3, 1);
+
+
+	this->GetMRMLScene()->SaveStateForUndo();
+	vtkMRMLNode* thisaddednode;
+
+	vtkMRMLModelNode* LandmarkNode = vtkMRMLModelNode::New();
+	vtkMRMLModelDisplayNode* LandmarkDisplayNode = vtkMRMLModelDisplayNode::New();
+	thisaddednode = this->GetMRMLScene()->AddNode(LandmarkNode);
+	addedlandmarknode.push_back(thisaddednode);
+	thisaddednode = this->GetMRMLScene()->AddNode(LandmarkDisplayNode);
+	addedlandmarknode.push_back(thisaddednode);
+
+	LandmarkDisplayNode->SetScene(this->GetMRMLScene());
+	LandmarkNode->SetScene(this->GetMRMLScene());
+	LandmarkNode->SetName("landmarks");
+	LandmarkNode->SetAndObserveDisplayNodeID(LandmarkDisplayNode->GetID());
+	LandmarkNode->Modified();
+	LandmarkDisplayNode->Modified();
+
+	LandmarkDisplayNode->SetColor(1, 0, 0);
+	LandmarkNode->SetAndObservePolyData(cleanFilter->GetOutput());
+	LandmarkNode->ApplyTransformMatrix(transformMatrix);
+	
+	std::cout << "BuildCenterlinesMeshLogic Done! " << std::endl;
+
+	return true;
+}
 
 
 

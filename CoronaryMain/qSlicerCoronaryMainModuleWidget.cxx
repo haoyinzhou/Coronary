@@ -62,12 +62,13 @@ qSlicerCoronaryMainModuleWidget::qSlicerCoronaryMainModuleWidget(QWidget* _paren
   : Superclass( _parent )
   , d_ptr( new qSlicerCoronaryMainModuleWidgetPrivate(*this) )
 {
-	baseName = "landmarks";
+	baseName = "dataset";
 }
 
 //-----------------------------------------------------------------------------
 qSlicerCoronaryMainModuleWidget::~qSlicerCoronaryMainModuleWidget()
 {
+	baseName.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -89,6 +90,10 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
 	d->progressBar->setValue(0);
+
+	d->checkBox_buildbifurcationmesh->setChecked(false);
+	d->checkBox_loadlandmarks->setChecked(false);
+	d->checkBox_loadcenterlines->setChecked(false);
 }
 
 #define DisableAllButtons()\
@@ -148,7 +153,7 @@ void qSlicerCoronaryMainModuleWidget::SetCheckBoxBuildBifurcationMesh(int state)
 		logic->WillBuildBifurcationMesh = false;
 	}
 
-	logic->BuildMeshLogic();
+	logic->BuildCenterlinesMeshLogic();
 }
 
 
@@ -213,6 +218,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 			}
 			d->progressBar->setValue(100);
 		}
+
+		logic->BuildLandmarksMeshLogic();
 	}
 
 	return true;
@@ -306,7 +313,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		logic->centerlineId->Update();
 		logic->centerlineModel = vtkPolyData::SafeDownCast(logic->centerlineId->GetOutput());
 		
-		logic->BuildMeshLogic();
+		logic->BuildCenterlinesMeshLogic();
 
 		d->progressBar->setValue(100);
 	}
@@ -320,7 +327,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 	if (logic != NULL)
 	{
 		if (logic->DetectLumenLogic(d->progressBar))
-			logic->BuildMeshLogic();
+			logic->BuildCenterlinesMeshLogic();
 	}
 
 	return true;
@@ -418,16 +425,7 @@ bool qSlicerCoronaryMainModuleWidget::SaveCenterlinesButtonFunc()
 	return true;
 }
 
-bool qSlicerCoronaryMainModuleWidget::BuildMesh()
-{
-	Q_D(qSlicerCoronaryMainModuleWidget);
-	vtkSlicerCoronaryMainLogic *logic = d->logic();
-	if (logic != NULL)
-	{
-		logic->BuildMeshLogic();
-	}
-	return true;
-}
+
 
 void qSlicerCoronaryMainModuleWidget::updateprogressbar(int i)
 {

@@ -75,8 +75,10 @@ public:
   bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar);
   bool DetectCenterlinesLogic(QProgressBar* progressbar);
   bool DetectLumenLogic(QProgressBar* progressbar);
-  bool BuildMeshLogic();
-  
+
+  bool BuildLandmarksMeshLogic();
+  bool BuildCenterlinesMeshLogic();
+
 
 public:
 	bool GetLandMarksCoord(int index, double coord[3]);
@@ -97,8 +99,7 @@ protected:
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
 
-public:
-	
+public:	
 	Learning learn;
 	vtkSmartPointer<vtkImageData> imageData;
 	vtkSmartPointer<vtkImageData> imageData_original;
@@ -111,15 +112,9 @@ public:
 
 	double NodeOrigin[3];
 	double NodeSpaceing[3];
-
-
-	vtkMRMLModelNode* clNode;
-	vtkMRMLModelDisplayNode* clDisplayNode;
-	vtkMRMLModelNode* LumenNode;
-	vtkMRMLModelDisplayNode* LumenDisplayNode;
-
-
-	vector<vtkMRMLNode*> addednode;
+	
+	vector<vtkMRMLNode*> addedclnode;
+	vector<vtkMRMLNode*> addedlandmarknode;
 
 
 public:
