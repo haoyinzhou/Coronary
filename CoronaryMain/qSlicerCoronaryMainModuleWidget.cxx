@@ -233,10 +233,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 
 		if (d->checkBox_loadcenterlines->isChecked() == false)
 		{
-			if (logic->DetectCenterlinesLogic(d->progressBar))
-			{
-				logic->BuildMeshLogic();
-			}
+			logic->DetectCenterlinesLogic(d->progressBar);
 		}
 		else
 		{
@@ -297,10 +294,21 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 				return false;
 			}
 
-			logic->BuildMeshLogic();
-
-			d->progressBar->setValue(100);
+			d->progressBar->setValue(95);
 		}
+
+		logic->centerlineId = vtkSmartPointer<vtkIdFilter>::New();
+		logic->centerlineId->SetInputData(logic->centerlineModel);
+		logic->centerlineId->PointIdsOff();
+		logic->centerlineId->CellIdsOn();
+		logic->centerlineId->FieldDataOn();
+		logic->centerlineId->SetIdsArrayName("SegmentId");
+		logic->centerlineId->Update();
+		logic->centerlineModel = vtkPolyData::SafeDownCast(logic->centerlineId->GetOutput());
+		
+		logic->BuildMeshLogic();
+
+		d->progressBar->setValue(100);
 	}
 	return true;
 }
@@ -311,7 +319,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic != NULL)
 	{
-		logic->DetectLumenLogic();
+		if (logic->DetectLumenLogic(d->progressBar))
+			logic->BuildMeshLogic();
 	}
 
 	return true;

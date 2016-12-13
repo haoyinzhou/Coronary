@@ -31,7 +31,14 @@ class LearningImpl
 {
 public:
 	bool LoadLandmarkClassifiers(int num);
+	bool LoadLumenAlongNormalsClassifiers();
+
 	std::vector<CvBoost> lmBoost;
+	CvBoost				 lwBoost;
+
+private:
+	bool LandMarkLoaded;
+	bool LumenWallLoaded;
 
 public:
 	LearningImpl();

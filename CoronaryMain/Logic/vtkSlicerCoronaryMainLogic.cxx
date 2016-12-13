@@ -38,6 +38,7 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 	memset(landmarks, 0.0, SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS * 3 * sizeof(double));
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	LumenModel = vtkSmartPointer<vtkPolyData>::New();
+	centerlineId = vtkSmartPointer<vtkIdFilter>::New();
 	imageData = vtkSmartPointer<vtkImageData>::New();
 	memset(NodeOrigin, 0, 3 * sizeof(double));
 	for (int l = 0; l < 3; l++) NodeSpaceing[l] = 1.0;
@@ -127,7 +128,6 @@ bool vtkSlicerCoronaryMainLogic
 
 
 
-
 bool vtkSlicerCoronaryMainLogic
 ::DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumeNode, QProgressBar* progressbar)
 {
@@ -141,20 +141,6 @@ bool vtkSlicerCoronaryMainLogic
 
 	//-------// 
 	progressbar->setValue(1);
-
-/*	VolumeNode->GetOrigin(NodeOrigin);
-	VolumeNode->GetSpacing(NodeSpaceing);
-
-	imageData_original = VolumnNode->GetImageData();
-	imageData->DeepCopy(imageData_original);
-	imageData->SetOrigin(-NodeOrigin[0], -NodeOrigin[1], NodeOrigin[2]);
-	imageData->SetSpacing(NodeSpaceing);
-
-	interpolator = vtkSmartPointer<vtkImageInterpolator>::New();
-	interpolator->SetInterpolationModeToLinear();
-	interpolator->SetOutValue(-3024.0);
-	interpolator->Initialize(imageData);
-*/
 
 /*	int	 imageDims[3];
 	double imageOrigins[3];
@@ -242,13 +228,13 @@ bool vtkSlicerCoronaryMainLogic
 }
 
 bool vtkSlicerCoronaryMainLogic
-::DetectLumenLogic()
+::DetectLumenLogic(QProgressBar* progressbar)
 {
 	std::cout << "DetectLumenLogic Begin! " << std::endl;
 
 	if (imageData->GetNumberOfCells() == 0)
 	{
-		std::cerr << "cannot find image data" << std::endl;
+		std::cerr << "DetectLumenLogic: cannot find image data" << std::endl;
 		return false;
 	}
 
@@ -258,8 +244,19 @@ bool vtkSlicerCoronaryMainLogic
 		return false;
 	}
 
+	vtkIdTypeArray* cidarray = vtkIdTypeArray::SafeDownCast(centerlineModel->GetCellData()->GetArray("SegmentId"));
+	std::cout << "vessel number new = " << cidarray->GetNumberOfTuples() << std::endl;
+	for (vtkIdType i = 0; i < cidarray->GetNumberOfTuples(); i++)
+	{		
+		std::cout << "vessel id = " << i << std::endl;
 
-
+		if (DetectCenterlineLumenWall_core(centerlineModel, cidarray->GetValue(i), interpolator, learn))
+		{
+			centerlineModel->Modified();
+		}
+		progressbar->setValue(100 * i / cidarray->GetNumberOfTuples());
+	}
+	
 
 	std::cout << "DetectLumenLogic Done! " << std::endl;
 	return true;
@@ -271,7 +268,7 @@ bool vtkSlicerCoronaryMainLogic
 	std::cout << "BuildMeshLogic Begin! " << std::endl;
 	if (centerlineModel->GetPointData()->GetNumberOfArrays() == 0)
 	{
-		std::cerr << "cannot find centerline model!" << std::endl;
+		std::cerr << "BuildMeshLogic: cannot find centerline model!" << std::endl;
 		return false;
 	}	
 
@@ -282,8 +279,6 @@ bool vtkSlicerCoronaryMainLogic
 		addednode.clear();
 	}
 
-	std::cout << "number of cl points: " << centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
-
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
 	vtkSmartPointer<ExtendTubeFilter> centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
@@ -292,8 +287,8 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineTube->SetInputImageData(imageData);
 	centerlineTube->Update();
 	LumenModel = centerlineTube->GetOutput(2);
-	std::cout << "number of LumenModel points: " << LumenModel->GetPoints()->GetNumberOfPoints() << std::endl;
-	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
+
+//	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 
 	vtkSmartPointer<vtkPolyData> centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
 	vtkSmartPointer<vtkPolyData> LumenModel_display = vtkSmartPointer<vtkPolyData>::New();

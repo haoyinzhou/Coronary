@@ -13,6 +13,39 @@ CBifurcation::CBifurcation()
 	this->VesselDir.resize(0);
 }
 
+void SaveVTKImage(vtkImageData *image, const char* fileName)
+{
+	vtkSmartPointer< vtkMetaImageWriter > writer = vtkSmartPointer< vtkMetaImageWriter >::New();
+	writer->SetFileName(fileName);
+	writer->SetInputData(image);
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}
+
+void SavePolyData(vtkPolyData *poly, const char* fileName)
+{
+	if (!poly) return;
+	vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+	writer->SetInputData(poly);
+	writer->SetFileName(fileName);
+	writer->SetDataModeToBinary();
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}
 
 void FillIntegralImage(vtkImageData* intergalImage, vtkImageData *imageData, vtkImageInterpolator* interpolator)
 {
@@ -1689,40 +1722,102 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 }
 
 
-
-void SaveVTKImage(vtkImageData *image, const char* fileName)
+bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vtkImageInterpolator* interpolator, Learning &learn)
 {
-	vtkSmartPointer< vtkMetaImageWriter > writer = vtkSmartPointer< vtkMetaImageWriter >::New();
-	writer->SetFileName(fileName);
-	writer->SetInputData(image);
-	try
+	LearningImpl *learnimpl = learn.limpl;
+	
+	//	learnimpl->LoadLumenWallClassifiers();
+	learnimpl->LoadLumenAlongNormalsClassifiers();
+
+	//	LearningImpl *learncenterpointimpl = learncenterpoint.limpl;
+	//	learncenterpointimpl->LoadCenterPointClassifier();
+
+	vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
+	vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
+	vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+	vtkDoubleArray *clWallThickness = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("WallThickness"));
+	if (!clAxis1 || !clAxis2 || !clLumenRadius || !clWallThickness) return false;
+
+	vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+	clModel->GetCellPoints(selectId, idlist);
+
+	double center[3], coord[3][3], axis1[3], axis2[3], ray[3][3];
+	double cirstep = 2.0*M_PI / clLumenRadius->GetNumberOfComponents();
+	double* Radius = new double[clLumenRadius->GetNumberOfComponents()];
+	double* Radius_temp = new double[clLumenRadius->GetNumberOfComponents()];
+	double* Thickness = new double[clLumenRadius->GetNumberOfComponents()];
+	double* Preds = new double[clLumenRadius->GetNumberOfComponents()];
+	for (vtkIdType i = 0; i < idlist->GetNumberOfIds(); i++)
 	{
-		writer->Write();
+		vtkIdType pid = idlist->GetId(i);
+		clModel->GetPoint(pid, center);
+		clAxis1->GetTuple(pid, axis1);
+		clAxis2->GetTuple(pid, axis2);
+	//	double intensity;
+	//	interpolator->Interpolate(center, &intensity);
+	//	if (intensity < 200)
+	//	{
+	//		RefineThisCenterpoint2MaxIntensity(interpolator, center, axis1, axis2);
+	//		clModel->GetPoints()->SetPoint(pid, center);
+	//	}
+		for (int k = 0; k < clLumenRadius->GetNumberOfComponents(); k++)
+		{
+			for (int l = 0; l < 3; l++) ray[0][l] = cos((k - 1)*cirstep)*axis1[l] + sin((k - 1)*cirstep)*axis2[l];
+			for (int l = 0; l < 3; l++) ray[1][l] = cos(k*cirstep)*axis1[l] + sin(k*cirstep)*axis2[l];
+			for (int l = 0; l < 3; l++) ray[2][l] = cos((k + 1)*cirstep)*axis1[l] + sin((k + 1)*cirstep)*axis2[l];
+			double maxpred = std::numeric_limits<double>::lowest();
+			double maxradius, maxthickness;
+			for (double radius = 0.05; radius < 2.5; radius = radius + 0.01)
+			{
+				for (int j = 0; j < 3; j++)
+				{
+					for (int l = 0; l < 3; l++) coord[j][l] = center[l] + radius*ray[j][l];
+				}
+
+				double pred = 0;
+				for (double thickness = 0.05; thickness < 0.25; thickness += 0.05)
+				{
+					for (int j = 0; j < 3; j++)
+					{
+						cv::Mat featureRow = cv::Mat::zeros(1, 25, CV_32F);
+						RayFeatures(interpolator, coord[j], ray[j], thickness, featureRow);
+						pred += learnimpl->lwBoost.predict(featureRow, cv::Mat(), cv::Range::all(), false, true);
+					}
+				}
+				if (pred > maxpred)
+				{
+					maxpred = pred;
+					maxradius = radius;
+					//maxthickness = thickness;
+					maxthickness = 0.05;
+				}
+			}
+			Radius[k] = maxradius;
+			Thickness[k] = maxthickness;
+			Preds[k] = maxpred;
+		}
+
+		double center_new[3];
+		clModel->GetPoint(pid, center);
+		CentralizedThisContour(center, axis1, axis2, clLumenRadius->GetNumberOfComponents(), center_new, Radius, Thickness);
+		clModel->GetPoints()->SetPoint(pid, center_new);
+
+		for (int k = 0; k < clLumenRadius->GetNumberOfComponents(); k++)
+		{
+			clLumenRadius->SetComponent(pid, k, Radius[k]);
+			clWallThickness->SetComponent(pid, k, Thickness[k]);
+		}
 	}
-	catch (...)
-	{
-		std::cerr << "Error occurs when writing " << fileName << std::endl;
-		return;
-	}
+
+	delete[] Radius_temp;
+	delete[] Radius;
+	delete[] Thickness;
+	delete[] Preds;
+	return true;
 }
 
-void SavePolyData(vtkPolyData *poly, const char* fileName)
-{
-	if (!poly) return;
-	vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
-	writer->SetInputData(poly);
-	writer->SetFileName(fileName);
-	writer->SetDataModeToBinary();
-	try
-	{
-		writer->Write();
-	}
-	catch (...)
-	{
-		std::cerr << "Error occurs when writing " << fileName << std::endl;
-		return;
-	}
-}
+
+
 
 
 int MergeAlgorithm(vector<CEndFace> endfaces, double bifurcationcenter[3], vector<CBifurcationTriangle>& triangles)
@@ -2329,3 +2424,85 @@ void fillBifurcationTriangle(CBifurcationTriangle* t
 	t->EndFacePoint.push_back(EndFacePoint);
 }
 
+void ImageGradient(vtkImageInterpolator* interpolator, const double point[3], double gradient[3], double scale = 1.0)
+{
+	double coord[3];
+	double grad1, grad2;
+	for (int j = 0; j < 3; j++)
+	{
+		double axis[3] = { 0, 0, 0 };
+		axis[j] = scale / 2.0;
+		vtkMath::Add(point, axis, coord);
+		interpolator->Interpolate(coord, &grad1);
+		vtkMath::Subtract(point, axis, coord);
+		interpolator->Interpolate(coord, &grad2);
+		gradient[j] = grad1 - grad2;
+	}
+}
+
+void RayFeatures(vtkImageInterpolator* interpolator, const double point[3], const double normal[3], double thickness, cv::Mat& features)
+{
+	double coord[3];
+	double intensity, gradient[3], gradmag;
+	for (int i = 0; i < 5; i++)
+	{
+		for (int j = 0; j < 3; j++) coord[j] = point[j] + thickness*normal[j] * (i - 2);
+		interpolator->Interpolate(coord, &intensity);
+		ImageGradient(interpolator, coord, gradient);
+		gradmag = vtkMath::Norm(gradient);
+		features.at<float>(5 * i) = (float)intensity;
+		features.at<float>(5 * i + 1) = (float)intensity*intensity;
+		features.at<float>(5 * i + 2) = (float)gradmag;
+		features.at<float>(5 * i + 3) = (float)gradmag*gradmag;
+		features.at<float>(5 * i + 4) = (float)vtkMath::Dot(gradient, normal);
+	}
+}
+
+int CentralizedThisContour(double center[3], double axis1[3], double axis2[3], int RingSize, double center_new[3], double* Radius, double* Thickness)
+{
+	vtkPoints* cirpoints = vtkPoints::New();
+	//vtkPolygon* cirPolygon = vtkPolygon::New();
+	vtkPolyLine* cirPolyLine = vtkPolyLine::New();
+
+	double cirstep = 2.0 * M_PI / RingSize;
+	for (int l = 0; l < 3; l++)
+		center_new[l] = 0.0;
+
+	for (int k = 0; k < RingSize; k++)
+	{
+		double ray[3], coord[3];
+		for (int l = 0; l < 3; l++)
+		{
+			ray[l] = cos(k*cirstep)*axis1[l] + sin(k*cirstep)*axis2[l];
+			coord[l] = center[l] + Radius[k] * ray[l];
+			center_new[l] = center_new[l] + coord[l];
+		}
+		cirpoints->InsertNextPoint(coord);
+	}
+	for (int l = 0; l < 3; l++)
+		center_new[l] = center_new[l] / RingSize;
+
+	cirPolyLine->GetPoints()->DeepCopy(cirpoints);
+	cirPolyLine->GetPointIds()->SetNumberOfIds(RingSize);
+	for (int k = 0; k < RingSize; k++)
+	{
+		cirPolyLine->GetPointIds()->SetId(k, k);
+	}
+
+	double tolerance = 0.01;
+	double t; // Parametric coordinate of intersection (0 (corresponding to p1) to 1 (corresponding to p2))
+	double x[3]; // The coordinate of the intersection
+	double pcoords[3];
+	int subId;
+
+	for (int k = 0; k < RingSize; k++)
+	{
+		double coord[3];
+		for (int l = 0; l < 3; l++)
+			coord[l] = center_new[l] + 20.0 * (cos(k*cirstep)*axis1[l] + sin(k*cirstep)*axis2[l]);
+
+		vtkIdType iD = cirPolyLine->IntersectWithLine(center_new, coord, tolerance, t, x, pcoords, subId);
+		Radius[k] = 20.0 * t;
+	}
+	return 0;
+}

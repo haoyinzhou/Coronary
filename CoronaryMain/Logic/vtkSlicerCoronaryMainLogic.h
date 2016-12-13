@@ -74,7 +74,7 @@ public:
 
   bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar);
   bool DetectCenterlinesLogic(QProgressBar* progressbar);
-  bool DetectLumenLogic();
+  bool DetectLumenLogic(QProgressBar* progressbar);
   bool BuildMeshLogic();
   
 
@@ -107,6 +107,7 @@ public:
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
 	vtkSmartPointer<vtkPolyData> centerlineModel;
 	vtkSmartPointer<vtkPolyData> LumenModel;
+	vtkSmartPointer<vtkIdFilter> centerlineId;
 
 	double NodeOrigin[3];
 	double NodeSpaceing[3];
@@ -116,6 +117,7 @@ public:
 	vtkMRMLModelDisplayNode* clDisplayNode;
 	vtkMRMLModelNode* LumenNode;
 	vtkMRMLModelDisplayNode* LumenDisplayNode;
+
 
 	vector<vtkMRMLNode*> addednode;
 
