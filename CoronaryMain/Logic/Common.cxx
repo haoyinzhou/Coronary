@@ -1729,10 +1729,10 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 	//	learnimpl->LoadLumenWallClassifiers();
 	learnimpl->LoadLumenAlongNormalsClassifiers();
 
-	vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
-	vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
-	vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
-	vtkDoubleArray *clWallThickness = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("WallThickness"));
+	vtkSmartPointer<vtkDoubleArray> clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
+	vtkSmartPointer<vtkDoubleArray> clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
+	vtkSmartPointer<vtkDoubleArray> clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+	vtkSmartPointer<vtkDoubleArray> clWallThickness = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("WallThickness"));
 	if (!clAxis1 || !clAxis2 || !clLumenRadius || !clWallThickness) return false;
 
 	vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
@@ -2424,9 +2424,9 @@ void RayFeatures(vtkImageInterpolator* interpolator, const double point[3], cons
 
 int CentralizedThisContour(double center[3], double axis1[3], double axis2[3], int RingSize, double center_new[3], double* Radius, double* Thickness)
 {
-	vtkPoints* cirpoints = vtkPoints::New();
+	vtkSmartPointer<vtkPoints> cirpoints = vtkSmartPointer<vtkPoints>::New();
 	//vtkPolygon* cirPolygon = vtkPolygon::New();
-	vtkPolyLine* cirPolyLine = vtkPolyLine::New();
+	vtkSmartPointer<vtkPolyLine> cirPolyLine = vtkSmartPointer<vtkPolyLine>::New();
 
 	double cirstep = 2.0 * M_PI / RingSize;
 	for (int l = 0; l < 3; l++)

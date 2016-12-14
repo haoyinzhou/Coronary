@@ -203,8 +203,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 		//	baseName = fileInfo.baseName();
 			MySettings.setValue(DEFAULT_DIR_KEY, fileInfo.absolutePath());
 
-			vtkPolyData* lmPoly = reader->GetOutput();
-			if (lmPoly->GetNumberOfPoints() < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS)
+			//vtkPolyData* lmPoly = reader->GetOutput();
+			if (reader->GetOutput()->GetNumberOfPoints() < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS)
 			{
 				std::cerr << "The number of points in the file " << fileNameByte.data() << " is incorrect" << std::endl;
 				return false;
@@ -212,7 +212,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 			double coord[3];
 			for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
 			{
-				lmPoly->GetPoint(i, coord);
+				reader->GetOutput()->GetPoint(i, coord);
 				std::cout << "landmarkcoord " << i << " = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
 				logic->SetLandMarksCoord(i, coord);
 			}

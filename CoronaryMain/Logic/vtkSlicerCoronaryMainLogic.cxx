@@ -261,7 +261,7 @@ bool vtkSlicerCoronaryMainLogic
 	}
 	std::cout << "DetectLumenLogic has all input data, begin to detect..." << std::endl;
 
-	vtkIdTypeArray* cidarray = vtkIdTypeArray::SafeDownCast(centerlineModel->GetCellData()->GetArray("SegmentId"));
+	vtkSmartPointer<vtkIdTypeArray> cidarray = vtkIdTypeArray::SafeDownCast(centerlineModel->GetCellData()->GetArray("SegmentId"));
 	for (vtkIdType i = 0; i < cidarray->GetNumberOfTuples(); i++)
 	{		
 		std::cout << "vessel id = " << i << std::endl;
@@ -311,11 +311,10 @@ bool vtkSlicerCoronaryMainLogic
 	LumenModel_display->DeepCopy(LumenModel);
 
 	//
-
-	vtkMRMLModelNode* clNode = vtkMRMLModelNode::New();
-	vtkMRMLModelDisplayNode* clDisplayNode = vtkMRMLModelDisplayNode::New();
-	vtkMRMLModelNode* LumenNode = vtkMRMLModelNode::New();
-	vtkMRMLModelDisplayNode* LumenDisplayNode = vtkMRMLModelDisplayNode::New();
+	clNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	clDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+	LumenNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	LumenDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
 
 	vtkSmartPointer<vtkMatrix4x4> transformMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
 	transformMatrix->SetElement(0, 0, -1); transformMatrix->SetElement(0, 1, 0);  transformMatrix->SetElement(0, 2, 0);  transformMatrix->SetElement(0, 3, 0);
@@ -396,12 +395,11 @@ bool vtkSlicerCoronaryMainLogic
 	transformMatrix->SetElement(2, 0, 0);  transformMatrix->SetElement(2, 1, 0);  transformMatrix->SetElement(2, 2, 1);  transformMatrix->SetElement(2, 3, 0);
 	transformMatrix->SetElement(3, 0, 0);  transformMatrix->SetElement(3, 1, 0);  transformMatrix->SetElement(3, 2, 0);  transformMatrix->SetElement(3, 3, 1);
 
-
 	this->GetMRMLScene()->SaveStateForUndo();
 	vtkMRMLNode* thisaddednode;
 
-	vtkMRMLModelNode* LandmarkNode = vtkMRMLModelNode::New();
-	vtkMRMLModelDisplayNode* LandmarkDisplayNode = vtkMRMLModelDisplayNode::New();
+	LandmarkNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	LandmarkDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
 	thisaddednode = this->GetMRMLScene()->AddNode(LandmarkNode);
 	addedlandmarknode.push_back(thisaddednode);
 	thisaddednode = this->GetMRMLScene()->AddNode(LandmarkDisplayNode);

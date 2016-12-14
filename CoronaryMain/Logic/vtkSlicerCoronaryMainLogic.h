@@ -116,6 +116,13 @@ public:
 	vector<vtkMRMLNode*> addedclnode;
 	vector<vtkMRMLNode*> addedlandmarknode;
 
+	vtkSmartPointer< vtkMRMLModelNode > LandmarkNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > LandmarkDisplayNode;
+	vtkSmartPointer< vtkMRMLModelNode > clNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > clDisplayNode;
+	vtkSmartPointer< vtkMRMLModelNode > LumenNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > LumenDisplayNode;
+
 
 public:
 	bool WillBuildBifurcationMesh;

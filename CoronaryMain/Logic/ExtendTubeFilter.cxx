@@ -433,9 +433,9 @@ int ExtendTubeFilter::RequestData(
 
 		if (this->WillBuildBifurcationMesh == true)
 		{
-			vtkPolyData* centerlinepoly_copy = vtkPolyData::New();
+			vtkSmartPointer< vtkPolyData > centerlinepoly_copy = vtkSmartPointer< vtkPolyData >::New();
 			centerlinepoly_copy->DeepCopy(output0);
-			vtkCellArray* out0Lines2 = centerlinepoly_copy->GetLines();	
+			vtkSmartPointer< vtkCellArray > out0Lines2 = centerlinepoly_copy->GetLines();
 			for(CellId = 0, out0Lines->InitTraversal(); out0Lines->GetNextCell(npts, pts); CellId ++)
 			{
 				CBifurcation BifurcationatHead, BifurcationatTail;
@@ -525,8 +525,8 @@ int ExtendTubeFilter::RequestData(
 			{
 				for (int j = 0; j < Bifurcations[i].VesselID.size(); j++)
 				{
-					vtkCell* thisline = output0->GetCell(Bifurcations[i].VesselID[j]);
-					vtkIdList* thislinepids = thisline->GetPointIds();
+					vtkSmartPointer<vtkCell> thisline = output0->GetCell(Bifurcations[i].VesselID[j]);
+					vtkSmartPointer<vtkIdList> thislinepids = thisline->GetPointIds();
 					npts = thislinepids->GetNumberOfIds();
 		
 					if (Bifurcations[i].VesselDir[j] == 1)
@@ -1107,29 +1107,22 @@ int ExtendTubeFilter::RequestData(
 		out2Radius->Delete();
 		out2Strips->Delete();
 
-/*
-		delete[] InsertPart;
-		delete[] EndFaceisfind;
-		delete[] StartIDofSegment;
-		delete[] EndIDofSegment;
-		delete[] Radius_of_bifur;
-		delete[] flag_Radius_of_bifur_isfound;
-		delete[] VesselRadius;
-		delete[] vesselcenter;
-
-		free(contour_2);
-
-		for (int i = 0; i < NumofInsectParts; i ++)
+		
+		for (int i = 0; i < Bifurcations.size(); i++)
 		{
-			free(contour_out_list[i]);
-			free(PointNuminEachContour_list[i]);
-			free(Segment_lumn_list[i]);
+			Bifurcations[i].VesselID.clear();
+			Bifurcations[i].VesselDir.clear();
+			Bifurcations[i].EndfacePID.clear();
 		}
-		free(contour_out_list);
-		free(PointNuminEachContour_list);
-		free(NumContour_list);
-		free(Segment_lumn_list);
-*/
+		Bifurcations.clear();
+		EndFaceFound.clear();
+		findBifurcaationRadius.clear();
+		BifurcationRadius.clear();
+		BifurcationTriangles.clear();
+
+		delete[] HeadPID;
+		delete[] TailPID;
+
 	}	
 
 	delete[] refineradii_2;
