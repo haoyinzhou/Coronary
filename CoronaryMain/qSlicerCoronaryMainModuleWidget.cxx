@@ -96,19 +96,6 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	d->checkBox_loadcenterlines->setChecked(false);
 }
 
-#define DisableAllButtons()\
-{\
-	d->DetectLandmarks->setEnabled(false);\
-	d->DetectCenterlines->setEnabled(false);\
-	d->DetectLumen->setEnabled(false);\
-}\
-
-#define EnableAllButtons()\
-{\
-	d->DetectLandmarks->setEnabled(true);\
-	d->DetectCenterlines->setEnabled(true);\
-	d->DetectLumen->setEnabled(true);\
-}\
 
 
 void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
@@ -165,14 +152,11 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 	{
 		if (d->checkBox_loadlandmarks->isChecked() == false)
 		{
-		//	DisableAllButtons();
 			logic->DetectLandmarksLogic(VolumeNode, d->progressBar);
 			for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
 			{
 				std::cout << "landmarkcoord " << i << " = " << logic->landmarks[i][0] << ", " << logic->landmarks[i][1] << ", " << logic->landmarks[i][2] << std::endl;
 			}
-
-		//	EnableAllButtons();
 		}
 		else
 		{
@@ -203,7 +187,6 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 		//	baseName = fileInfo.baseName();
 			MySettings.setValue(DEFAULT_DIR_KEY, fileInfo.absolutePath());
 
-			//vtkPolyData* lmPoly = reader->GetOutput();
 			if (reader->GetOutput()->GetNumberOfPoints() < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS)
 			{
 				std::cerr << "The number of points in the file " << fileNameByte.data() << " is incorrect" << std::endl;
