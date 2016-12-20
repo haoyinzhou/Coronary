@@ -47,10 +47,17 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 	centerlineModel = vtkSmartPointer<vtkPolyData>::New();
 	LumenModel = vtkSmartPointer<vtkPolyData>::New();
 	centerlineId = vtkSmartPointer<vtkIdFilter>::New();
-
+	
+	centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
+	LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 
 	addedclnode.clear();
 	addedlandmarknode.clear();
+	addedselectedclnode.clear();
+
+	addedobservertag.clear();
+
+	cellid_temp = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -296,7 +303,7 @@ bool vtkSlicerCoronaryMainLogic
 
 	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
 
-	vtkSmartPointer<ExtendTubeFilter> centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
+	centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
 	centerlineTube->SetWillBuildBifurcationMesh(this->WillBuildBifurcationMesh);
 	centerlineTube->SetInputData(centerlineModel);
 	centerlineTube->SetInputImageData(imageData);
@@ -305,8 +312,8 @@ bool vtkSlicerCoronaryMainLogic
 
 //	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 
-	vtkSmartPointer<vtkPolyData> centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
-	vtkSmartPointer<vtkPolyData> LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
+	centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
+	LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 	centerlineModel_display->DeepCopy(centerlineModel);
 	LumenModel_display->DeepCopy(LumenModel);
 
@@ -420,6 +427,271 @@ bool vtkSlicerCoronaryMainLogic
 
 	return true;
 }
+
+
+
+class CMyvtkCommand : public vtkCommand
+{
+public:
+	vtkTypeMacro(CMyvtkCommand, vtkCommand);
+
+	static CMyvtkCommand *New()
+	{
+		return new CMyvtkCommand;
+	}
+
+	void Execute(vtkObject *vtkNotUsed(caller), unsigned long vtkNotUsed(eventId),
+		void *vtkNotUsed(callData))
+	{
+		double ras[3];
+		this->crosshairNode->GetCursorPositionRAS(ras);
+		std::cout << ras[0] << ", " << ras[1] << ", " << ras[2] << std::endl;
+	}
+
+public:
+	vtkMRMLCrosshairNode* crosshairNode;
+};
+
+class CenterlineMouseInteractorStyle : public vtkInteractorStyleTrackballCamera
+{
+public:
+
+	static CenterlineMouseInteractorStyle* New();
+	vtkTypeMacro(CenterlineMouseInteractorStyle, vtkInteractorStyleTrackballCamera);
+
+	CenterlineMouseInteractorStyle()
+	{
+
+	}
+
+	virtual void OnRightButtonDown()
+	{
+		int pickPosition[2];
+		this->GetInteractor()->GetEventPosition(pickPosition);
+		std::cout << pickPosition[0] << ", " << pickPosition[1] << std::endl;
+	}
+
+public:
+	
+	
+};
+vtkStandardNewMacro(CenterlineMouseInteractorStyle);
+
+
+// Ctrl Key Event
+class vtkCtrlKeyPressedInteractionCallback : public vtkCommand
+{
+public:
+	static vtkCtrlKeyPressedInteractionCallback *New()
+	{
+		return new vtkCtrlKeyPressedInteractionCallback;
+	}
+
+	vtkCtrlKeyPressedInteractionCallback()
+	{
+
+	}
+
+	~vtkCtrlKeyPressedInteractionCallback()
+	{
+
+	}
+
+	void SetInteractor(vtkRenderWindowInteractor *iren)
+	{
+		this->Iren = iren;
+	}
+
+	virtual void Execute(vtkObject *caller, unsigned long ev, void *)
+	{
+		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
+		{
+			std::cout << "Control_L is pressed!" << std::endl;
+		//	Iren->SetPicker(irenPicker);
+		//	Iren->AddObserver(vtkCommand::LeftButtonPressEvent, pis, 10.0f);
+		}
+	}
+
+private:
+	vtkRenderWindowInteractor*	Iren;
+public:
+//	vtkCellPicker* irenPicker;
+//	PickCallBack* pis;
+};
+
+
+bool vtkSlicerCoronaryMainLogic
+::InitialThreeDPickerLogic()
+{
+/*	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
+	threeDView->cornerAnnotation()->SetText(0, "Ready for 3D vessel pick..");
+	threeDView->cornerAnnotation()->GetTextProperty()->SetColor(1, 0, 0);
+	threeDView->forceRender();
+
+	vtkRenderWindowInteractor* RenderWindowInteractorthreeD = threeDView->VTKWidget()->GetInteractor();
+	vtkSmartPointer<CenterlineMouseInteractorStyle> style = vtkSmartPointer<CenterlineMouseInteractorStyle>::New();
+	RenderWindowInteractorthreeD->SetInteractorStyle(style);
+	RenderWindowInteractorthreeD->Initialize();
+	RenderWindowInteractorthreeD->Start();
+*/
+//	std::cout << "InitialThreeDPickerLogic begin!" << std::endl;
+
+	
+	return true;
+}
+
+
+bool vtkSlicerCoronaryMainLogic
+::TestLogic()
+{
+	std::cout << "TestLogic begin" << std::endl;
+
+	vtkSmartPointer<vtkIdTypeArray> centerlineSelectId = vtkSmartPointer<vtkIdTypeArray>::New();
+	centerlineSelectId->SetName("SegmentId");
+	centerlineSelectId->SetNumberOfValues(1);
+	centerlineSelectId->SetValue(0, cellid_temp);
+
+	std::cout << "cellid_temp = " << cellid_temp << std::endl;
+	cellid_temp = cellid_temp + 1;
+	if (cellid_temp >= centerlineModel->GetNumberOfCells())
+		cellid_temp = 0;
+
+	vtkSmartPointer<vtkSelectionNode> selectionNode = vtkSmartPointer<vtkSelectionNode>::New();
+	selectionNode->SetFieldType(vtkSelectionNode::CELL);
+	selectionNode->SetContentType(vtkSelectionNode::VALUES);
+	selectionNode->SetSelectionList(centerlineSelectId);
+
+	vtkSmartPointer<vtkSelection> selection = vtkSmartPointer<vtkSelection>::New();
+	selection->AddNode(selectionNode);
+
+	vtkSmartPointer<vtkExtractSelection> extractSelection = vtkSmartPointer<vtkExtractSelection>::New();
+	//	extractSelection->SetInputConnection(0, centerlineTube->GetOutputPort(2));
+	extractSelection->SetInputData(0, LumenModel_display);
+	extractSelection->SetInputData(1, selection);
+	extractSelection->Update();
+
+	vtkSmartPointer<vtkUnstructuredGrid> selected = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	selected->ShallowCopy(extractSelection->GetOutput());
+
+	vtkSmartPointer<vtkGeometryFilter> geometryFilter =	vtkSmartPointer<vtkGeometryFilter>::New();
+	geometryFilter->SetInputData(selected);
+	geometryFilter->Update();
+
+	vtkSmartPointer<vtkPolyData> selectpolydata = geometryFilter->GetOutput();
+
+	if (addedselectedclnode.size() != 0)
+	{
+		for (int i = 0; i < addedselectedclnode.size(); i++)
+			this->GetMRMLScene()->RemoveNode(addedselectedclnode.at(i));
+		addedselectedclnode.clear();
+	}
+
+	SelectedClNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	SelectedClDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+
+	vtkMRMLNode* thisaddednode;
+
+	thisaddednode = this->GetMRMLScene()->AddNode(SelectedClNode);
+	addedselectedclnode.push_back(thisaddednode);
+	thisaddednode = this->GetMRMLScene()->AddNode(SelectedClDisplayNode);
+	addedselectedclnode.push_back(thisaddednode);
+	SelectedClDisplayNode->SetScene(this->GetMRMLScene());
+	SelectedClNode->SetScene(this->GetMRMLScene());
+	SelectedClNode->SetName("selected vessel");
+	SelectedClNode->SetAndObserveDisplayNodeID(SelectedClDisplayNode->GetID());
+	SelectedClNode->Modified();
+	SelectedClDisplayNode->Modified();
+	
+	SelectedClDisplayNode->SetColor(1, 1, 0);
+	SelectedClDisplayNode->SetPointSize(1);
+	SelectedClDisplayNode->SetLineWidth(1);
+	SelectedClDisplayNode->SetVisibility(1);
+	SelectedClNode->SetAndObservePolyData(selectpolydata);
+
+
+	// set ctrl observer
+	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
+	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->VTKWidget()->GetInteractor();
+
+	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
+	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
+
+	for (int i = 0; i < addedobservertag.size(); i++)
+	{
+		RenderWindowInteractorthreeD->RemoveObserver(addedobservertag.at(i));
+	}
+	addedobservertag.clear();
+
+	addedobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
+
+
+/*	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
+	threeDView->cornerAnnotation()->SetText(0, "Haoyin Zhou Test Button!");
+	threeDView->cornerAnnotation()->GetTextProperty()->SetColor(1, 0, 0);
+	threeDView->forceRender();
+
+	vtkRenderWindowInteractor* RenderWindowInteractorthreeD = threeDView->VTKWidget()->GetInteractor();
+	vtkSmartPointer<CenterlineMouseInteractorStyle> style = vtkSmartPointer<CenterlineMouseInteractorStyle>::New();
+	RenderWindowInteractorthreeD->SetInteractorStyle(style);
+	RenderWindowInteractorthreeD->Initialize();
+	RenderWindowInteractorthreeD->Start();
+*/
+	
+/*	vtkSmartPointer<vtkSphereSource> sphereSource =	vtkSmartPointer<vtkSphereSource>::New();
+	sphereSource->SetCenter(0.0, 0.0, 0.0);
+	sphereSource->SetRadius(5.0);
+	sphereSource->Update();
+
+	vtkSmartPointer<vtkPolyDataMapper> mapper =	vtkSmartPointer<vtkPolyDataMapper>::New();
+//	mapper->SetInputConnection(sphereSource->GetOutputPort());
+
+	vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+	actor->SetMapper(mapper);
+
+	vtkSmartPointer<vtkRenderer> renderer =	vtkSmartPointer<vtkRenderer>::New();
+	renderer->SetBackground(1, 1, 1); // Background color white
+	renderer->AddActor(actor);
+
+	vtkSmartPointer<vtkRenderWindow> renderWindow =	vtkSmartPointer<vtkRenderWindow>::New();
+	renderWindow->SetSize(300, 1000); //(width, height)
+	renderWindow->AddRenderer(renderer);
+
+	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor =	vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	renderWindowInteractor->SetRenderWindow(renderWindow);
+
+	vtkSmartPointer<MouseInteractorStyle> style = vtkSmartPointer<MouseInteractorStyle>::New();
+	renderWindowInteractor->SetInteractorStyle(style);
+
+	renderWindowInteractor->Initialize();
+	renderWindowInteractor->Start();
+*/
+
+
+//	vtkMRMLCrosshairNode* crosshairNode = NULL;
+//	crosshairNode = vtkMRMLCrosshairNode::SafeDownCast(this->GetMRMLScene()->GetNthNodeByClass(0, "vtkMRMLCrosshairNode"));
+//	vtkSmartPointer<CMyvtkCommand> tempcommand = vtkSmartPointer<CMyvtkCommand>::New();
+//	tempcommand->crosshairNode = crosshairNode;
+//	crosshairNode->AddObserver(vtkMRMLCrosshairNode::CursorPositionModifiedEvent, tempcommand);
+	
+
+
+	
+
+//	vtkSmartPointer<vtkCollection> nodecollection = 	this->GetMRMLScene()->GetNodes();
+//	for (int i = 0; i < nodecollection->GetNumberOfItems(); i++)
+//	{
+//		vtkSmartPointer<vtkObject> nodeobject =	nodecollection->GetItemAsObject(i);
+//		std::cout << nodeobject->GetClassName() << std::endl;
+//	}
+
+
+	std::cout << "TestLogic end" << std::endl;
+	return true;
+}
+
 
 
 

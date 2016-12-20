@@ -89,13 +89,14 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
+	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
+
 	d->progressBar->setValue(0);
 
 	d->checkBox_buildbifurcationmesh->setChecked(false);
 	d->checkBox_loadlandmarks->setChecked(false);
 	d->checkBox_loadcenterlines->setChecked(false);
 }
-
 
 
 void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
@@ -201,10 +202,10 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 			}
 			d->progressBar->setValue(100);
 		}
-
 		logic->BuildLandmarksMeshLogic();
 	}
 
+	
 	return true;
 }
 
@@ -297,7 +298,9 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		logic->centerlineModel = vtkPolyData::SafeDownCast(logic->centerlineId->GetOutput());
 		
 		logic->BuildCenterlinesMeshLogic();
-
+				
+		logic->InitialThreeDPickerLogic();
+		
 		d->progressBar->setValue(100);
 	}
 	return true;
@@ -448,4 +451,19 @@ void qSlicerCoronaryMainModuleWidget::SaveVTKImage(vtkImageData *image, const ch
 		std::cerr << "Error occurs when writing " << fileName << std::endl;
 		return;
 	}
+}
+
+
+
+bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
+{
+	std::cout << "TestButtonFunc begin" << std::endl;
+
+	Q_D(qSlicerCoronaryMainModuleWidget);
+
+	d->logic()->TestLogic();
+
+	std::cout << "TestButtonFunc end" << std::endl;
+
+	return true;
 }

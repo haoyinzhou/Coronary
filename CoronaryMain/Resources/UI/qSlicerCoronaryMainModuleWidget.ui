@@ -318,6 +318,29 @@
     </spacer>
    </item>
    <item>
+    <widget class="QPushButton" name="pushButtonTest">
+     <property name="text">
+      <string>Test</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_5">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>13</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <spacer name="horizontalSpacer_8">
@@ -378,15 +401,9 @@
   <zorder></zorder>
   <zorder>verticalSpacer_2</zorder>
   <zorder>verticalSpacer_3</zorder>
-  <zorder>progressBar</zorder>
-  <zorder>horizontalSpacer_8</zorder>
-  <zorder>horizontalSpacer_9</zorder>
-  <zorder>horizontalSpacer_10</zorder>
-  <zorder>horizontalSpacer_11</zorder>
-  <zorder>horizontalSpacer_3</zorder>
-  <zorder>horizontalSpacer_6</zorder>
-  <zorder>horizontalSpacer_7</zorder>
   <zorder>verticalSpacer_4</zorder>
+  <zorder>pushButtonTest</zorder>
+  <zorder>verticalSpacer_5</zorder>
  </widget>
  <customwidgets>
   <customwidget>

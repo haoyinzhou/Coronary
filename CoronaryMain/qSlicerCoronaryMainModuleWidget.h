@@ -23,11 +23,17 @@
 
 #include "qSlicerCoronaryMainModuleExport.h"
 
+#include "qSlicerApplication.h"
+#include "qSlicerLayoutManager.h"
 
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
+
+#include "qMRMLLayoutManager.h"
+#include "qMRMLThreeDWidget.h"
+#include "qMRMLThreeDView.h"
 
 // qt
 #include "qsettings.h"
@@ -36,6 +42,20 @@
 
 #include "vtkXMLPolyDataReader.h"
 #include "vtkMetaImageReader.h"
+
+#include "vtkCornerAnnotation.h"
+#include "vtkTextProperty.h"
+
+#include "vtkRenderWindow.h"
+#include "vtkRenderWindowInteractor.h"
+#include "vtkRenderer.h"
+#include "vtkSphereSource.h"
+#include "vtkPolyDataMapper.h"
+#include "vtkActor.h"
+#include "vtkPointPicker.h"
+#include "vtkCamera.h"
+#include "vtkInteractorStyleTrackballCamera.h"
+#include "vtkObjectFactory.h"
 
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -68,9 +88,10 @@ public slots:
 
 	void updateprogressbar(int i);
 
-public:
-	bool BuildMesh();
+	bool TestButtonFunc();
 
+
+public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);
 	void SaveVTKImage(vtkImageData *image, const char* fileName);
 

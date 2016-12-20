@@ -27,12 +27,22 @@
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
 
+// SlicerQt includes
+#include "qSlicerApplication.h"
+#include "qSlicerLayoutManager.h"
 
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLModelDisplayNode.h"
+
+#include "vtkMRMLCrosshairNode.h"
+
+#include "qMRMLLayoutManager.h"
+#include "qMRMLThreeDWidget.h"
+#include "qMRMLThreeDView.h"
+
 
 // VTK includes
 #include <vtkObject.h>
@@ -54,9 +64,28 @@
 #include "vtkCaptionActor2D.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
+#include "vtkCollection.h"
 
+#include "vtkCornerAnnotation.h"
+#include "vtkTextProperty.h"
 
+#include "vtkRenderWindow.h"
+#include "vtkRenderWindowInteractor.h"
+#include "vtkRenderer.h"
+#include "vtkSphereSource.h"
+#include "vtkPolyDataMapper.h"
+#include "vtkActor.h"
+#include "vtkPointPicker.h"
+#include "vtkCamera.h"
+#include "vtkInteractorStyleTrackballCamera.h"
+#include "vtkObjectFactory.h"
 
+#include "vtkSelectionNode.h"
+#include "vtkSelection.h"
+#include "vtkExtractSelection.h"
+#include "vtkVertexGlyphFilter.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkGeometryFilter.h"
 
 #include "Common.h"
 #include "LearningImpl.h"
@@ -79,6 +108,9 @@ public:
   bool BuildLandmarksMeshLogic();
   bool BuildCenterlinesMeshLogic();
 
+  bool InitialThreeDPickerLogic();
+  
+  bool TestLogic();  // just for debug
 
 public:
 	bool GetLandMarksCoord(int index, double coord[3]);
@@ -108,13 +140,21 @@ public:
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
 	vtkSmartPointer<vtkPolyData> centerlineModel;
 	vtkSmartPointer<vtkPolyData> LumenModel;
+	vtkSmartPointer<vtkPolyData> centerlineModel_display;
+	vtkSmartPointer<vtkPolyData> LumenModel_display;
+
 	vtkSmartPointer<vtkIdFilter> centerlineId;
+	vtkSmartPointer<ExtendTubeFilter> centerlineTube;
 
 	double NodeOrigin[3];
 	double NodeSpaceing[3];
 	
 	vector<vtkMRMLNode*> addedclnode;
 	vector<vtkMRMLNode*> addedlandmarknode;
+	vector<vtkMRMLNode*> addedselectedclnode;
+
+	vector< unsigned long > addedobservertag;
+
 
 	vtkSmartPointer< vtkMRMLModelNode > LandmarkNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LandmarkDisplayNode;
@@ -123,14 +163,27 @@ public:
 	vtkSmartPointer< vtkMRMLModelNode > LumenNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LumenDisplayNode;
 
+	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
+
 
 public:
 	bool WillBuildBifurcationMesh;
+
+
+public:
+	vtkIdType cellid_temp; // just for debug
+
 
 private:
 
   vtkSlicerCoronaryMainLogic(const vtkSlicerCoronaryMainLogic&); // Not implemented
   void operator=(const vtkSlicerCoronaryMainLogic&); // Not implemented
 };
+
+
+
+
+
 
 #endif
