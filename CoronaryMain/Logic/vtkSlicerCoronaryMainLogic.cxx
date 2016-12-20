@@ -473,9 +473,24 @@ public:
 
 public:
 	
-	
 };
 vtkStandardNewMacro(CenterlineMouseInteractorStyle);
+
+
+// mouse pick vessel callback
+
+class CLumenPickCallBack : public vtkCommand
+{
+public:
+	static CLumenPickCallBack *New() { return new CLumenPickCallBack; }
+
+	virtual void Execute(vtkObject *caller, unsigned long, void*)
+	{
+		std::cout << "Mouse click!" << std::endl;
+
+	}
+};
+
 
 
 // Ctrl Key Event
@@ -507,16 +522,52 @@ public:
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
 			std::cout << "Control_L is pressed!" << std::endl;
-		//	Iren->SetPicker(irenPicker);
-		//	Iren->AddObserver(vtkCommand::LeftButtonPressEvent, pis, 10.0f);
+			Iren->SetPicker(LumenPicker);
+			Iren->AddObserver(vtkCommand::LeftButtonPressEvent, LumenPickCallBack, 10.0f);
+		}
+	}
+
+private:
+	vtkRenderWindowInteractor* Iren;
+public:
+	vtkCellPicker* LumenPicker;
+	CLumenPickCallBack* LumenPickCallBack;
+};
+
+class vtkCtrlKeyReleasedInteractionCallback : public vtkCommand
+{
+public:
+	static vtkCtrlKeyReleasedInteractionCallback *New()
+	{
+		return new vtkCtrlKeyReleasedInteractionCallback;
+	}
+
+	vtkCtrlKeyReleasedInteractionCallback()
+	{
+
+	}
+
+	~vtkCtrlKeyReleasedInteractionCallback()
+	{
+
+	}
+
+	void SetInteractor(vtkRenderWindowInteractor *iren)
+	{
+		this->Iren = iren;
+	}
+
+	virtual void Execute(vtkObject *caller, unsigned long ev, void *)
+	{
+		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
+		{
+			std::cout << "Control_L is released!" << std::endl;
+			Iren->RemoveObservers(vtkCommand::LeftButtonPressEvent);
 		}
 	}
 
 private:
 	vtkRenderWindowInteractor*	Iren;
-public:
-//	vtkCellPicker* irenPicker;
-//	PickCallBack* pis;
 };
 
 
@@ -615,16 +666,27 @@ bool vtkSlicerCoronaryMainLogic
 	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
 	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->VTKWidget()->GetInteractor();
 
-	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
-	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
-
 	for (int i = 0; i < addedobservertag.size(); i++)
-	{
 		RenderWindowInteractorthreeD->RemoveObserver(addedobservertag.at(i));
-	}
 	addedobservertag.clear();
 
+	LumenPicker = vtkSmartPointer<vtkCellPicker>::New();
+	LumenPicker->SetTolerance(0.05);
+	LumenPicker->PickClippingPlanesOff();
+	LumenPickCallBack = vtkSmartPointer<CLumenPickCallBack>::New();
+
+
+	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
+	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
+	CtrlKeyPressedInteractionCallback->LumenPicker = LumenPicker;
+	CtrlKeyPressedInteractionCallback->LumenPickCallBack = LumenPickCallBack;
 	addedobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
+
+	vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback> CtrlKeyReleasedInteractionCallback = vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback>::New();
+	CtrlKeyReleasedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
+	addedobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyReleaseEvent, CtrlKeyReleasedInteractionCallback));
+	
+
 
 
 /*	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();

@@ -224,6 +224,13 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 
 		if (d->checkBox_loadcenterlines->isChecked() == false)
 		{
+			double z[3] = { 0.0, 0.0, 0.0 };
+			if (vtkMath::Distance2BetweenPoints(logic->landmarks[SmartCoronary::LEFT_CORONARY_OSTIUM], z) < 1e-3
+				&& vtkMath::Distance2BetweenPoints(logic->landmarks[SmartCoronary::RIGHT_CORONARY_OSTIUM], z) < 1e-3)
+			{
+				std::cerr << "cannot find landmark!" << std::endl;
+				return false;
+			}
 			logic->DetectCenterlinesLogic(d->progressBar);
 		}
 		else

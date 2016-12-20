@@ -86,11 +86,14 @@
 #include "vtkVertexGlyphFilter.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkGeometryFilter.h"
+#include "vtkCellPicker.h"
 
 #include "Common.h"
 #include "LearningImpl.h"
 #include "ExtendTubeFilter.h"
 
+
+class CLumenPickCallBack;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT vtkSlicerCoronaryMainLogic :
@@ -155,7 +158,6 @@ public:
 
 	vector< unsigned long > addedobservertag;
 
-
 	vtkSmartPointer< vtkMRMLModelNode > LandmarkNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LandmarkDisplayNode;
 	vtkSmartPointer< vtkMRMLModelNode > clNode;
@@ -165,6 +167,9 @@ public:
 
 	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
+
+	vtkSmartPointer<vtkCellPicker> LumenPicker;
+	vtkSmartPointer<CLumenPickCallBack> LumenPickCallBack;
 
 
 public:
