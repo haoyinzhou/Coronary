@@ -60,7 +60,7 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 	addedselectedclnode.clear();
 
 	addedctrlobservertag.clear();
-	addedlumenpickobservertag.clear();
+	addedvesselpickobservertag.clear();
 
 	cellid_temp = 0;
 }
@@ -553,10 +553,10 @@ vtkStandardNewMacro(CenterlineMouseInteractorStyle);
 
 // mouse pick vessel callback
 
-class CLumenPickCallBack : public vtkCommand
+class CVesselPickCallBack : public vtkCommand
 {
 public:
-	static CLumenPickCallBack *New() { return new CLumenPickCallBack; }
+	static CVesselPickCallBack *New() { return new CVesselPickCallBack; }
 
 	virtual void Execute(vtkObject *caller, unsigned long, void*)
 	{
@@ -635,18 +635,18 @@ public:
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
 			std::cout << "Control_L is pressed!" << std::endl;
-			Iren->SetPicker(LumenPicker);
-			addedlumenpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, LumenPickCallBack, 10.0f));
+			Iren->SetPicker(VesselPicker);
+			addedvesselpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, VesselPickCallBack, 10.0f));
 		}
 	}
 
 private:
 	vtkRenderWindowInteractor* Iren;
 public:
-	vtkCellPicker* LumenPicker;
-	CLumenPickCallBack* LumenPickCallBack;
+	vtkCellPicker* VesselPicker;
+	CVesselPickCallBack* VesselPickCallBack;
 
-	vector<unsigned long>* addedlumenpickobservertag;
+	vector<unsigned long>* addedvesselpickobservertag;
 };
 
 class vtkCtrlKeyReleasedInteractionCallback : public vtkCommand
@@ -677,9 +677,9 @@ public:
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
 			std::cout << "Control_L is released!" << std::endl;
-			for (int i = 0; i < addedlumenpickobservertag->size(); i++)
-				Iren->RemoveObserver(addedlumenpickobservertag->at(i));
-			addedlumenpickobservertag->clear();
+			for (int i = 0; i < addedvesselpickobservertag->size(); i++)
+				Iren->RemoveObserver(addedvesselpickobservertag->at(i));
+			addedvesselpickobservertag->clear();
 		}
 	}
 
@@ -687,7 +687,7 @@ private:
 	vtkRenderWindowInteractor*	Iren;
 
 public:
-	vector<unsigned long>* addedlumenpickobservertag;
+	vector<unsigned long>* addedvesselpickobservertag;
 
 };
 
@@ -811,29 +811,29 @@ bool vtkSlicerCoronaryMainLogic
 		RenderWindowInteractorthreeD->RemoveObserver(addedctrlobservertag.at(i));
 	addedctrlobservertag.clear();
 
-	LumenPicker = vtkSmartPointer<vtkCellPicker>::New();
-	LumenPicker->SetTolerance(0.05);
-	LumenPicker->PickClippingPlanesOff();
-	LumenPickCallBack = vtkSmartPointer<CLumenPickCallBack>::New();
-	LumenPickCallBack->renderwindowinteractor = RenderWindowInteractorthreeD;
-	LumenPickCallBack->clmodel = centerlineModel;
-	LumenPickCallBack->clmodel_display = centerlineModel_display;
-	LumenPickCallBack->lumenmodel = LumenModel;
-	LumenPickCallBack->lumenmodel_display = LumenModel_display;
-	LumenPickCallBack->selectId = centerlineSelectId;
-	LumenPickCallBack->renderer = rendercollection->GetFirstRenderer();
-	LumenPickCallBack->logic = this;
+	VesselPicker = vtkSmartPointer<vtkCellPicker>::New();
+	VesselPicker->SetTolerance(0.05);
+	VesselPicker->PickClippingPlanesOff();
+	VesselPickCallBack = vtkSmartPointer<CVesselPickCallBack>::New();
+	VesselPickCallBack->renderwindowinteractor = RenderWindowInteractorthreeD;
+	VesselPickCallBack->clmodel = centerlineModel;
+	VesselPickCallBack->clmodel_display = centerlineModel_display;
+	VesselPickCallBack->lumenmodel = LumenModel;
+	VesselPickCallBack->lumenmodel_display = LumenModel_display;
+	VesselPickCallBack->selectId = centerlineSelectId;
+	VesselPickCallBack->renderer = rendercollection->GetFirstRenderer();
+	VesselPickCallBack->logic = this;
 
 	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
 	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
-	CtrlKeyPressedInteractionCallback->LumenPicker = LumenPicker;
-	CtrlKeyPressedInteractionCallback->LumenPickCallBack = LumenPickCallBack;
-	CtrlKeyPressedInteractionCallback->addedlumenpickobservertag = &addedlumenpickobservertag;
+	CtrlKeyPressedInteractionCallback->VesselPicker = VesselPicker;
+	CtrlKeyPressedInteractionCallback->VesselPickCallBack = VesselPickCallBack;
+	CtrlKeyPressedInteractionCallback->addedvesselpickobservertag = &addedvesselpickobservertag;
 	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
 
 	vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback> CtrlKeyReleasedInteractionCallback = vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback>::New();
 	CtrlKeyReleasedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
-	CtrlKeyReleasedInteractionCallback->addedlumenpickobservertag = &addedlumenpickobservertag;
+	CtrlKeyReleasedInteractionCallback->addedvesselpickobservertag = &addedvesselpickobservertag;
 	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyReleaseEvent, CtrlKeyReleasedInteractionCallback));
 	
 

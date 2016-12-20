@@ -95,7 +95,7 @@
 #include "ExtendTubeFilter.h"
 
 
-class CLumenPickCallBack;
+class CVesselPickCallBack;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT vtkSlicerCoronaryMainLogic :
@@ -161,7 +161,7 @@ public:
 	vector<vtkMRMLNode*> addedselectedclnode;
 
 	vector< unsigned long > addedctrlobservertag;
-	vector< unsigned long > addedlumenpickobservertag;
+	vector< unsigned long > addedvesselpickobservertag;
 
 	vtkSmartPointer< vtkMRMLModelNode > LandmarkNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LandmarkDisplayNode;
@@ -177,8 +177,8 @@ public:
 	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
 
-	vtkSmartPointer<vtkCellPicker> LumenPicker;
-	vtkSmartPointer<CLumenPickCallBack> LumenPickCallBack;
+	vtkSmartPointer<vtkCellPicker> VesselPicker;
+	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
 
 private:
 
