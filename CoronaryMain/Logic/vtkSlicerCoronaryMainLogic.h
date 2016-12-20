@@ -87,6 +87,8 @@
 #include "vtkUnstructuredGrid.h"
 #include "vtkGeometryFilter.h"
 #include "vtkCellPicker.h"
+#include "vtkRendererCollection.h"
+#include "vtkProperty.h"
 
 #include "Common.h"
 #include "LearningImpl.h"
@@ -110,6 +112,8 @@ public:
 
   bool BuildLandmarksMeshLogic();
   bool BuildCenterlinesMeshLogic();
+
+  bool ShowSelectedVesselThreeD(vtkIdType);
 
   bool InitialThreeDPickerLogic();
   
@@ -156,7 +160,8 @@ public:
 	vector<vtkMRMLNode*> addedlandmarknode;
 	vector<vtkMRMLNode*> addedselectedclnode;
 
-	vector< unsigned long > addedobservertag;
+	vector< unsigned long > addedctrlobservertag;
+	vector< unsigned long > addedlumenpickobservertag;
 
 	vtkSmartPointer< vtkMRMLModelNode > LandmarkNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LandmarkDisplayNode;
@@ -165,12 +170,17 @@ public:
 	vtkSmartPointer< vtkMRMLModelNode > LumenNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LumenDisplayNode;
 
+	vtkSmartPointer<vtkRenderer> LandmarksRender;
+	vtkSmartPointer<vtkRenderer> clRender;
+	vtkSmartPointer<vtkRenderer> LumenRender;
+
 	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
 
 	vtkSmartPointer<vtkCellPicker> LumenPicker;
 	vtkSmartPointer<CLumenPickCallBack> LumenPickCallBack;
 
+private:
 
 public:
 	bool WillBuildBifurcationMesh;
@@ -178,8 +188,7 @@ public:
 
 public:
 	vtkIdType cellid_temp; // just for debug
-
-
+	
 private:
 
   vtkSlicerCoronaryMainLogic(const vtkSlicerCoronaryMainLogic&); // Not implemented

@@ -51,11 +51,16 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 	centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
 	LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 
+	LandmarksRender = vtkSmartPointer<vtkRenderer>::New();
+	clRender = vtkSmartPointer<vtkRenderer>::New();
+	LumenRender = vtkSmartPointer<vtkRenderer>::New();
+	
 	addedclnode.clear();
 	addedlandmarknode.clear();
 	addedselectedclnode.clear();
 
-	addedobservertag.clear();
+	addedctrlobservertag.clear();
+	addedlumenpickobservertag.clear();
 
 	cellid_temp = 0;
 }
@@ -365,6 +370,8 @@ bool vtkSlicerCoronaryMainLogic
 	LumenNode->SetAndObservePolyData(LumenModel_display);
 	LumenNode->ApplyTransformMatrix(transformMatrix);
 	
+	
+
 	std::cout << "BuildCenterlinesMeshLogic Done! " << std::endl;
 	return true;
 }
@@ -428,6 +435,73 @@ bool vtkSlicerCoronaryMainLogic
 	return true;
 }
 
+bool vtkSlicerCoronaryMainLogic
+::ShowSelectedVesselThreeD(vtkIdType cellid)
+{
+	vtkSmartPointer<vtkIdTypeArray> centerlineSelectId = vtkSmartPointer<vtkIdTypeArray>::New();
+	centerlineSelectId->SetName("SegmentId");
+	centerlineSelectId->SetNumberOfValues(1);
+	centerlineSelectId->SetValue(0, cellid);
+
+	std::cout << "cellid = " << cellid << std::endl;
+	if (cellid >= centerlineModel->GetNumberOfCells())
+		cellid = 0;
+
+	vtkSmartPointer<vtkSelectionNode> selectionNode = vtkSmartPointer<vtkSelectionNode>::New();
+	selectionNode->SetFieldType(vtkSelectionNode::CELL);
+	selectionNode->SetContentType(vtkSelectionNode::VALUES);
+	selectionNode->SetSelectionList(centerlineSelectId);
+
+	vtkSmartPointer<vtkSelection> selection = vtkSmartPointer<vtkSelection>::New();
+	selection->AddNode(selectionNode);
+
+	vtkSmartPointer<vtkExtractSelection> extractSelection = vtkSmartPointer<vtkExtractSelection>::New();
+	//	extractSelection->SetInputConnection(0, centerlineTube->GetOutputPort(2));
+	extractSelection->SetInputData(0, LumenModel_display);
+	extractSelection->SetInputData(1, selection);
+	extractSelection->Update();
+
+	vtkSmartPointer<vtkUnstructuredGrid> selected = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	selected->ShallowCopy(extractSelection->GetOutput());
+
+	vtkSmartPointer<vtkGeometryFilter> geometryFilter = vtkSmartPointer<vtkGeometryFilter>::New();
+	geometryFilter->SetInputData(selected);
+	geometryFilter->Update();
+
+	vtkSmartPointer<vtkPolyData> selectpolydata = geometryFilter->GetOutput();
+
+	if (addedselectedclnode.size() != 0)
+	{
+		for (int i = 0; i < addedselectedclnode.size(); i++)
+			this->GetMRMLScene()->RemoveNode(addedselectedclnode.at(i));
+		addedselectedclnode.clear();
+	}
+
+	SelectedClNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	SelectedClDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+
+	vtkMRMLNode* thisaddednode;
+
+	thisaddednode = this->GetMRMLScene()->AddNode(SelectedClNode);
+	addedselectedclnode.push_back(thisaddednode);
+	thisaddednode = this->GetMRMLScene()->AddNode(SelectedClDisplayNode);
+	addedselectedclnode.push_back(thisaddednode);
+	SelectedClDisplayNode->SetScene(this->GetMRMLScene());
+	SelectedClNode->SetScene(this->GetMRMLScene());
+	SelectedClNode->SetName("selected vessel");
+	SelectedClNode->SetAndObserveDisplayNodeID(SelectedClDisplayNode->GetID());
+	SelectedClNode->Modified();
+	SelectedClDisplayNode->Modified();
+
+	SelectedClDisplayNode->SetColor(1, 0.5, 0);
+	SelectedClDisplayNode->SetPointSize(1);
+	SelectedClDisplayNode->SetLineWidth(1);
+	SelectedClDisplayNode->SetVisibility(1);
+	SelectedClNode->SetAndObservePolyData(selectpolydata);
+	
+	return true;
+}
+
 
 
 class CMyvtkCommand : public vtkCommand
@@ -486,11 +560,50 @@ public:
 
 	virtual void Execute(vtkObject *caller, unsigned long, void*)
 	{
-		std::cout << "Mouse click!" << std::endl;
+	//	std::cout << "Mouse click!" << std::endl;
+		if (renderwindowinteractor == NULL)
+			return;
+		if (clmodel->GetNumberOfCells() == 0)
+			return;
 
+		int pickPosition[2];
+		renderwindowinteractor->GetEventPosition(pickPosition);
+		std::cout << pickPosition[0] << ", " << pickPosition[1] << std::endl;
+
+		vtkSmartPointer< vtkCellPicker > picker = vtkCellPicker::SafeDownCast(renderwindowinteractor->GetPicker());
+		picker->Pick(pickPosition[0], pickPosition[1], 0, renderer);
+
+		vtkSmartPointer<vtkPolyData> picked = vtkPolyData::SafeDownCast(picker->GetDataSet());
+		
+		std::cout << "clmodel = " << clmodel << std::endl;
+		std::cout << "clmodel_display = " << clmodel_display << std::endl;
+		std::cout << "lumenmodel = " << lumenmodel << std::endl;
+		std::cout << "lumenmodel_display = " << lumenmodel_display << std::endl;
+		std::cout << "picked = " << picked << std::endl;
+
+
+		std::cout << "number of cells (clmodel) = "    << clmodel->GetNumberOfCells() << std::endl;
+		std::cout << "number of cells (lumenmodel) = " << lumenmodel->GetNumberOfCells() << std::endl;
+		std::cout << "number of cells (picked)     = " << picked->GetNumberOfCells() << std::endl;
+		vtkIdType pickid = picker->GetCellId();
+
+		std::cout << "pickid = " << pickid << std::endl;
+
+		logic->ShowSelectedVesselThreeD(pickid);
 	}
-};
 
+public:
+	vtkRenderWindowInteractor* renderwindowinteractor;
+	vtkPolyData* clmodel;
+	vtkPolyData* clmodel_display;
+	vtkPolyData* lumenmodel;
+	vtkPolyData* lumenmodel_display;
+	vtkIdTypeArray* selectId;
+
+	vtkRenderer* renderer;
+
+	vtkSlicerCoronaryMainLogic* logic;
+};
 
 
 // Ctrl Key Event
@@ -523,7 +636,7 @@ public:
 		{
 			std::cout << "Control_L is pressed!" << std::endl;
 			Iren->SetPicker(LumenPicker);
-			Iren->AddObserver(vtkCommand::LeftButtonPressEvent, LumenPickCallBack, 10.0f);
+			addedlumenpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, LumenPickCallBack, 10.0f));
 		}
 	}
 
@@ -532,6 +645,8 @@ private:
 public:
 	vtkCellPicker* LumenPicker;
 	CLumenPickCallBack* LumenPickCallBack;
+
+	vector<unsigned long>* addedlumenpickobservertag;
 };
 
 class vtkCtrlKeyReleasedInteractionCallback : public vtkCommand
@@ -562,12 +677,18 @@ public:
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
 			std::cout << "Control_L is released!" << std::endl;
-			Iren->RemoveObservers(vtkCommand::LeftButtonPressEvent);
+			for (int i = 0; i < addedlumenpickobservertag->size(); i++)
+				Iren->RemoveObserver(addedlumenpickobservertag->at(i));
+			addedlumenpickobservertag->clear();
 		}
 	}
 
 private:
 	vtkRenderWindowInteractor*	Iren;
+
+public:
+	vector<unsigned long>* addedlumenpickobservertag;
+
 };
 
 
@@ -654,7 +775,7 @@ bool vtkSlicerCoronaryMainLogic
 	SelectedClNode->Modified();
 	SelectedClDisplayNode->Modified();
 	
-	SelectedClDisplayNode->SetColor(1, 1, 0);
+	SelectedClDisplayNode->SetColor(1, 0.5, 0);
 	SelectedClDisplayNode->SetPointSize(1);
 	SelectedClDisplayNode->SetLineWidth(1);
 	SelectedClDisplayNode->SetVisibility(1);
@@ -665,26 +786,55 @@ bool vtkSlicerCoronaryMainLogic
 	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
 	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
 	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->VTKWidget()->GetInteractor();
+	vtkSmartPointer<vtkRendererCollection> rendercollection = threeDView->VTKWidget()->GetRenderWindow()->GetRenderers();
 
-	for (int i = 0; i < addedobservertag.size(); i++)
-		RenderWindowInteractorthreeD->RemoveObserver(addedobservertag.at(i));
-	addedobservertag.clear();
+	/*	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;
+	rendercollection->InitTraversal();
+	for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i ++)
+	{
+		std::cout << "i = " << i << std::endl;
+		vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
+		vtkSmartPointer<vtkActorCollection> actorcollection = thisrender->GetActors();
+
+		actorcollection->InitTraversal();
+		for (vtkIdType j = 0; j < actorcollection->GetNumberOfItems(); j ++)
+		{
+			vtkSmartPointer<vtkActor> thisactor = vtkActor::SafeDownCast(actorcollection->GetNextActor());
+			double color[3];
+			thisactor->GetProperty()->GetColor(color);
+			std::cout << i << ", " << j << ", " << color[0] << ", " << color[1] << ", " << color[2] << std::endl;
+		}
+	}
+*/
+
+	for (int i = 0; i < addedctrlobservertag.size(); i++)
+		RenderWindowInteractorthreeD->RemoveObserver(addedctrlobservertag.at(i));
+	addedctrlobservertag.clear();
 
 	LumenPicker = vtkSmartPointer<vtkCellPicker>::New();
 	LumenPicker->SetTolerance(0.05);
 	LumenPicker->PickClippingPlanesOff();
 	LumenPickCallBack = vtkSmartPointer<CLumenPickCallBack>::New();
-
+	LumenPickCallBack->renderwindowinteractor = RenderWindowInteractorthreeD;
+	LumenPickCallBack->clmodel = centerlineModel;
+	LumenPickCallBack->clmodel_display = centerlineModel_display;
+	LumenPickCallBack->lumenmodel = LumenModel;
+	LumenPickCallBack->lumenmodel_display = LumenModel_display;
+	LumenPickCallBack->selectId = centerlineSelectId;
+	LumenPickCallBack->renderer = rendercollection->GetFirstRenderer();
+	LumenPickCallBack->logic = this;
 
 	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
 	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
 	CtrlKeyPressedInteractionCallback->LumenPicker = LumenPicker;
 	CtrlKeyPressedInteractionCallback->LumenPickCallBack = LumenPickCallBack;
-	addedobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
+	CtrlKeyPressedInteractionCallback->addedlumenpickobservertag = &addedlumenpickobservertag;
+	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
 
 	vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback> CtrlKeyReleasedInteractionCallback = vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback>::New();
 	CtrlKeyReleasedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
-	addedobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyReleaseEvent, CtrlKeyReleasedInteractionCallback));
+	CtrlKeyReleasedInteractionCallback->addedlumenpickobservertag = &addedlumenpickobservertag;
+	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyReleaseEvent, CtrlKeyReleasedInteractionCallback));
 	
 
 
