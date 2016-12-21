@@ -204,7 +204,6 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 		}
 		logic->BuildLandmarksMeshLogic();
 	}
-
 	
 	return true;
 }
@@ -231,10 +230,19 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 				std::cerr << "cannot find landmark!" << std::endl;
 				return false;
 			}
+			logic->centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
+			logic->LumenModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 			logic->DetectCenterlinesLogic(d->progressBar);
 		}
 		else
 		{
+			logic->centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
+			logic->LumenModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
+
 			d->progressBar->setValue(0);
 			const QString DEFAULT_DIR_KEY("default_dir");
 			QSettings MySettings;
@@ -306,8 +314,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		
 		logic->BuildCenterlinesMeshLogic();
 				
-		logic->InitialThreeDPickerLogic();
-		
+		logic->SetupKeyMouseObserver();
+
 		d->progressBar->setValue(100);
 	}
 	return true;
@@ -320,7 +328,10 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 	if (logic != NULL)
 	{
 		if (logic->DetectLumenLogic(d->progressBar))
+		{
 			logic->BuildCenterlinesMeshLogic();
+			logic->SetupKeyMouseObserver();
+		}
 	}
 
 	return true;

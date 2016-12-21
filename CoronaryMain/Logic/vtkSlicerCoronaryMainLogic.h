@@ -113,9 +113,9 @@ public:
   bool BuildLandmarksMeshLogic();
   bool BuildCenterlinesMeshLogic();
 
+  bool SetupKeyMouseObserver();
   bool ShowSelectedVesselThreeD(vtkIdType);
-
-  bool InitialThreeDPickerLogic();
+  bool RemoveAllSelectedVesselThreeD();
   
   bool TestLogic();  // just for debug
 
