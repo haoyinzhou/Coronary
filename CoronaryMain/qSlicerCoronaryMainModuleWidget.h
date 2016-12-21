@@ -39,6 +39,7 @@
 #include "qsettings.h"
 #include "qdir.h"
 #include "qfiledialog.h"
+#include "QShowEvent"
 
 #include "vtkXMLPolyDataReader.h"
 #include "vtkMetaImageReader.h"
@@ -59,6 +60,19 @@
 
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
+
+class QVesselEditingWidget : public QWidget
+{
+	Q_OBJECT
+public:
+	QVesselEditingWidget(QWidget *parent = 0, const char *name = 0){};
+	~QVesselEditingWidget() {}
+
+protected:
+	virtual void showEvent(QShowEvent* e);
+
+};
+
 
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate

@@ -97,6 +97,16 @@
 
 class CVesselPickCallBack;
 
+
+
+
+
+
+
+
+
+
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT vtkSlicerCoronaryMainLogic :
   public vtkSlicerModuleLogic

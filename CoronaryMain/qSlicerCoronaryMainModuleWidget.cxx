@@ -25,6 +25,12 @@
 #include "vtkSlicerCoronaryMainLogic.h"
 
 
+void QVesselEditingWidget::showEvent(QShowEvent* e)
+{
+	std::cout << "QVesselEditingWidget showEvent" << std::endl;
+
+	QWidget::showEvent(e);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -130,18 +136,22 @@ void qSlicerCoronaryMainModuleWidget::SetCheckBoxBuildBifurcationMesh(int state)
 	if (logic == NULL)
 		return;
 
+
 	if (state)
 	{
-		std::cout << "Will build bifurcation mesh" << std::endl;
 		logic->WillBuildBifurcationMesh = true;
 	}
 	else
 	{
-		std::cout << "Will not build bifurcation mesh" << std::endl;
 		logic->WillBuildBifurcationMesh = false;
 	}
 
+	if (logic->centerlineModel->GetNumberOfCells() == 0)
+		return;
+
 	logic->BuildCenterlinesMeshLogic();
+	logic->SetupKeyMouseObserver();
+
 }
 
 
@@ -479,7 +489,12 @@ bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
 
 	Q_D(qSlicerCoronaryMainModuleWidget);
 
+
+	QVesselEditingWidget *VesselEditingWidget = new QVesselEditingWidget;
+	VesselEditingWidget->show();
+
 	d->logic()->TestLogic();
+
 
 	std::cout << "TestButtonFunc end" << std::endl;
 

@@ -19,7 +19,7 @@ ExtendTubeFilter::ExtendTubeFilter()
 	this->UpdateSegment = -1;
 	this->firstSegment = true;
 
-	this->WillBuildBifurcationMesh = true;
+	this->WillBuildBifurcationMesh = false;
 
 	this->SetNumberOfInputPorts( 1 );
 	this->SetNumberOfOutputPorts( 4 );
