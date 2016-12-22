@@ -76,21 +76,7 @@ vtkSlicerCoronaryMainLogic::vtkSlicerCoronaryMainLogic()
 //----------------------------------------------------------------------------
 vtkSlicerCoronaryMainLogic::~vtkSlicerCoronaryMainLogic()
 {
-/*	if (imageData)
-		imageData->Delete();
-	if (imageData_original)
-		imageData_original->Delete();
-	if (hessianImage)
-		hessianImage->Delete();
-	if (interpolator)
-		interpolator->Delete();
-	if (centerlineModel)
-		centerlineModel->Delete();
-	if (LumenModel)
-		LumenModel->Delete();
-	if (centerlineId)
-		centerlineId->Delete();
-*/
+
 }
 
 //----------------------------------------------------------------------------
@@ -622,37 +608,6 @@ public:
 		std::cout << "pickid = " << pickid << std::endl;
 
 		logic->ShowSelectedVesselThreeD(pickid);
-		
-		// pop the vessel editing window
-		vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-		sphereSource->SetCenter(0.0, 0.0, 0.0);
-		sphereSource->SetRadius(5.0);
-		sphereSource->Update();
-
-		vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-		VesselEditingMapper->SetInputConnection(sphereSource->GetOutputPort());
-
-		vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
-		VesselEditingActor->SetMapper(VesselEditingMapper);
-
-		vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
-		VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
-		VesselEditingRenderer->AddActor(VesselEditingActor);
-
-		vtkSmartPointer<vtkRenderWindow> VesselEditingRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
-		int slicerthreeDwindowsize[2];
-		Slicer3DRenderWindowInteractor->GetSize(slicerthreeDwindowsize);
-		VesselEditingRenderWindow->SetSize(0.2 * slicerthreeDwindowsize[0], 1.2 * slicerthreeDwindowsize[1]); //(width, height)
-		VesselEditingRenderWindow->AddRenderer(VesselEditingRenderer);
-
-		vtkSmartPointer<vtkRenderWindowInteractor> VesselEditingRenderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-		VesselEditingRenderWindowInteractor->SetRenderWindow(VesselEditingRenderWindow);
-
-		//vtkSmartPointer<MouseInteractorStyle> style = vtkSmartPointer<MouseInteractorStyle>::New();
-		//renderWindowInteractor->SetInteractorStyle(style);
-		
-	//	VesselEditingRenderWindowInteractor->Start(); 
-	
 
 	}
 
@@ -704,6 +659,35 @@ public:
 			std::cout << "Control_L is pressed!" << std::endl;
 			Iren->SetPicker(VesselPicker);
 			addedvesselpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, VesselPickCallBack, 10.0f));
+
+			// pop the vessel editing window
+/*			vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+			sphereSource->SetCenter(0.0, 0.0, 0.0);
+			sphereSource->SetRadius(5.0);
+			sphereSource->Update();
+
+			vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		//	VesselEditingMapper->SetInputConnection(sphereSource->GetOutputPort());
+
+			vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
+			VesselEditingActor->SetMapper(VesselEditingMapper);
+
+			vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
+			VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
+		//	VesselEditingRenderer->AddActor(VesselEditingActor);
+
+			vtkSmartPointer<vtkRenderWindow> VesselEditingRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+			VesselEditingRenderWindow->SetSize(500, 1200); //(width, height)
+			VesselEditingRenderWindow->AddRenderer(VesselEditingRenderer);
+
+			vtkSmartPointer<vtkRenderWindowInteractor> VesselEditingRenderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+			VesselEditingRenderWindowInteractor->SetRenderWindow(VesselEditingRenderWindow);
+
+			//vtkSmartPointer<MouseInteractorStyle> style = vtkSmartPointer<MouseInteractorStyle>::New();
+			//renderWindowInteractor->SetInteractorStyle(style);
+
+			VesselEditingRenderWindowInteractor->Start(); 
+*/
 		}
 	}
 
@@ -833,10 +817,39 @@ bool vtkSlicerCoronaryMainLogic
 ::TestLogic()
 {
 	std::cout << "TestLogic begin" << std::endl;
+//	QVesselEditingWidget* temp; // = new QVesselEditingWidget;
+//	temp->resize(600, 500);
+//	temp->show();
 
-//	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
-//	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
-//	threeDView->VTKWidget()->setFocus();
+	//emit visibilitychanged(true);
+
+	/*	QVesselEditingWidget *VesselEditingWidget = new QVesselEditingWidget;
+
+	VesselEditingWidget->mainlogic = this;
+	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	qMRMLThreeDView* threeDView = layoutManager->threeDWidget(0)->threeDView();
+	VesselEditingWidget->SlicerThreeDWidget = threeDView->VTKWidget();
+	VesselEditingWidget->resize(600, 1200);
+
+	vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+	sphereSource->SetCenter(0.0, 0.0, 0.0);
+	sphereSource->SetRadius(5.0);
+	sphereSource->Update();
+
+	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	VesselEditingMapper->SetInputConnection(sphereSource->GetOutputPort());
+
+	vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
+	VesselEditingActor->SetMapper(VesselEditingMapper);
+
+	vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
+	VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
+	VesselEditingRenderer->AddActor(VesselEditingActor);
+
+	VesselEditingWidget->GetRenderWindow()->AddRenderer(VesselEditingRenderer);
+	
+	VesselEditingWidget->show();
+*/
 
 	
 

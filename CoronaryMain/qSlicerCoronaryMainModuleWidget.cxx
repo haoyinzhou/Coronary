@@ -25,12 +25,21 @@
 #include "vtkSlicerCoronaryMainLogic.h"
 
 
-void QVesselEditingWidget::showEvent(QShowEvent* e)
-{
-	std::cout << "QVesselEditingWidget showEvent" << std::endl;
 
-	QWidget::showEvent(e);
+void QVesselEditingWidget::mousePressEvent(QMouseEvent *	e)
+{
+	if (e->button() == Qt::LeftButton)
+	{
+
+	}
+	QVTKWidget::mousePressEvent(e);
 }
+
+void QVesselEditingWidget::setvisibleslot(bool f)
+{
+	this->setVisible(f);
+}
+
 
 
 //-----------------------------------------------------------------------------
@@ -74,6 +83,8 @@ qSlicerCoronaryMainModuleWidget::qSlicerCoronaryMainModuleWidget(QWidget* _paren
 //-----------------------------------------------------------------------------
 qSlicerCoronaryMainModuleWidget::~qSlicerCoronaryMainModuleWidget()
 {
+	VesselEditingWidget->deleteLater();
+	delete[] VesselEditingWidget;
 	baseName.clear();
 }
 
@@ -87,6 +98,11 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	this->VolumeNode = NULL;
 	this->TransformCoronaryNode = NULL;
 
+	VesselEditingWidget = new QVesselEditingWidget;
+	VesselEditingWidget->resize(600, 1200);
+	VesselEditingWidget->setVisible(false);
+
+
 	connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
 	connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
 	connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
@@ -95,10 +111,11 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
+	connect(this, SIGNAL(visibilitychanged(bool)), VesselEditingWidget, SLOT(setvisibleslot(bool)) );
+	
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
 	d->progressBar->setValue(0);
-
 	d->checkBox_buildbifurcationmesh->setChecked(false);
 	d->checkBox_loadlandmarks->setChecked(false);
 	d->checkBox_loadcenterlines->setChecked(false);
@@ -135,7 +152,6 @@ void qSlicerCoronaryMainModuleWidget::SetCheckBoxBuildBifurcationMesh(int state)
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 	if (logic == NULL)
 		return;
-
 
 	if (state)
 	{
@@ -489,12 +505,7 @@ bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
 
 	Q_D(qSlicerCoronaryMainModuleWidget);
 
-
-	QVesselEditingWidget *VesselEditingWidget = new QVesselEditingWidget;
-	VesselEditingWidget->show();
-
 	d->logic()->TestLogic();
-
 
 	std::cout << "TestButtonFunc end" << std::endl;
 

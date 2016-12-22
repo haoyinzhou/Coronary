@@ -96,13 +96,7 @@
 
 
 class CVesselPickCallBack;
-
-
-
-
-
-
-
+class vtkSlicerCoronaryMainLogic;
 
 
 

@@ -61,18 +61,25 @@
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 
-class QVesselEditingWidget : public QWidget
+
+class QVesselEditingWidget : public QVTKWidget
 {
 	Q_OBJECT
 public:
-	QVesselEditingWidget(QWidget *parent = 0, const char *name = 0){};
+	QVesselEditingWidget(QVTKWidget *parent = 0, const char *name = 0){};
 	~QVesselEditingWidget() {}
 
 protected:
-	virtual void showEvent(QShowEvent* e);
+	virtual void mousePressEvent(QMouseEvent*);
+
+public slots:
+	void setvisibleslot(bool);
+
+
+
+public:
 
 };
-
 
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -108,6 +115,13 @@ public slots:
 public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);
 	void SaveVTKImage(vtkImageData *image, const char* fileName);
+
+public:
+	QVesselEditingWidget *VesselEditingWidget;
+
+signals:
+	void visibilitychanged(bool);
+
 
 protected:
 	QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
