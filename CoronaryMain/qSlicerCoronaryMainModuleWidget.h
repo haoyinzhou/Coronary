@@ -82,17 +82,24 @@ class QVesselEditingWidget : public QVTKWidget
 {
 	Q_OBJECT
 public:
-	QVesselEditingWidget(QVTKWidget *parent = 0, const char *name = 0){};
-	~QVesselEditingWidget() {}
+	QVesselEditingWidget();
+	~QVesselEditingWidget();
 
 protected:
 	virtual void mousePressEvent(QMouseEvent*);
 
+
 public slots:
 	void setvisibleslot(bool);
-	
-public:
+	void setclmodelslot(vtkPolyData*, vtkPolyData*);
+	void setimagedataslot(vtkImageData*);
+	void resetslot(void);
+	void forcerenderslot(void);
 
+public:
+	vtkPolyData* clModel;
+	vtkPolyData* lumenModel;
+	vtkImageData* ImageData;
 };
 
 
@@ -135,6 +142,18 @@ public:
 
 signals:
 	void visibilitychanged(bool);
+	void clmodelchanged(vtkPolyData*, vtkPolyData*);
+	void imagedatachanged(vtkImageData*);
+	void resetsingal();
+	void forcerendersingal();
+
+public:
+	void send_visibilitychanged(bool);
+	void send_clmodelchanged(vtkPolyData*, vtkPolyData*);
+	void send_imagedatachanged(vtkImageData*);
+	void send_resetsingal();
+	void send_forcerendersingal();
+
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;
@@ -149,9 +168,7 @@ public:
 	bool RemoveAllSelectedVesselThreeD();
 	bool ShowSelectedVesselThreeD(vtkIdType);
 	bool SetupKeyMouseObserver();
-
-
-
+	
 protected:
 	QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
 	virtual void setup();

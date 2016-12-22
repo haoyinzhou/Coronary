@@ -26,6 +26,17 @@
 
 
 
+QVesselEditingWidget::QVesselEditingWidget()
+{
+
+}
+
+QVesselEditingWidget::~QVesselEditingWidget()
+{
+
+}
+
+
 void QVesselEditingWidget::mousePressEvent(QMouseEvent *	e)
 {
 	if (e->button() == Qt::LeftButton)
@@ -37,9 +48,94 @@ void QVesselEditingWidget::mousePressEvent(QMouseEvent *	e)
 
 void QVesselEditingWidget::setvisibleslot(bool f)
 {
+	std::cout << "set visible slot" << std::endl;
 	this->setVisible(f);
 }
 
+void QVesselEditingWidget::setclmodelslot(vtkPolyData* cl, vtkPolyData* lumen)
+{
+	std::cout << "set clmodel slot" << std::endl;
+	this->clModel = cl;
+	this->lumenModel = lumen;
+}
+
+void QVesselEditingWidget::setimagedataslot(vtkImageData* p)
+{
+	std::cout << "set imagedata slot" << std::endl;
+	this->ImageData = p;
+}
+
+void QVesselEditingWidget::resetslot()
+{
+	std::cout << "set reset slot" << std::endl;
+	std::cout << "clModel->GetNumberOfCells() = " << this->clModel->GetNumberOfCells() << std::endl;
+	std::cout << "lumenModel->GetNumberOfCells() = " << this->lumenModel->GetNumberOfCells() << std::endl;
+
+	this->clModel = NULL;
+	this->ImageData = NULL;
+
+	vtkSmartPointer<vtkRendererCollection> rendercollection = this->GetInteractor()->GetRenderWindow()->GetRenderers();
+	
+	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;
+	rendercollection->InitTraversal();
+	for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i++)
+	{
+		vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
+		this->GetInteractor()->GetRenderWindow()->RemoveRenderer(thisrender);
+	}
+	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;
+
+}
+
+void QVesselEditingWidget::forcerenderslot()
+{
+	std::cout << "set forcerender slot" << std::endl;
+
+	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	VesselEditingMapper->SetInputData(lumenModel);
+	
+	vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
+	VesselEditingActor->SetMapper(VesselEditingMapper);
+
+	vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
+	VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
+	
+	VesselEditingRenderer->AddActor(VesselEditingActor);
+
+	this->GetRenderWindow()->AddRenderer(VesselEditingRenderer);
+
+
+
+	//vtkSmartPointer<vtkRenderWindowInteractor> VesselEditingRenderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	//VesselEditingRenderWindowInteractor->SetRenderWindow(VesselEditingRenderWindow);
+
+	//vtkSmartPointer<MouseInteractorStyle> style = vtkSmartPointer<MouseInteractorStyle>::New();
+	//renderWindowInteractor->SetInteractorStyle(style);
+
+	//VesselEditingRenderWindowInteractor->Start();
+
+}
+
+void qSlicerCoronaryMainModuleWidget::send_visibilitychanged(bool f)
+{
+	emit visibilitychanged(f);
+}
+void qSlicerCoronaryMainModuleWidget::send_clmodelchanged(vtkPolyData* cl, vtkPolyData* lumen)
+{
+	emit clmodelchanged(cl, lumen);
+}
+void qSlicerCoronaryMainModuleWidget::send_imagedatachanged(vtkImageData* p)
+{
+	emit imagedatachanged(p);
+}
+void qSlicerCoronaryMainModuleWidget::send_resetsingal()
+{
+	emit resetsingal();
+}
+void qSlicerCoronaryMainModuleWidget::send_forcerendersingal()
+{
+	emit forcerendersingal();
+}
 
 
 //-----------------------------------------------------------------------------
@@ -111,7 +207,12 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->MRMLNodeReadVolumn, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(SetVolumn(vtkMRMLNode*)));
 	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
-	connect(this, SIGNAL(visibilitychanged(bool)), VesselEditingWidget, SLOT(setvisibleslot(bool)) );
+	connect(this, SIGNAL(visibilitychanged(bool)), VesselEditingWidget, SLOT(setvisibleslot(bool)));
+	connect(this, SIGNAL(clmodelchanged(vtkPolyData*, vtkPolyData*)), VesselEditingWidget, SLOT(setclmodelslot(vtkPolyData*, vtkPolyData*)));
+	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
+	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
+	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
+
 	
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
@@ -149,6 +250,10 @@ void qSlicerCoronaryMainModuleWidget::SetVolumn(vtkMRMLNode* node)
 		logic->interpolator->Initialize(logic->imageData);
 	}
 }
+
+
+
+
 
 void qSlicerCoronaryMainModuleWidget::SetCheckBoxBuildBifurcationMesh(int state)
 {
@@ -634,16 +739,22 @@ public:
 
 		mainwidget->ShowSelectedVesselThreeD(pickid);
 
+		mainwidget->send_visibilitychanged(true);
+		mainwidget->send_clmodelchanged(clmodel, lumenmodel);
+		mainwidget->send_imagedatachanged(imagedata);
+		mainwidget->send_resetsingal();
+		mainwidget->send_forcerendersingal();
+
 	}
 
 public:
 	vtkRenderWindowInteractor* Slicer3DRenderWindowInteractor;
-	QVTKWidget* Slicer3DWidget;
 	vtkRenderer* Slicer3DRender;
 	qSlicerCoronaryMainModuleWidget* mainwidget;
-
+	
 	vtkPolyData* clmodel;
 	vtkPolyData* lumenmodel;
+	vtkImageData* imagedata;
 
 private:
 	vtkIdType LastSelectedID;
@@ -679,40 +790,12 @@ public:
 	{
 		if (clmodel->GetNumberOfCells() == 0)
 			return;
+
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
 			std::cout << "Control_L is pressed!" << std::endl;
 			Iren->SetPicker(VesselPicker);
 			addedvesselpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, VesselPickCallBack, 10.0f));
-
-			// pop the vessel editing window
-			/*			vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-			sphereSource->SetCenter(0.0, 0.0, 0.0);
-			sphereSource->SetRadius(5.0);
-			sphereSource->Update();
-
-			vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-			//	VesselEditingMapper->SetInputConnection(sphereSource->GetOutputPort());
-
-			vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
-			VesselEditingActor->SetMapper(VesselEditingMapper);
-
-			vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
-			VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
-			//	VesselEditingRenderer->AddActor(VesselEditingActor);
-
-			vtkSmartPointer<vtkRenderWindow> VesselEditingRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
-			VesselEditingRenderWindow->SetSize(500, 1200); //(width, height)
-			VesselEditingRenderWindow->AddRenderer(VesselEditingRenderer);
-
-			vtkSmartPointer<vtkRenderWindowInteractor> VesselEditingRenderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-			VesselEditingRenderWindowInteractor->SetRenderWindow(VesselEditingRenderWindow);
-
-			//vtkSmartPointer<MouseInteractorStyle> style = vtkSmartPointer<MouseInteractorStyle>::New();
-			//renderWindowInteractor->SetInteractorStyle(style);
-
-			VesselEditingRenderWindowInteractor->Start();
-			*/
 		}
 	}
 
@@ -721,9 +804,10 @@ private:
 public:
 	vtkCellPicker* VesselPicker;
 	CVesselPickCallBack* VesselPickCallBack;
-
 	vector<unsigned long>* addedvesselpickobservertag;
+
 	vtkPolyData* clmodel;
+
 };
 
 class vtkCtrlKeyReleasedInteractionCallback : public vtkCommand
@@ -805,8 +889,7 @@ bool qSlicerCoronaryMainModuleWidget
 	}
 	}
 	*/
-
-
+	
 	for (int i = 0; i < addedctrlobservertag.size(); i++)
 		RenderWindowInteractorthreeD->RemoveObserver(addedctrlobservertag.at(i));
 	addedctrlobservertag.clear();
@@ -817,11 +900,12 @@ bool qSlicerCoronaryMainModuleWidget
 
 	VesselPickCallBack = vtkSmartPointer<CVesselPickCallBack>::New();
 	VesselPickCallBack->Slicer3DRenderWindowInteractor = RenderWindowInteractorthreeD;
-	VesselPickCallBack->Slicer3DWidget = threeDView;
-	VesselPickCallBack->clmodel = logic->centerlineModel;
-	VesselPickCallBack->lumenmodel = logic->LumenModel;
 	VesselPickCallBack->Slicer3DRender = rendercollection->GetFirstRenderer();
 	VesselPickCallBack->mainwidget = this;
+	VesselPickCallBack->clmodel = logic->centerlineModel;
+	VesselPickCallBack->lumenmodel = logic->LumenModel;
+	VesselPickCallBack->imagedata = logic->imageData;
+
 
 	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
 	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
@@ -839,9 +923,6 @@ bool qSlicerCoronaryMainModuleWidget
 
 	return true;
 }
-
-
-
 
 
 
