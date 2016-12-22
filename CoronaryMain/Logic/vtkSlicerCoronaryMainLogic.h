@@ -116,10 +116,6 @@ public:
 
   bool BuildLandmarksMeshLogic();
   bool BuildCenterlinesMeshLogic();
-
-  bool SetupKeyMouseObserver();
-  bool ShowSelectedVesselThreeD(vtkIdType);
-  bool RemoveAllSelectedVesselThreeD();
   
   bool TestLogic();  // just for debug
 
@@ -162,10 +158,7 @@ public:
 	
 	vector<vtkMRMLNode*> addedclnode;
 	vector<vtkMRMLNode*> addedlandmarknode;
-	vector<vtkMRMLNode*> addedselectedclnode;
 
-	vector< unsigned long > addedctrlobservertag;
-	vector< unsigned long > addedvesselpickobservertag;
 
 	vtkSmartPointer< vtkMRMLModelNode > LandmarkNode;
 	vtkSmartPointer< vtkMRMLModelDisplayNode > LandmarkDisplayNode;
@@ -178,13 +171,6 @@ public:
 	vtkSmartPointer<vtkRenderer> clRender;
 	vtkSmartPointer<vtkRenderer> LumenRender;
 
-	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
-	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
-
-	vtkSmartPointer<vtkCellPicker> VesselPicker;
-	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
-
-private:
 
 public:
 	bool WillBuildBifurcationMesh;

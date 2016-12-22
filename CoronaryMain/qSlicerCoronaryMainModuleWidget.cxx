@@ -119,6 +119,10 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	d->checkBox_buildbifurcationmesh->setChecked(false);
 	d->checkBox_loadlandmarks->setChecked(false);
 	d->checkBox_loadcenterlines->setChecked(false);
+
+	addedselectedclnode.clear();
+	addedctrlobservertag.clear();
+	addedvesselpickobservertag.clear();
 }
 
 
@@ -166,7 +170,7 @@ void qSlicerCoronaryMainModuleWidget::SetCheckBoxBuildBifurcationMesh(int state)
 		return;
 
 	logic->BuildCenterlinesMeshLogic();
-	logic->SetupKeyMouseObserver();
+	SetupKeyMouseObserver();
 
 }
 
@@ -340,7 +344,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		
 		logic->BuildCenterlinesMeshLogic();
 				
-		logic->SetupKeyMouseObserver();
+		SetupKeyMouseObserver();
 
 		d->progressBar->setValue(100);
 	}
@@ -356,7 +360,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 		if (logic->DetectLumenLogic(d->progressBar))
 		{
 			logic->BuildCenterlinesMeshLogic();
-			logic->SetupKeyMouseObserver();
+			SetupKeyMouseObserver();
 		}
 	}
 
@@ -496,6 +500,349 @@ void qSlicerCoronaryMainModuleWidget::SaveVTKImage(vtkImageData *image, const ch
 		return;
 	}
 }
+
+
+bool qSlicerCoronaryMainModuleWidget
+::RemoveAllSelectedVesselThreeD()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	if (addedselectedclnode.size() != 0)
+	{
+		for (int i = 0; i < addedselectedclnode.size(); i++)
+			logic->GetMRMLScene()->RemoveNode(addedselectedclnode.at(i));
+		addedselectedclnode.clear();
+	}
+
+	return true;
+}
+
+bool qSlicerCoronaryMainModuleWidget
+::ShowSelectedVesselThreeD(vtkIdType cellid)
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	std::cout << "ShowSelectedVesselThreeD begin!" << std::endl;
+
+	vtkSmartPointer<vtkIdTypeArray> centerlineSelectId = vtkSmartPointer<vtkIdTypeArray>::New();
+	centerlineSelectId->SetName("SegmentId");
+	centerlineSelectId->SetNumberOfValues(1);
+	centerlineSelectId->SetValue(0, cellid);
+
+	if (cellid >= logic->centerlineModel->GetNumberOfCells())
+		cellid = 0;
+
+	RemoveAllSelectedVesselThreeD();
+
+	vtkSmartPointer<vtkSelectionNode> selectionNode = vtkSmartPointer<vtkSelectionNode>::New();
+	selectionNode->SetFieldType(vtkSelectionNode::CELL);
+	selectionNode->SetContentType(vtkSelectionNode::VALUES);
+	selectionNode->SetSelectionList(centerlineSelectId);
+
+	vtkSmartPointer<vtkSelection> selection = vtkSmartPointer<vtkSelection>::New();
+	selection->AddNode(selectionNode);
+
+	vtkSmartPointer<vtkExtractSelection> extractSelection = vtkSmartPointer<vtkExtractSelection>::New();
+	//	extractSelection->SetInputConnection(0, centerlineTube->GetOutputPort(2));
+	extractSelection->SetInputData(0, logic->LumenModel_display);
+	extractSelection->SetInputData(1, selection);
+	extractSelection->Update();
+
+	vtkSmartPointer<vtkUnstructuredGrid> selected = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	selected->ShallowCopy(extractSelection->GetOutput());
+
+	vtkSmartPointer<vtkGeometryFilter> geometryFilter = vtkSmartPointer<vtkGeometryFilter>::New();
+	geometryFilter->SetInputData(selected);
+	geometryFilter->Update();
+
+	vtkSmartPointer<vtkPolyData> selectpolydata = geometryFilter->GetOutput();
+	
+	SelectedClNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	SelectedClDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+
+	vtkMRMLNode* thisaddednode;
+
+	thisaddednode = logic->GetMRMLScene()->AddNode(SelectedClNode);
+	addedselectedclnode.push_back(thisaddednode);
+	thisaddednode = logic->GetMRMLScene()->AddNode(SelectedClDisplayNode);
+	addedselectedclnode.push_back(thisaddednode);
+	SelectedClDisplayNode->SetScene(logic->GetMRMLScene());
+	SelectedClNode->SetScene(logic->GetMRMLScene());
+	SelectedClNode->SetName("selected vessel");
+	SelectedClNode->SetAndObserveDisplayNodeID(SelectedClDisplayNode->GetID());
+	SelectedClNode->Modified();
+	SelectedClDisplayNode->Modified();
+
+	SelectedClDisplayNode->SetColor(1, 1, 0);
+	SelectedClDisplayNode->SetPointSize(5);
+	SelectedClDisplayNode->SetLineWidth(5);
+	SelectedClDisplayNode->SetVisibility(1);
+	SelectedClDisplayNode->LightingOn();
+	SelectedClDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
+	SelectedClNode->SetAndObservePolyData(selectpolydata);
+
+	std::cout << "ShowSelectedVesselThreeD end!" << std::endl;
+
+	return true;
+}
+
+
+class CVesselPickCallBack : public vtkCommand
+{
+public:
+	static CVesselPickCallBack *New() { return new CVesselPickCallBack; }
+
+	CVesselPickCallBack()
+	{
+		LastSelectedID = -1;
+	}
+
+	virtual void Execute(vtkObject *caller, unsigned long, void*)
+	{
+		std::cout << "Mouse click!" << std::endl;
+		if (Slicer3DRenderWindowInteractor == NULL)
+			return;
+		if (clmodel->GetNumberOfCells() == 0)
+			return;
+
+		int pickpixel[2];
+		Slicer3DRenderWindowInteractor->GetEventPosition(pickpixel);
+		//std::cout << "pickpixel = " << pickpixel[0] << ", " << pickpixel[1] << std::endl;
+
+		vtkSmartPointer< vtkCellPicker > picker = vtkCellPicker::SafeDownCast(Slicer3DRenderWindowInteractor->GetPicker());
+		picker->Pick(pickpixel[0], pickpixel[1], 0, Slicer3DRender);
+
+		vtkIdType pickid = picker->GetCellId();
+		if (pickid == -1)
+			return;
+
+		vtkSmartPointer<vtkPolyData> pickedpoly = vtkPolyData::SafeDownCast(picker->GetDataSet());
+
+		if (pickedpoly->GetNumberOfCells() == lumenmodel->GetNumberOfCells())
+		{
+			vtkSmartPointer<vtkIdTypeArray> segmentidarray = vtkIdTypeArray::SafeDownCast(lumenmodel->GetCellData()->GetArray("SegmentId"));
+			pickid = segmentidarray->GetValue(pickid);
+		}
+
+		if (pickid == LastSelectedID)
+			return;
+		LastSelectedID = pickid;
+
+		std::cout << "pickid = " << pickid << std::endl;
+
+		mainwidget->ShowSelectedVesselThreeD(pickid);
+
+	}
+
+public:
+	vtkRenderWindowInteractor* Slicer3DRenderWindowInteractor;
+	QVTKWidget* Slicer3DWidget;
+	vtkRenderer* Slicer3DRender;
+	qSlicerCoronaryMainModuleWidget* mainwidget;
+
+	vtkPolyData* clmodel;
+	vtkPolyData* lumenmodel;
+
+private:
+	vtkIdType LastSelectedID;
+
+};
+
+
+// Ctrl Key Event
+class vtkCtrlKeyPressedInteractionCallback : public vtkCommand
+{
+public:
+	static vtkCtrlKeyPressedInteractionCallback *New()
+	{
+		return new vtkCtrlKeyPressedInteractionCallback;
+	}
+
+	vtkCtrlKeyPressedInteractionCallback()
+	{
+
+	}
+
+	~vtkCtrlKeyPressedInteractionCallback()
+	{
+
+	}
+
+	void SetInteractor(vtkRenderWindowInteractor *iren)
+	{
+		this->Iren = iren;
+	}
+
+	virtual void Execute(vtkObject *caller, unsigned long ev, void *)
+	{
+		if (clmodel->GetNumberOfCells() == 0)
+			return;
+		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
+		{
+			std::cout << "Control_L is pressed!" << std::endl;
+			Iren->SetPicker(VesselPicker);
+			addedvesselpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, VesselPickCallBack, 10.0f));
+
+			// pop the vessel editing window
+			/*			vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+			sphereSource->SetCenter(0.0, 0.0, 0.0);
+			sphereSource->SetRadius(5.0);
+			sphereSource->Update();
+
+			vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+			//	VesselEditingMapper->SetInputConnection(sphereSource->GetOutputPort());
+
+			vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
+			VesselEditingActor->SetMapper(VesselEditingMapper);
+
+			vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
+			VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
+			//	VesselEditingRenderer->AddActor(VesselEditingActor);
+
+			vtkSmartPointer<vtkRenderWindow> VesselEditingRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+			VesselEditingRenderWindow->SetSize(500, 1200); //(width, height)
+			VesselEditingRenderWindow->AddRenderer(VesselEditingRenderer);
+
+			vtkSmartPointer<vtkRenderWindowInteractor> VesselEditingRenderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+			VesselEditingRenderWindowInteractor->SetRenderWindow(VesselEditingRenderWindow);
+
+			//vtkSmartPointer<MouseInteractorStyle> style = vtkSmartPointer<MouseInteractorStyle>::New();
+			//renderWindowInteractor->SetInteractorStyle(style);
+
+			VesselEditingRenderWindowInteractor->Start();
+			*/
+		}
+	}
+
+private:
+	vtkRenderWindowInteractor* Iren;
+public:
+	vtkCellPicker* VesselPicker;
+	CVesselPickCallBack* VesselPickCallBack;
+
+	vector<unsigned long>* addedvesselpickobservertag;
+	vtkPolyData* clmodel;
+};
+
+class vtkCtrlKeyReleasedInteractionCallback : public vtkCommand
+{
+public:
+	static vtkCtrlKeyReleasedInteractionCallback *New()
+	{
+		return new vtkCtrlKeyReleasedInteractionCallback;
+	}
+
+	vtkCtrlKeyReleasedInteractionCallback()
+	{
+
+	}
+
+	~vtkCtrlKeyReleasedInteractionCallback()
+	{
+
+	}
+
+	void SetInteractor(vtkRenderWindowInteractor *iren)
+	{
+		this->Iren = iren;
+	}
+
+	virtual void Execute(vtkObject *caller, unsigned long ev, void *)
+	{
+		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
+		{
+			std::cout << "Control_L is released!" << std::endl;
+			for (int i = 0; i < addedvesselpickobservertag->size(); i++)
+				Iren->RemoveObserver(addedvesselpickobservertag->at(i));
+			addedvesselpickobservertag->clear();
+		}
+	}
+
+private:
+	vtkRenderWindowInteractor*	Iren;
+
+public:
+	vector<unsigned long>* addedvesselpickobservertag;
+
+};
+
+
+
+bool qSlicerCoronaryMainModuleWidget
+::SetupKeyMouseObserver()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	if (logic->centerlineModel->GetNumberOfCells() == 0)
+		return false;
+
+	RemoveAllSelectedVesselThreeD();
+
+	// set ctrl observer
+	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
+	vtkSmartPointer<vtkRendererCollection> rendercollection = threeDView->GetRenderWindow()->GetRenderers();
+
+	/*	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;
+	rendercollection->InitTraversal();
+	for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i ++)
+	{
+	std::cout << "i = " << i << std::endl;
+	vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
+	vtkSmartPointer<vtkActorCollection> actorcollection = thisrender->GetActors();
+
+	actorcollection->InitTraversal();
+	for (vtkIdType j = 0; j < actorcollection->GetNumberOfItems(); j ++)
+	{
+	vtkSmartPointer<vtkActor> thisactor = vtkActor::SafeDownCast(actorcollection->GetNextActor());
+	double color[3];
+	thisactor->GetProperty()->GetColor(color);
+	std::cout << i << ", " << j << ", " << color[0] << ", " << color[1] << ", " << color[2] << std::endl;
+	}
+	}
+	*/
+
+
+	for (int i = 0; i < addedctrlobservertag.size(); i++)
+		RenderWindowInteractorthreeD->RemoveObserver(addedctrlobservertag.at(i));
+	addedctrlobservertag.clear();
+
+	VesselPicker = vtkSmartPointer<vtkCellPicker>::New();
+	VesselPicker->SetTolerance(0.005);
+	VesselPicker->PickClippingPlanesOff();
+
+	VesselPickCallBack = vtkSmartPointer<CVesselPickCallBack>::New();
+	VesselPickCallBack->Slicer3DRenderWindowInteractor = RenderWindowInteractorthreeD;
+	VesselPickCallBack->Slicer3DWidget = threeDView;
+	VesselPickCallBack->clmodel = logic->centerlineModel;
+	VesselPickCallBack->lumenmodel = logic->LumenModel;
+	VesselPickCallBack->Slicer3DRender = rendercollection->GetFirstRenderer();
+	VesselPickCallBack->mainwidget = this;
+
+	vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback> CtrlKeyPressedInteractionCallback = vtkSmartPointer<vtkCtrlKeyPressedInteractionCallback>::New();
+	CtrlKeyPressedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
+	CtrlKeyPressedInteractionCallback->VesselPicker = VesselPicker;
+	CtrlKeyPressedInteractionCallback->VesselPickCallBack = VesselPickCallBack;
+	CtrlKeyPressedInteractionCallback->addedvesselpickobservertag = &addedvesselpickobservertag;
+	CtrlKeyPressedInteractionCallback->clmodel = logic->centerlineModel;
+	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
+
+	vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback> CtrlKeyReleasedInteractionCallback = vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback>::New();
+	CtrlKeyReleasedInteractionCallback->SetInteractor(RenderWindowInteractorthreeD);
+	CtrlKeyReleasedInteractionCallback->addedvesselpickobservertag = &addedvesselpickobservertag;
+	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyReleaseEvent, CtrlKeyReleasedInteractionCallback));
+
+
+	return true;
+}
+
+
+
+
 
 
 

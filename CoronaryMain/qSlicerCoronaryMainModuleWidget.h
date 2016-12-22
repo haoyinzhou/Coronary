@@ -30,16 +30,23 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLNode.h"
 
 #include "qMRMLLayoutManager.h"
 #include "qMRMLThreeDWidget.h"
 #include "qMRMLThreeDView.h"
+
+// STD includes
+#include <cstdlib>
 
 // qt
 #include "qsettings.h"
 #include "qdir.h"
 #include "qfiledialog.h"
 #include "QShowEvent"
+
+// VTK includes
+#include <vtkObject.h>
 
 #include "vtkXMLPolyDataReader.h"
 #include "vtkMetaImageReader.h"
@@ -58,9 +65,18 @@
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkObjectFactory.h"
 
+#include "vtkCellPicker.h"
+#include "vtkSmartPointer.h"
+#include "vtkMRMLScene.h"
+
+
+
+
+
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 
+class CVesselPickCallBack;
 
 class QVesselEditingWidget : public QVTKWidget
 {
@@ -74,9 +90,7 @@ protected:
 
 public slots:
 	void setvisibleslot(bool);
-
-
-
+	
 public:
 
 };
@@ -121,6 +135,21 @@ public:
 
 signals:
 	void visibilitychanged(bool);
+
+public:
+	std::vector<vtkMRMLNode*> addedselectedclnode;
+	std::vector< unsigned long > addedctrlobservertag;
+	std::vector< unsigned long > addedvesselpickobservertag;
+	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
+	vtkSmartPointer<vtkCellPicker> VesselPicker;
+	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
+
+public:
+	bool RemoveAllSelectedVesselThreeD();
+	bool ShowSelectedVesselThreeD(vtkIdType);
+	bool SetupKeyMouseObserver();
+
 
 
 protected:
