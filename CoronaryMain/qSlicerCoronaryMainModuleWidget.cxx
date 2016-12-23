@@ -93,14 +93,13 @@ void QVesselEditingWidget::forcerenderslot()
 
 	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	VesselEditingMapper->SetInputData(lumenModel);
-	
 	vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
 	VesselEditingActor->SetMapper(VesselEditingMapper);
-
 	vtkSmartPointer<vtkRenderer> VesselEditingRenderer = vtkSmartPointer<vtkRenderer>::New();
-	VesselEditingRenderer->SetBackground(0, 0, 0); // Background color black
-	
+	VesselEditingRenderer->SetBackground(0.0, 0.0, 0.0); // Background color black
 	VesselEditingRenderer->AddActor(VesselEditingActor);
+
+
 
 	this->GetRenderWindow()->AddRenderer(VesselEditingRenderer);
 

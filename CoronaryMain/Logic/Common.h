@@ -153,6 +153,8 @@ bool DetectLandmarks_core(vtkImageData *imageData, Learning& learn, double landm
 bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, vtkPolyData *centerlineModel, double leftOstium[3], double rightOstium[3], QProgressBar* progressbar);
 bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vtkImageInterpolator* interpolator, Learning &learn);
 
+bool PinPolyX(std::vector<double> *poly, int x, int y);
+
 
 #endif
 

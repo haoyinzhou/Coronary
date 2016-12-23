@@ -2470,3 +2470,13 @@ int CentralizedThisContour(double center[3], double axis1[3], double axis2[3], i
 	}
 	return 0;
 }
+
+bool PinPolyX(std::vector<double> *poly, int x, int y)
+{
+	bool inside = false;
+
+	if (poly[0][y * 2] >= x && poly[0][y * 2 + 1] < x)
+		inside = !inside;
+
+	return inside;
+}

@@ -20,6 +20,8 @@ set(${KIT}_SRCS
   itkBinaryThinningImageFilter3D.txx
   ExtendTubeFilter.h
   ExtendTubeFilter.cxx
+  ImageStretchCurvedReformat.h
+  ImageStretchCurvedReformat.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES
