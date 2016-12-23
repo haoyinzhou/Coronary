@@ -52,6 +52,12 @@ void QVesselEditingWidget::setvisibleslot(bool f)
 	this->setVisible(f);
 }
 
+void QVesselEditingWidget::setselectidslot(vtkIdType id)
+{
+	std::cout << "set selectid slot, id = " << id << std::endl;
+	this->SelectID = id;
+}
+
 void QVesselEditingWidget::setclmodelslot(vtkPolyData* cl, vtkPolyData* lumen)
 {
 	std::cout << "set clmodel slot" << std::endl;
@@ -67,31 +73,77 @@ void QVesselEditingWidget::setimagedataslot(vtkImageData* p)
 
 void QVesselEditingWidget::resetslot()
 {
-	std::cout << "set reset slot" << std::endl;
-	std::cout << "clModel->GetNumberOfCells() = " << this->clModel->GetNumberOfCells() << std::endl;
-	std::cout << "lumenModel->GetNumberOfCells() = " << this->lumenModel->GetNumberOfCells() << std::endl;
+	std::cout << "reset slot" << std::endl;
 
 	this->clModel = NULL;
 	this->ImageData = NULL;
 
 	vtkSmartPointer<vtkRendererCollection> rendercollection = this->GetInteractor()->GetRenderWindow()->GetRenderers();
 	
-	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;
 	rendercollection->InitTraversal();
 	for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i++)
 	{
 		vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
 		this->GetInteractor()->GetRenderWindow()->RemoveRenderer(thisrender);
 	}
-	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;
 
 }
 
 void QVesselEditingWidget::forcerenderslot()
 {
-	std::cout << "set forcerender slot" << std::endl;
+	std::cout << "force render slot" << std::endl;
+//	SaveVTKImage(this->ImageData, "C:\\work\\Coronary_Slicer\\testdata\\imageinforcerenderslot.mha");
 
-	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+
+	stretchCurvedReformat = vtkSmartPointer<ImageStretchCurvedReformat>::New();
+	stretchCurvedReformatLine = vtkSmartPointer<vtkLineSource>::New();
+	vtkSmartPointer<vtkActor> stretchCurvedReformatActor = vtkSmartPointer<vtkActor>::New();
+
+//	SaveVTKImage(ImageData, "C:\\work\\Coronary_Slicer\\testdata\\image_input.mha");
+//	SavePolyData(clModel, "C:\\work\\Coronary_Slicer\\testdata\\clModel_input.vtp");
+
+	std::cout << "SelectID = " << SelectID << std::endl;
+
+
+	stretchCurvedReformat->SetInputData(0, ImageData);
+	stretchCurvedReformat->SetInputData(1, clModel);
+	stretchCurvedReformat->SetSegmentId(&SelectID);
+	stretchCurvedReformat->SetTwistIndex(0);
+	stretchCurvedReformat->Update();
+
+	
+	SaveVTKImage(stretchCurvedReformat->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\stretchCurvedReformat_output0.mha");
+	vtkSmartPointer<vtkPolyData> poly = vtkPolyData::SafeDownCast(stretchCurvedReformat->GetOutput(1));
+	SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\stretchCurvedReformat_output1.vtp");
+	poly = vtkPolyData::SafeDownCast(stretchCurvedReformat->GetOutput(2));
+	SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\stretchCurvedReformat_output2.vtp");
+	poly = vtkPolyData::SafeDownCast(stretchCurvedReformat->GetOutput(3));
+	SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\stretchCurvedReformat_output3.vtp");
+	poly = vtkPolyData::SafeDownCast(stretchCurvedReformat->GetOutput(4));
+	SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\stretchCurvedReformat_output4.vtp");
+	poly = vtkPolyData::SafeDownCast(stretchCurvedReformat->GetOutput(5));
+	SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\stretchCurvedReformat_output5.vtp");
+
+
+
+/*	vtkSmartPointer<vtkPolyDataMapper> circleContourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	circleContourMapper->SetInputConnection(stretchCurvedReformat->GetOutputPort(1));
+	vtkSmartPointer<vtkActor> circleContourActor = vtkSmartPointer<vtkActor>::New();
+	circleContourActor->SetMapper(circleContourMapper);
+	circleContourActor->GetProperty()->SetColor(0.8, 0.0, 0.0);
+	circleContourActor->GetProperty()->SetLineWidth(2.0f);
+	circleContourActor->GetProperty()->SetOpacity(0.6);
+	circleContourActor->PickableOff();
+	circleContourActor->VisibilityOff();
+	vtkSmartPointer<vtkRenderer> render1 = vtkSmartPointer<vtkRenderer>::New();
+	render1->AddActor(circleContourActor);
+	this->GetRenderWindow()->AddRenderer(render1);
+*/
+
+
+
+
+/*	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	VesselEditingMapper->SetInputData(lumenModel);
 	vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
 	VesselEditingActor->SetMapper(VesselEditingMapper);
@@ -99,10 +151,8 @@ void QVesselEditingWidget::forcerenderslot()
 	VesselEditingRenderer->SetBackground(0.0, 0.0, 0.0); // Background color black
 	VesselEditingRenderer->AddActor(VesselEditingActor);
 
-
-
 	this->GetRenderWindow()->AddRenderer(VesselEditingRenderer);
-
+*/
 
 
 	//vtkSmartPointer<vtkRenderWindowInteractor> VesselEditingRenderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
@@ -115,9 +165,52 @@ void QVesselEditingWidget::forcerenderslot()
 
 }
 
+void QVesselEditingWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
+{
+	if (!poly) return;
+	vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+	writer->SetInputData(poly);
+	writer->SetFileName(fileName);
+	writer->SetDataModeToBinary();
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}
+
+
+void QVesselEditingWidget::SaveVTKImage(vtkImageData *image, const char* fileName)
+{
+	vtkSmartPointer< vtkMetaImageWriter > writer = vtkSmartPointer< vtkMetaImageWriter >::New();
+	writer->SetFileName(fileName);
+	writer->SetInputData(image);
+	try
+	{
+		writer->Write();
+	}
+	catch (...)
+	{
+		std::cerr << "Error occurs when writing " << fileName << std::endl;
+		return;
+	}
+}
+
+
+
+
+
 void qSlicerCoronaryMainModuleWidget::send_visibilitychanged(bool f)
 {
 	emit visibilitychanged(f);
+}
+void qSlicerCoronaryMainModuleWidget::send_selectidchanged(vtkIdType id)
+{
+	emit selectidchanged(id);
 }
 void qSlicerCoronaryMainModuleWidget::send_clmodelchanged(vtkPolyData* cl, vtkPolyData* lumen)
 {
@@ -207,6 +300,7 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(d->checkBox_buildbifurcationmesh, SIGNAL(stateChanged(int)), this, SLOT(SetCheckBoxBuildBifurcationMesh(int)));
 
 	connect(this, SIGNAL(visibilitychanged(bool)), VesselEditingWidget, SLOT(setvisibleslot(bool)));
+	connect(this, SIGNAL(selectidchanged(vtkIdType)), VesselEditingWidget, SLOT(setselectidslot(vtkIdType)));
 	connect(this, SIGNAL(clmodelchanged(vtkPolyData*, vtkPolyData*)), VesselEditingWidget, SLOT(setclmodelslot(vtkPolyData*, vtkPolyData*)));
 	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
 	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
@@ -738,10 +832,12 @@ public:
 
 		mainwidget->ShowSelectedVesselThreeD(pickid);
 
+
 		mainwidget->send_visibilitychanged(true);
+		mainwidget->send_selectidchanged(pickid);
 		mainwidget->send_clmodelchanged(clmodel, lumenmodel);
 		mainwidget->send_imagedatachanged(imagedata);
-		mainwidget->send_resetsingal();
+		//mainwidget->send_resetsingal();
 		mainwidget->send_forcerendersingal();
 
 	}

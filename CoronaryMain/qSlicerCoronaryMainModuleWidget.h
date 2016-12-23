@@ -64,10 +64,12 @@
 #include "vtkCamera.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkObjectFactory.h"
+#include "vtkLineSource.h"
 
 #include "vtkCellPicker.h"
 #include "vtkSmartPointer.h"
 #include "vtkMRMLScene.h"
+#include "ImageStretchCurvedReformat.h"
 
 
 
@@ -91,6 +93,7 @@ protected:
 
 public slots:
 	void setvisibleslot(bool);
+	void setselectidslot(vtkIdType);
 	void setclmodelslot(vtkPolyData*, vtkPolyData*);
 	void setimagedataslot(vtkImageData*);
 	void resetslot(void);
@@ -100,6 +103,15 @@ public:
 	vtkPolyData* clModel;
 	vtkPolyData* lumenModel;
 	vtkImageData* ImageData;
+	vtkIdType SelectID;
+
+	vtkSmartPointer<ImageStretchCurvedReformat>	 stretchCurvedReformat;
+	vtkSmartPointer<vtkLineSource>				 stretchCurvedReformatLine;
+
+public:
+	void SavePolyData(vtkPolyData *poly, const char* fileName);
+	void SaveVTKImage(vtkImageData *image, const char* fileName);  // just for debug
+
 };
 
 
@@ -142,6 +154,7 @@ public:
 
 signals:
 	void visibilitychanged(bool);
+	void selectidchanged(vtkIdType);
 	void clmodelchanged(vtkPolyData*, vtkPolyData*);
 	void imagedatachanged(vtkImageData*);
 	void resetsingal();
@@ -149,6 +162,7 @@ signals:
 
 public:
 	void send_visibilitychanged(bool);
+	void send_selectidchanged(vtkIdType);
 	void send_clmodelchanged(vtkPolyData*, vtkPolyData*);
 	void send_imagedatachanged(vtkImageData*);
 	void send_resetsingal();
@@ -163,6 +177,7 @@ public:
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
 	vtkSmartPointer<vtkCellPicker> VesselPicker;
 	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
+
 
 public:
 	bool RemoveAllSelectedVesselThreeD();

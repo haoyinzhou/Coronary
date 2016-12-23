@@ -133,6 +133,8 @@ int ImageStretchCurvedReformat::RequestInformation (
 	vtkInformationVector** inputVector,
 	vtkInformationVector *outputVector)
 {
+	std::cout << "ImageStretchCurvedReformat begin!" << std::endl;
+
 	vtkInformation *inCenterlineInfo = inputVector[1]->GetInformationObject(0);
 	vtkInformation *outImageInfo	 = outputVector->GetInformationObject(0);
 
