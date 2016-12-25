@@ -25,10 +25,7 @@ vtkStandardNewMacro(ImageStretchCurvedReformat);
 
 ImageStretchCurvedReformat::ImageStretchCurvedReformat( )
 {
-//	this->SegmentId  = -1;
-	this->SegmentId = new vtkIdType[VESSEL_SIZE];
-//	for(int i = 0; i < VESSEL_SIZE; i++) this->SegmentId[i] = -1;
-	this->SegmentId = SegmentId;
+	this->SegmentId = -1;
 
 	this->TwistIndex = 0;	
 
@@ -133,41 +130,18 @@ int ImageStretchCurvedReformat::RequestInformation (
 	vtkInformationVector** inputVector,
 	vtkInformationVector *outputVector)
 {
-	std::cout << "ImageStretchCurvedReformat begin!" << std::endl;
-
 	vtkInformation *inCenterlineInfo = inputVector[1]->GetInformationObject(0);
 	vtkInformation *outImageInfo	 = outputVector->GetInformationObject(0);
 
 	vtkPolyData	   *inputCenterline  = vtkPolyData::SafeDownCast(inCenterlineInfo->Get(vtkDataObject::DATA_OBJECT()));
 
 	vtkIdType npts=0, *pts=NULL;
-	vtkIdType eachNpts=0, *eachPts=NULL;
-	vtkIdType sumOfTempNpts=0;
 	
 	inputCenterline->BuildCells();
 
-	if(this->SegmentId[0] >= 0 && this->SegmentId[0] < inputCenterline->GetNumberOfCells())
+	if(this->SegmentId >= 0 && this->SegmentId < inputCenterline->GetNumberOfCells())
 	{
-		for(int i = 0; i < VESSEL_SIZE; i++)
-		{
-			if(this->SegmentId[i] >= 0 && this->SegmentId[i] < inputCenterline->GetNumberOfCells())
-			{
-				inputCenterline->GetCellPoints(this->SegmentId[i], eachNpts, eachPts);
-				npts += eachNpts;
-			}
-		}
-
-		pts = new vtkIdType[npts];
-		for(int i = 0; i < VESSEL_SIZE; i++)
-		{
-			if(this->SegmentId[i] >= 0 && this->SegmentId[i] < inputCenterline->GetNumberOfCells())
-			{		
-				inputCenterline->GetCellPoints(this->SegmentId[i], eachNpts, eachPts);
-				for(int j = 0; j < eachNpts; j++)	
-					pts[sumOfTempNpts+j] = eachPts[j];
-				sumOfTempNpts += eachNpts;
-			}
-		}
+		inputCenterline->GetCellPoints(this->SegmentId, npts, pts);
 
 		double maxValue[3], minValue[3], avgValue = 0.0;
 		for (int i = 0; i < npts; i++)
@@ -228,6 +202,8 @@ int ImageStretchCurvedReformat::RequestData(
 	vtkInformationVector **inputVector,
 	vtkInformationVector *outputVector)
 {
+	std::cout << "ImageStretchCurvedReformat begin!" << std::endl;
+
 	// get the info objects
 	vtkInformation *inImageInfo = inputVector[0]->GetInformationObject(0);
 	vtkInformation *inCenterlineInfo = inputVector[1]->GetInformationObject(0);
@@ -264,10 +240,12 @@ int ImageStretchCurvedReformat::RequestData(
 	vtkDoubleArray *clWallThickness = vtkDoubleArray::SafeDownCast(inputCenterline->GetPointData()->GetArray("WallThickness"));
 	vtkDoubleArray *clLongiParam = vtkDoubleArray::SafeDownCast(inputCenterline->GetPointData()->GetArray("LongiParam"));
 	vtkDoubleArray *clCircumParam = vtkDoubleArray::SafeDownCast(inputCenterline->GetCellData()->GetArray("CircumParam"));
-
+	
+	std::cout << "this->SegmentId = " << this->SegmentId << std::endl;
+	std::cout << "inputCenterline->GetNumberOfCells() = " << inputCenterline->GetNumberOfCells() << std::endl;
 
 	// Compute the output centerline and centerline frames
-	if( this->SegmentId[0] < 0 || this->SegmentId[0] >= inputCenterline->GetNumberOfCells() || !clDir || !clAxis1 || !clAxis2 || !clLumenRadius || !clWallThickness || !clLongiParam || !clCircumParam )
+	if( this->SegmentId < 0 || this->SegmentId >= inputCenterline->GetNumberOfCells() || !clDir || !clAxis1 || !clAxis2 || !clLumenRadius || !clWallThickness || !clLongiParam || !clCircumParam )
 	{
 		outputImage->SetExtent(0, 0, 0, 0, 0, 0);
 		outputImage->SetOrigin(0.0, 0.0, 0.0);
@@ -279,51 +257,38 @@ int ImageStretchCurvedReformat::RequestData(
 		outputImage2->SetSpacing(1.0, 1.0, 1.0);
 		outputImage2->AllocateScalars(VTK_SHORT, 1);
 
+		std::cerr << "ImageStretchCurvedReformat returned error!" << std::endl;
 		return 1;
 	}
 	
 
 	vtkIdType npts=0, *pts=NULL;
-	vtkIdType eachNpts=0, *eachPts=NULL;	
-	vtkIdType sumOfTempNpts=0;
 	inputCenterline->BuildCells();
-	for(int i = 0; i < VESSEL_SIZE; i++)
-	{
-		if(this->SegmentId[i] >= 0 && this->SegmentId[i] < inputCenterline->GetNumberOfCells())
-		{
-			inputCenterline->GetCellPoints(this->SegmentId[i], eachNpts, eachPts);
-			npts += eachNpts;
-		}
-	}
-	pts = new vtkIdType[npts];
-	for(int i = 0; i < VESSEL_SIZE; i++)
-	{		
-		if(this->SegmentId[i] >= 0 && this->SegmentId[i] < inputCenterline->GetNumberOfCells())
-		{
-			inputCenterline->GetCellPoints(this->SegmentId[i], eachNpts, eachPts);
-			for(int j = 0; j < eachNpts; j++)	
-				pts[sumOfTempNpts+j] = eachPts[j];
-			sumOfTempNpts += eachNpts;
-		}
-	}
+	inputCenterline->GetCellPoints(this->SegmentId, npts, pts);
+
 
 	double length = 0.0;
 	double coord1[3], coord2[3];
 		
-	for(vtkIdType i=0; i<npts; i++)
+	for(vtkIdType i = 0; i < npts; i ++)
 	{
-		inputCenterline->GetPoint(pts[i], coord1);
+		inputCenterline->GetPoints()->GetPoint(pts[i], coord1);
 		if(i>0)
 		{
-			inputCenterline->GetPoint(pts[i-1], coord2);
+			inputCenterline->GetPoints()->GetPoint(pts[i - 1], coord2);
 			length += sqrt(vtkMath::Distance2BetweenPoints(coord1, coord2));
 		}
 	}	
+
+	std::cout << "length = " << length << std::endl;
 		
 	int twistindex = this->TwistIndex % clLumenRadius->GetNumberOfComponents();
 	if(twistindex < 0)
 		twistindex += clLumenRadius->GetNumberOfComponents();
 	int oppositeindex = (twistindex+clLumenRadius->GetNumberOfComponents()/2)%clLumenRadius->GetNumberOfComponents();
+
+	std::cout << "twistindex = " << twistindex << ", oppositeindex = " << oppositeindex << std::endl;
+
 	//int extent[6];
 	//outputImage->GetExtent(extent);
 	//std::cout << "updateimage: " << this->UpdateImage << " | " << extent[0] << " " << extent[1] << " " << extent[2] << " " << extent[3] << " " << extent[4] << " " << extent[5] <<  " | ";
@@ -518,7 +483,7 @@ int ImageStretchCurvedReformat::RequestData(
 	double *lumenRadius = new double[clLumenRadius->GetNumberOfComponents()];
 	double *wallThickness = new double[clWallThickness->GetNumberOfComponents()];
 	double *circumparam = new double[clCircumParam->GetNumberOfComponents()];	
-	clCircumParam->GetTuple(this->SegmentId[0], circumparam);
+	clCircumParam->GetTuple(this->SegmentId, circumparam);
 	
 	for(vtkIdType i=0; i<npts; i++)
 	{

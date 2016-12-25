@@ -12,8 +12,8 @@ public:
    vtkTypeMacro(ImageStretchCurvedReformat,vtkImageAlgorithm);
    static ImageStretchCurvedReformat* New();
 
-   vtkSetMacro(SegmentId, vtkIdType*);
-   vtkGetMacro(SegmentId, vtkIdType*);
+   vtkSetMacro(SegmentId, vtkIdType);
+   vtkGetMacro(SegmentId, vtkIdType);
 
    vtkSetMacro(TwistIndex, int);
    vtkGetMacro(TwistIndex, int);
@@ -49,7 +49,7 @@ private:
    ImageStretchCurvedReformat(const ImageStretchCurvedReformat&);  // Not implemented.
    void operator=(const ImageStretchCurvedReformat&);  // Not implemented.
 
-   vtkIdType*		SegmentId;
+   vtkIdType		SegmentId;
 
    double		RadialSpacing;
    int			RadialExtent;

@@ -107,7 +107,7 @@ void QVesselEditingWidget::forcerenderslot()
 
 	stretchCurvedReformat->SetInputData(0, ImageData);
 	stretchCurvedReformat->SetInputData(1, clModel);
-	stretchCurvedReformat->SetSegmentId(&SelectID);
+	stretchCurvedReformat->SetSegmentId(SelectID);
 	stretchCurvedReformat->SetTwistIndex(0);
 	stretchCurvedReformat->Update();
 
