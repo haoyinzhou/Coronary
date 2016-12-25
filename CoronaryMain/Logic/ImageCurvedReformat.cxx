@@ -1,4 +1,4 @@
-#include "ImageStretchCurvedReformat.h"
+#include "ImageCurvedReformat.h"
 
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
@@ -19,18 +19,17 @@
 #include "common.h"
 
 #define SAMPLING_SIZE 1.0
-#define VESSEL_SIZE 50
 
-vtkStandardNewMacro(ImageStretchCurvedReformat);
+vtkStandardNewMacro(ImageCurvedReformat);
 
-ImageStretchCurvedReformat::ImageStretchCurvedReformat( )
+ImageCurvedReformat::ImageCurvedReformat( )
 {
 	this->SegmentId = -1;
 
-	this->TwistIndex = 0;	
+	this->TwistIndex = 0;
 
 	this->RadialSpacing  = 0.5/SAMPLING_SIZE;
-	this->RadialExtent   = 90*SAMPLING_SIZE;
+	this->RadialExtent   = 10*SAMPLING_SIZE;
 
 	this->UpdateImage = 1;
 
@@ -42,28 +41,27 @@ ImageStretchCurvedReformat::ImageStretchCurvedReformat( )
 		vtkDataSetAttributes::SCALARS);
 }
 
-ImageStretchCurvedReformat::~ImageStretchCurvedReformat( )
+ImageCurvedReformat::~ImageCurvedReformat( )
 {
-
 }
 
-void ImageStretchCurvedReformat::SetUpdateImage(int update)
+void ImageCurvedReformat::SetUpdateImage(int update)
 {
 	if(this->UpdateImage != update) this->UpdateImage = update;
 	//Don't set the modiflied flag on purpose
 }
 
-vtkImageData* ImageStretchCurvedReformat::GetOutput()
+vtkImageData* ImageCurvedReformat::GetOutput()
 {
 	return vtkImageData::SafeDownCast(this->GetOutput(0));
 }
 
-vtkDataObject* ImageStretchCurvedReformat::GetOutput(int port)
+vtkDataObject* ImageCurvedReformat::GetOutput(int port)
 {
 	return this->GetOutputDataObject(port);
 }
 
-int ImageStretchCurvedReformat::ProcessRequest(vtkInformation* request,
+int ImageCurvedReformat::ProcessRequest(vtkInformation* request,
 										vtkInformationVector** inputVector,
 										vtkInformationVector* outputVector)
 {
@@ -100,7 +98,7 @@ int ImageStretchCurvedReformat::ProcessRequest(vtkInformation* request,
 }
 
 //---------------------------------------------------------------------------
-int ImageStretchCurvedReformat::FillInputPortInformation(int port, vtkInformation *info)
+int ImageCurvedReformat::FillInputPortInformation(int port, vtkInformation *info)
 {
 	if( port == 0 )
 		info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkImageData");
@@ -111,7 +109,7 @@ int ImageStretchCurvedReformat::FillInputPortInformation(int port, vtkInformatio
 }
 
 //----------------------------------------------------------------------------
-int ImageStretchCurvedReformat::FillOutputPortInformation(
+int ImageCurvedReformat::FillOutputPortInformation(
 	int port, vtkInformation* info)
 {
 	if( port == 0 )
@@ -125,7 +123,7 @@ int ImageStretchCurvedReformat::FillOutputPortInformation(
 	return 1;
 }
 
-int ImageStretchCurvedReformat::RequestInformation (
+int ImageCurvedReformat::RequestInformation (
 	vtkInformation * request,
 	vtkInformationVector** inputVector,
 	vtkInformationVector *outputVector)
@@ -136,37 +134,13 @@ int ImageStretchCurvedReformat::RequestInformation (
 	vtkPolyData	   *inputCenterline  = vtkPolyData::SafeDownCast(inCenterlineInfo->Get(vtkDataObject::DATA_OBJECT()));
 
 	vtkIdType npts=0, *pts=NULL;
-	
+
+	int RadialSize = 2*this->RadialExtent+1;
 	inputCenterline->BuildCells();
 
 	if(this->SegmentId >= 0 && this->SegmentId < inputCenterline->GetNumberOfCells())
 	{
 		inputCenterline->GetCellPoints(this->SegmentId, npts, pts);
-
-		double maxValue[3], minValue[3], avgValue = 0.0;
-		for (int i = 0; i < npts; i++)
-		{
-			double p[3];
-			inputCenterline->GetPoint(pts[i], p);
-			if(i == 0)
-			{
-				for(int j = 0; j < 3; j++) 
-				{
-					maxValue[j] = p[j];
-					minValue[j] = p[j];
-				}
-			}
-			else
-			{
-				for(int j = 0; j < 3; j++) 
-				{
-					maxValue[j] = (p[j] > maxValue[j])? p[j] : maxValue[j];
-					minValue[j] = (p[j] < minValue[j])? p[j] : minValue[j];
-				}
-			}
-		}
-		this->RadialExtent = std::abs(maxValue[1] - minValue[1])+30;
-		int RadialSize = 2*this->RadialExtent+1;
 
 		int outWholeExt[6] = {0, RadialSize-1, 0, npts-1, 0, 0};
 		outImageInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),outWholeExt,6);
@@ -197,13 +171,11 @@ int ImageStretchCurvedReformat::RequestInformation (
 	return Superclass::RequestInformation(request, inputVector, outputVector);
 }
 
-int ImageStretchCurvedReformat::RequestData(
+int ImageCurvedReformat::RequestData(
 	vtkInformation *vtkNotUsed(request),
 	vtkInformationVector **inputVector,
 	vtkInformationVector *outputVector)
 {
-	std::cout << "ImageStretchCurvedReformat begin!" << std::endl;
-
 	// get the info objects
 	vtkInformation *inImageInfo = inputVector[0]->GetInformationObject(0);
 	vtkInformation *inCenterlineInfo = inputVector[1]->GetInformationObject(0);
@@ -240,9 +212,7 @@ int ImageStretchCurvedReformat::RequestData(
 	vtkDoubleArray *clWallThickness = vtkDoubleArray::SafeDownCast(inputCenterline->GetPointData()->GetArray("WallThickness"));
 	vtkDoubleArray *clLongiParam = vtkDoubleArray::SafeDownCast(inputCenterline->GetPointData()->GetArray("LongiParam"));
 	vtkDoubleArray *clCircumParam = vtkDoubleArray::SafeDownCast(inputCenterline->GetCellData()->GetArray("CircumParam"));
-	
-	std::cout << "this->SegmentId = " << this->SegmentId << std::endl;
-	std::cout << "inputCenterline->GetNumberOfCells() = " << inputCenterline->GetNumberOfCells() << std::endl;
+
 
 	// Compute the output centerline and centerline frames
 	if( this->SegmentId < 0 || this->SegmentId >= inputCenterline->GetNumberOfCells() || !clDir || !clAxis1 || !clAxis2 || !clLumenRadius || !clWallThickness || !clLongiParam || !clCircumParam )
@@ -261,7 +231,7 @@ int ImageStretchCurvedReformat::RequestData(
 	}
 	
 
-	vtkIdType npts=0, *pts=NULL;
+	vtkIdType npts = 0, *pts = NULL;
 	inputCenterline->BuildCells();
 	inputCenterline->GetCellPoints(this->SegmentId, npts, pts);
 
@@ -269,29 +239,25 @@ int ImageStretchCurvedReformat::RequestData(
 	double length = 0.0;
 	double coord1[3], coord2[3];
 		
-	for(vtkIdType i = 0; i < npts; i ++)
+	for(vtkIdType i=0; i<npts; i++)
 	{
 		inputCenterline->GetPoints()->GetPoint(pts[i], coord1);
 		if(i>0)
 		{
-			inputCenterline->GetPoints()->GetPoint(pts[i - 1], coord2);
+			inputCenterline->GetPoint(pts[i-1], coord2);
 			length += sqrt(vtkMath::Distance2BetweenPoints(coord1, coord2));
 		}
 	}	
 
-		
-	int twistindex = this->TwistIndex % clLumenRadius->GetNumberOfComponents();
+	int twistindex = this->TwistIndex%clLumenRadius->GetNumberOfComponents();
 	if(twistindex < 0)
 		twistindex += clLumenRadius->GetNumberOfComponents();
 	int oppositeindex = (twistindex+clLumenRadius->GetNumberOfComponents()/2)%clLumenRadius->GetNumberOfComponents();
-
-
 	//int extent[6];
 	//outputImage->GetExtent(extent);
 	//std::cout << "updateimage: " << this->UpdateImage << " | " << extent[0] << " " << extent[1] << " " << extent[2] << " " << extent[3] << " " << extent[4] << " " << extent[5] <<  " | ";
 
 	vtkPoints *imPoints = vtkPoints::New();
-	double* poffset = new double[npts];
 
 	if(this->UpdateImage)
 	{
@@ -300,120 +266,64 @@ int ImageStretchCurvedReformat::RequestData(
 		interpolator->SetOutValue(-3024.0);
 		interpolator->Initialize(inputImage);
 
-		//
-		double maxValue[3], minValue[3], avgValue = 0.0;
-		for (int i = 0; i < npts; i++)
-		{
-			double p[3];
-			inputCenterline->GetPoint(pts[i], p);
-
-			if(i == 0)
-			{
-				for(int j = 0; j < 3; j++) 
-				{
-					maxValue[j] = p[j];
-					minValue[j] = p[j];
-				}
-			}
-			else
-			{
-				for(int j = 0; j < 3; j++) 
-				{
-					maxValue[j] = (p[j] > maxValue[j])? p[j] : maxValue[j];
-					minValue[j] = (p[j] < minValue[j])? p[j] : minValue[j];
-				}
-			}
-		}
-
-		this->RadialExtent = std::abs(maxValue[1] - minValue[1])+30;
-		
-		double radialindex = twistindex*2.0*M_PI/clLumenRadius->GetNumberOfComponents();
-		double x[3], saxis1[3], saxis2[3];
-		double p[3], q[3], dist[3], q_proj[3];	
-		double length2 = 0.0;
-
-		inputCenterline->GetPoint(pts[0], coord1);
-		inputCenterline->GetPoint(pts[npts-1], coord2);		
-		vtkMath::Subtract(coord1, coord2, dist);
-		vtkMath::Normalize(dist);
-		vtkMath::Perpendiculars(dist, saxis1, saxis2, -radialindex);
-
-		for (int i = 0; i < npts; i++)
-		{
-			double p2[3], dist2[3];
-			if(i == 0)
-			{
-				dist2[0] = 0;
-				dist2[1] = 0;
-				dist2[2] = 0;
-			}
-			else
-			{
-				inputCenterline->GetPoint(pts[i], p);
-				inputCenterline->GetPoint(pts[i-1], p2);
-				vtkMath::Subtract(p,p2,dist2);
-			}
-
-			length2 += std::sqrt( std::pow( vtkMath::Norm( dist2 ), 2 ) - std::pow( vtkMath::Dot( saxis2, dist2 ), 2) );
-		}
-		//
 		int RadialSize = 2*this->RadialExtent+1;
 		outputImage->SetExtent(0, RadialSize-1, 0, npts-1, 0, 0);
 		outputImage->SetOrigin(0.0, 0.0, 0.0);
-		outputImage->SetSpacing(this->RadialSpacing, length2/(npts-1), 1.0);
+		outputImage->SetSpacing(this->RadialSpacing, length/(npts-1), 1.0);
 		outputImage->AllocateScalars(VTK_SHORT, 1);
 
 		outputImage2->SetExtent(0, RadialSize-1, 0, npts-1, 0, 0);
 		outputImage2->SetOrigin(0.0, 0.0, 0.0);
-		outputImage2->SetSpacing(this->RadialSpacing, length2/(npts-1), 1.0);
+		outputImage2->SetSpacing(this->RadialSpacing, length/(npts-1), 1.0);
 		outputImage2->AllocateScalars(VTK_SHORT, 1);
 
 		short* pixel = static_cast<short*>(outputImage->GetScalarPointer());
 		short* pixel2 = static_cast<short*>(outputImage2->GetScalarPointer());
 		double ivalue;
-	
+		double coord[3], axis1[3], axis2[3];
 		vtkIdType index;
-		imPoints->SetNumberOfPoints(npts*RadialSize);
-		outImagePoly->Allocate((npts-1)*(RadialSize-1));
+
+//		vtkPoints *imPoints = vtkPoints::New();
+		imPoints->SetNumberOfPoints(npts * RadialSize);
 		vtkShortArray *imPixels = vtkShortArray::New();
-		imPixels->SetNumberOfValues(imPoints->GetNumberOfPoints());		
+		imPixels->SetNumberOfValues(imPoints->GetNumberOfPoints());
 
+		double radialindex = twistindex * 2.0 * M_PI / clLumenRadius->GetNumberOfComponents();
 
-		for (int i = 0; i < npts; i++)
-		{		
-			inputCenterline->GetPoint(pts[i], p);
-
-			for(int j = 0; j < 3; j++)	q[j] = dist[j] * i / npts-1 + coord1[j];
-			poffset[i] = - ((vtkMath::Dot(p,saxis1) - vtkMath::Dot(q,saxis1))) / vtkMath::Dot(saxis1,saxis1);
-			for(int j = 0; j < 3; j++)	q_proj[j] = p[j] + poffset[i] * saxis1[j];
-
-			for(vtkIdType j=-this->RadialExtent; j<=this->RadialExtent; j++)
+		for(vtkIdType i = 0; i < npts; i ++)
+		{
+			inputCenterline->GetPoint(pts[i], coord1);
+			clAxis1->GetTuple(pts[i], axis1);
+			clAxis2->GetTuple(pts[i], axis2);
+			for(vtkIdType j = -this->RadialExtent; j <= this->RadialExtent; j ++)
 			{
-				for(int k = 0; k < 3; k++)	x[k] = q_proj[k] + saxis1[k] * j * RadialSpacing;
-							
-				interpolator->Interpolate(x, &ivalue);
-				index = i*RadialSize+j+this->RadialExtent;
+				for(int k = 0; k < 3; k++)
+					coord[k] = coord1[k] + j * this->RadialSpacing * (cos(radialindex) * axis1[k] + sin(radialindex) * axis2[k]);
+				
+				interpolator->Interpolate(coord, &ivalue);
+				index = i * RadialSize + j + this->RadialExtent;
 				pixel[index] = short(ivalue);
-				imPoints->SetPoint(index, x);
+				pixel2[index] = short(ivalue);
+				imPoints->SetPoint(index, coord);
 				imPixels->SetValue(index, short(ivalue));
-			}
+			}	
 		}
 		interpolator->Delete();
-		
-		vtkIdType ids[4];
-		for (int i = 0; i < npts-1; i++)
-		{
-		//	inputCenterline->GetPoint(pts[i], p);
 
-			for(vtkIdType j=-this->RadialExtent; j<this->RadialExtent; j++)			
+		outImagePoly->Allocate((npts - 1) * (RadialSize - 1));
+		vtkIdType ids[4];
+		for(vtkIdType i=0; i<npts-1; i++)
+		{
+			for(vtkIdType j=-this->RadialExtent; j<this->RadialExtent; j++)
 			{
 				ids[0] = i*RadialSize+j+this->RadialExtent;
 				ids[1] = (i+1)*RadialSize+j+this->RadialExtent;
 				ids[2] = (i+1)*RadialSize+(j+1)+this->RadialExtent;
 				ids[3] = i*RadialSize+(j+1)+this->RadialExtent;
-				outImagePoly->InsertNextCell(VTK_QUAD, 4,ids);
+				outImagePoly->InsertNextCell(VTK_QUAD, 4, ids);
 			}
 		}
+
 		outImagePoly->SetPoints(imPoints); imPoints->Delete();
 		outImagePoly->GetPointData()->SetScalars(imPixels); imPixels->Delete();
 	}
@@ -482,36 +392,36 @@ int ImageStretchCurvedReformat::RequestData(
 	double *circumparam = new double[clCircumParam->GetNumberOfComponents()];	
 	clCircumParam->GetTuple(this->SegmentId, circumparam);
 	
-	for(vtkIdType i=0; i<npts; i++)
+	for(vtkIdType i = 0; i < npts; i ++)
 	{
 		double radius = clRadius->GetValue(pts[i]);
 		clLumenRadius->GetTuple(pts[i], lumenRadius);
 		clWallThickness->GetTuple(pts[i], wallThickness);
 		double longiparam = clLongiParam->GetValue(pts[i]);
 		
-		out0Points->SetPoint(2*i, this->RadialExtent*outputImageSpacings[0]+radius-poffset[i], i*outputImageSpacings[1], 0.0);
+		out0Points->SetPoint(2*i, this->RadialExtent*outputImageSpacings[0]+radius, i*outputImageSpacings[1], 0.0);
 		out0IdList1->SetId(i,2*i);
 		out0Param->SetTuple2(2*i, longiparam, circumparam[twistindex]);
 
-		out0Points->SetPoint(2*i+1, this->RadialExtent*outputImageSpacings[0]-radius-poffset[i], i*outputImageSpacings[1], 0.0);
+		out0Points->SetPoint(2*i+1, this->RadialExtent*outputImageSpacings[0]-radius, i*outputImageSpacings[1], 0.0);
 		out0IdList2->SetId(i,2*i+1);
 		out0Param->SetTuple2(2*i+1, longiparam, circumparam[oppositeindex]);
 
-		out1Points->SetPoint(2*i, this->RadialExtent*outputImageSpacings[0]+lumenRadius[twistindex]-poffset[i], i*outputImageSpacings[1], 0.0);
+		out1Points->SetPoint(2*i, this->RadialExtent*outputImageSpacings[0]+lumenRadius[twistindex], i*outputImageSpacings[1], 0.0);
 		out1IdList1->SetId(i, 2*i);
 		out1Param->SetTuple2(2*i, longiparam, circumparam[twistindex]);
-		out1Points->SetPoint(2*i+1, this->RadialExtent*outputImageSpacings[0]-lumenRadius[oppositeindex]-poffset[i], i*outputImageSpacings[1], 0.0);
+		out1Points->SetPoint(2*i+1, this->RadialExtent*outputImageSpacings[0]-lumenRadius[oppositeindex], i*outputImageSpacings[1], 0.0);
 		out1IdList2->SetId(i, 2*i+1);
 		out1Param->SetTuple2(2*i+1, longiparam, circumparam[oppositeindex]);
 
-		out2Points->SetPoint(2*i, this->RadialExtent*outputImageSpacings[0]+(lumenRadius[twistindex]+wallThickness[twistindex])-poffset[i], i*outputImageSpacings[1], 0.0);
+		out2Points->SetPoint(2*i, this->RadialExtent*outputImageSpacings[0]+(lumenRadius[twistindex]+wallThickness[twistindex]), i*outputImageSpacings[1], 0.0);
 		out2IdList1->SetId(i, 2*i);
 		out2Param->SetTuple2(2*i, longiparam, circumparam[twistindex]);
-		out2Points->SetPoint(2*i+1, this->RadialExtent*outputImageSpacings[0]-(lumenRadius[oppositeindex]+wallThickness[oppositeindex])-poffset[i], i*outputImageSpacings[1], 0.0);
+		out2Points->SetPoint(2*i+1, this->RadialExtent*outputImageSpacings[0]-(lumenRadius[oppositeindex]+wallThickness[oppositeindex]), i*outputImageSpacings[1], 0.0);
 		out2IdList2->SetId(i, 2*i+1);
 		out2Param->SetTuple2(2*i+1, longiparam, circumparam[oppositeindex]);
 
-		out3Points->SetPoint(i, this->RadialExtent*outputImageSpacings[0]-poffset[i], i*outputImageSpacings[1], 0.0);
+		out3Points->SetPoint(i, this->RadialExtent*outputImageSpacings[0], i*outputImageSpacings[1], 0.0);
 		out3IdList->SetId(i, i);
 	}
 
@@ -519,7 +429,7 @@ int ImageStretchCurvedReformat::RequestData(
 	double radialindex = twistindex*2.0*M_PI/clLumenRadius->GetNumberOfComponents();	
 	double coord[3], axis1[3], axis2[3];
 
-	for(vtkIdType i=0; i<npts; i++)
+	for(vtkIdType i = 0; i < npts; i ++)
 	{
 //		double radius = clRadius->GetValue(pts[i]);
 		clLumenRadius->GetTuple(pts[i], lumenRadius);
@@ -544,7 +454,7 @@ int ImageStretchCurvedReformat::RequestData(
 		for(int k=0; k<3; k++) coord[k] = coord1[k] + (wallThickness[twistindex]+lumenRadius[twistindex])*(cos(twistindex*cirstep)*axis1[k]+sin(twistindex*cirstep)*axis2[k]) ;
 		out5Points->SetPoint(2*i, coord[0], coord[1], coord[2]);
 		out5IdList1->SetId(i,2*i);
-		out5Param->SetTuple2(2*i, longiparam, circumparam[twistindex]);		
+		out5Param->SetTuple2(2*i, longiparam, circumparam[twistindex]);
 		for(int k=0; k<3; k++) coord[k] = coord1[k] + (wallThickness[oppositeindex]+lumenRadius[oppositeindex])*(cos(oppositeindex*cirstep)*axis1[k]+sin(oppositeindex*cirstep)*axis2[k]) ;
 		out5Points->SetPoint(2*i+1, coord[0], coord[1], coord[2]);
 		out5IdList2->SetId(i,2*i+1);
@@ -648,8 +558,7 @@ int ImageStretchCurvedReformat::RequestData(
 		}
 	}
 */
-	delete[] poffset;
+
 	return 1;
 }
-
 

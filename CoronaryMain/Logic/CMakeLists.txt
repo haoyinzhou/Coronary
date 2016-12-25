@@ -22,6 +22,8 @@ set(${KIT}_SRCS
   ExtendTubeFilter.cxx
   ImageStretchCurvedReformat.h
   ImageStretchCurvedReformat.cxx
+  ImageCurvedReformat.h
+  ImageCurvedReformat.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES

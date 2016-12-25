@@ -145,9 +145,11 @@ public:
 	vtkSmartPointer<vtkImageData> hessianImage;
 	vtkSmartPointer<vtkImageInterpolator> interpolator;
 	double landmarks[SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS][3];
+
 	vtkSmartPointer<vtkPolyData> centerlineModel;
-	vtkSmartPointer<vtkPolyData> LumenModel;
 	vtkSmartPointer<vtkPolyData> centerlineModel_display;
+
+	vtkSmartPointer<vtkPolyData> LumenModel;
 	vtkSmartPointer<vtkPolyData> LumenModel_display;
 
 	vtkSmartPointer<vtkIdFilter> centerlineId;

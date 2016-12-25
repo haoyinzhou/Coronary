@@ -65,11 +65,15 @@
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkObjectFactory.h"
 #include "vtkLineSource.h"
+#include "vtkImageSliceMapper.h"
+#include "vtkImageSlice.h"
+#include "vtkImageProperty.h"
 
 #include "vtkCellPicker.h"
 #include "vtkSmartPointer.h"
 #include "vtkMRMLScene.h"
 #include "ImageStretchCurvedReformat.h"
+#include "ImageCurvedReformat.h"
 
 
 
@@ -107,6 +111,9 @@ public:
 
 	vtkSmartPointer<ImageStretchCurvedReformat>	 stretchCurvedReformat;
 	vtkSmartPointer<vtkLineSource>				 stretchCurvedReformatLine;
+
+	vtkSmartPointer<ImageCurvedReformat>	 CurvedReformat;
+	vtkSmartPointer<vtkLineSource>				 CurvedReformatLine;
 
 public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);

@@ -304,13 +304,15 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineTube->SetInputData(centerlineModel);
 	centerlineTube->SetInputImageData(imageData);
 	centerlineTube->Update();
+
+	
 	LumenModel = centerlineTube->GetOutput(2);
 
 //	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
 
 	centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
 	LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
-	centerlineModel_display->DeepCopy(centerlineModel);
+	centerlineModel_display->DeepCopy(centerlineTube->GetOutput(0));
 	LumenModel_display->DeepCopy(LumenModel);
 
 	//
