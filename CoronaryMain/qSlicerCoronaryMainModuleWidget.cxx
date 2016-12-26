@@ -25,38 +25,56 @@
 #include "vtkSlicerCoronaryMainLogic.h"
 
 
+class ORSliceStyle : public vtkInteractorStyleImage
+{
+public:
+	static ORSliceStyle *New();
+	vtkTypeMacro(ORSliceStyle, vtkInteractorStyleImage);
+
+	ORSliceStyle()
+	{
+		cellid = 0;
+	}
+	~ORSliceStyle()
+	{
+	}
+
+	virtual void OnLeftButtonDown()
+	{
+		std::cout << "OnLeftButtonDown, cellid = " << cellid << std::endl;
+	}
+
+public:
+	int cellid;
+};
+vtkStandardNewMacro(ORSliceStyle);
+
+
 
 QVesselEditingWidget::QVesselEditingWidget()
 {
 	widget1 = new QVTKWidget;
-
 	widget2 = new QVTKWidget;
-
+	
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->addWidget(widget1, 1);
 	layout->addWidget(widget2, 1);
-
 	setLayout(layout);	
+
+	ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
+	widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
 {
 	widget1->deleteLater();
 	delete[] widget1;
+
 	widget2->deleteLater();
 	delete[] widget2;
-
 }
 
 
-void QVesselEditingWidget::mousePressEvent(QMouseEvent *	e)
-{
-	if (e->button() == Qt::LeftButton)
-	{
-
-	}
-	QVTKWidget::mousePressEvent(e);
-}
 
 void QVesselEditingWidget::setvisibleslot(bool f)
 {
@@ -96,14 +114,12 @@ void QVesselEditingWidget::resetslot()
 	this->ImageData = NULL;
 
 	vtkSmartPointer<vtkRendererCollection> rendercollection = this->GetInteractor()->GetRenderWindow()->GetRenderers();
-	
 	rendercollection->InitTraversal();
 	for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i++)
 	{
 		vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
 		this->GetInteractor()->GetRenderWindow()->RemoveRenderer(thisrender);
 	}
-
 }
 
 void QVesselEditingWidget::forcerenderslot()
@@ -111,6 +127,14 @@ void QVesselEditingWidget::forcerenderslot()
 	std::cout << "force render slot" << std::endl;
 	std::cout << "SelectID = " << SelectID << std::endl;
 	{
+		vtkSmartPointer<vtkRendererCollection> rendercollection = widget1->GetRenderWindow()->GetRenderers();
+		rendercollection->InitTraversal();
+		for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i++)
+		{
+			vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
+			widget1->GetRenderWindow()->RemoveRenderer(thisrender);
+		}
+
 		CurvedReformat = vtkSmartPointer<ImageCurvedReformat>::New();
 		CurvedReformat->SetInputData(0, ImageData);
 		CurvedReformat->SetInputData(1, clModel);
@@ -161,7 +185,6 @@ void QVesselEditingWidget::forcerenderslot()
 		clActor->PickableOff();
 		CurvedRenderer->AddActor(clActor);
 
-
 		widget1->GetRenderWindow()->AddRenderer(CurvedRenderer);
 
 		vtkCamera* camera = CurvedRenderer->GetActiveCamera();
@@ -174,6 +197,14 @@ void QVesselEditingWidget::forcerenderslot()
 	}
 
 	{
+		vtkSmartPointer<vtkRendererCollection> rendercollection = widget2->GetRenderWindow()->GetRenderers();
+		rendercollection->InitTraversal();
+		for (vtkIdType i = 0; i < rendercollection->GetNumberOfItems(); i++)
+		{
+			vtkSmartPointer<vtkRenderer> thisrender = vtkRenderer::SafeDownCast(rendercollection->GetNextItem());
+			widget2->GetRenderWindow()->RemoveRenderer(thisrender);
+		}
+
 		ObliqueReformat = vtkSmartPointer<ImageObliqueReformat>::New();
 		ObliqueReformat->SetInputData(0, ImageData);
 		ObliqueReformat->SetInputData(1, clModel);
@@ -220,10 +251,9 @@ void QVesselEditingWidget::forcerenderslot()
 		camera->SetParallelScale(30);
 
 		widget2->GetRenderWindow()->Render();
+
+		this->ORSliceStyleCallback->cellid = this->SelectID;
 	}
-
-
-
 
 
 
@@ -248,7 +278,6 @@ void QVesselEditingWidget::forcerenderslot()
 	//VesselEditingRenderWindowInteractor->Start();
 
 	std::cout << "force render slot done!" << std::endl;
-
 }
 
 void QVesselEditingWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
@@ -931,7 +960,6 @@ public:
 		mainwidget->send_imagedatachanged(imagedata);
 		//mainwidget->send_resetsingal();
 		mainwidget->send_forcerendersingal();
-
 	}
 
 public:

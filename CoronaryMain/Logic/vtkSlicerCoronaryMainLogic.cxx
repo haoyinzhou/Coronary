@@ -456,7 +456,6 @@ public:
 class CenterlineMouseInteractorStyle : public vtkInteractorStyleTrackballCamera
 {
 public:
-
 	static CenterlineMouseInteractorStyle* New();
 	vtkTypeMacro(CenterlineMouseInteractorStyle, vtkInteractorStyleTrackballCamera);
 

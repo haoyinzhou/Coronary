@@ -72,6 +72,7 @@
 #include "vtkImageSliceMapper.h"
 #include "vtkImageSlice.h"
 #include "vtkImageProperty.h"
+#include "vtkInteractorStyleImage.h"
 
 #include "vtkCellPicker.h"
 #include "vtkSmartPointer.h"
@@ -88,6 +89,7 @@ class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 
 class CVesselPickCallBack;
+class ORSliceStyle;
 
 class QVesselEditingWidget : public QVTKWidget
 {
@@ -100,9 +102,8 @@ public:
 	QVTKWidget* widget1;
 	QVTKWidget* widget2;
 
+	vtkSmartPointer<ORSliceStyle> ORSliceStyleCallback;
 
-protected:
-	virtual void mousePressEvent(QMouseEvent*);
 	
 public slots:
 	void setvisibleslot(bool);
