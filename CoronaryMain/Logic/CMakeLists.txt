@@ -24,6 +24,8 @@ set(${KIT}_SRCS
   ImageStretchCurvedReformat.cxx
   ImageCurvedReformat.h
   ImageCurvedReformat.cxx
+  ImageObliqueReformat.h
+  ImageObliqueReformat.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES

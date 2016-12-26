@@ -25,6 +25,9 @@
 
 #include "qSlicerApplication.h"
 #include "qSlicerLayoutManager.h"
+#include "QDesktopWidget"
+#include "QSpacerItem"
+
 
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
@@ -44,6 +47,7 @@
 #include "qdir.h"
 #include "qfiledialog.h"
 #include "QShowEvent"
+#include "QSizePolicy"
 
 // VTK includes
 #include <vtkObject.h>
@@ -74,6 +78,7 @@
 #include "vtkMRMLScene.h"
 #include "ImageStretchCurvedReformat.h"
 #include "ImageCurvedReformat.h"
+#include "ImageObliqueReformat.h"
 
 
 
@@ -91,10 +96,14 @@ public:
 	QVesselEditingWidget();
 	~QVesselEditingWidget();
 
+public:
+	QVTKWidget* widget1;
+	QVTKWidget* widget2;
+
+
 protected:
 	virtual void mousePressEvent(QMouseEvent*);
-
-
+	
 public slots:
 	void setvisibleslot(bool);
 	void setselectidslot(vtkIdType);
@@ -110,10 +119,8 @@ public:
 	vtkIdType SelectID;
 
 	vtkSmartPointer<ImageStretchCurvedReformat>	 stretchCurvedReformat;
-	vtkSmartPointer<vtkLineSource>				 stretchCurvedReformatLine;
-
 	vtkSmartPointer<ImageCurvedReformat>	 CurvedReformat;
-	vtkSmartPointer<vtkLineSource>				 CurvedReformatLine;
+	vtkSmartPointer<ImageObliqueReformat> ObliqueReformat;
 
 public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);

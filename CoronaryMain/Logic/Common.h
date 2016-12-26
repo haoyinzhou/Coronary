@@ -154,7 +154,8 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vtkImageInterpolator* interpolator, Learning &learn);
 
 bool PinPolyX(std::vector<double> *poly, int x, int y);
-
+bool PinPoly(int, std::vector<double>, std::vector<double>, double, double);
+bool PinPoly(std::vector<double> *poly, int x, int y);
 
 #endif
 

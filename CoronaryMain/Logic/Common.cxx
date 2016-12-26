@@ -2480,3 +2480,44 @@ bool PinPolyX(std::vector<double> *poly, int x, int y)
 
 	return inside;
 }
+
+//point in polygon 10.19.2014
+//nVert: number of vertices in the polygon
+//dVertX, dVertY: coordinates of the polygon's vertices
+//x, y: coordinate of the cross section point
+bool PinPoly(int nVert, std::vector<double> dVertX, std::vector<double> dVertY, double x, double y)
+{
+	int i, j = nVert - 1;
+	bool inside = false;
+	for (i = 0; i < nVert; i++)
+	{
+		if (dVertY[i] < y && dVertY[j] >= y || dVertY[j] < y && dVertY[i] >= y)
+		{
+			if (dVertX[i] + (y - dVertY[i]) / (dVertY[j] - dVertY[i]) * (dVertX[j] - dVertX[i]) < x)
+			{
+				inside = !inside;
+			}
+		}
+		j = i;
+	}
+	return inside;
+}
+
+//mask of plaque 10.24.2014
+bool PinPoly(std::vector<double> *poly, int x, int y)
+{
+	int i, j = poly[0].size() - 1;
+	bool inside = false;
+	for (i = 0; i < poly[0].size(); i++)
+	{
+		if (poly[1][i] < y && poly[1][j] >= y || poly[1][j] < y && poly[1][i] >= y)
+		{
+			if (poly[0][i] + (y - poly[1][i]) / (poly[1][j] - poly[1][i]) * (poly[0][j] - poly[0][i]) < x)
+			{
+				inside = !inside;
+			}
+		}
+		j = i;
+	}
+	return inside;
+}

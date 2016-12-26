@@ -28,11 +28,23 @@
 
 QVesselEditingWidget::QVesselEditingWidget()
 {
+	widget1 = new QVTKWidget;
 
+	widget2 = new QVTKWidget;
+
+	QVBoxLayout *layout = new QVBoxLayout;
+	layout->addWidget(widget1, 1);
+	layout->addWidget(widget2, 1);
+
+	setLayout(layout);	
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
 {
+	widget1->deleteLater();
+	delete[] widget1;
+	widget2->deleteLater();
+	delete[] widget2;
 
 }
 
@@ -50,7 +62,12 @@ void QVesselEditingWidget::setvisibleslot(bool f)
 {
 	std::cout << "set visible slot" << std::endl;
 	this->setVisible(f);
+
+	int parentHeight = this->height();
+
+	widget1->setMinimumHeight(0.65 * parentHeight);
 }
+
 
 void QVesselEditingWidget::setselectidslot(vtkIdType id)
 {
@@ -92,73 +109,123 @@ void QVesselEditingWidget::resetslot()
 void QVesselEditingWidget::forcerenderslot()
 {
 	std::cout << "force render slot" << std::endl;
-	
-	CurvedReformat = vtkSmartPointer<ImageCurvedReformat>::New();
-	CurvedReformatLine = vtkSmartPointer<vtkLineSource>::New();
-	vtkSmartPointer<vtkActor> CurvedReformatActor = vtkSmartPointer<vtkActor>::New();
-
 	std::cout << "SelectID = " << SelectID << std::endl;
-	
-	CurvedReformat->SetInputData(0, ImageData);
-	CurvedReformat->SetInputData(1, clModel);
-	CurvedReformat->SetSegmentId(SelectID);
-	CurvedReformat->SetTwistIndex(0);
-	CurvedReformat->Update();
-	
-	vtkSmartPointer<vtkPolyData> poly;
-	//SaveVTKImage(CurvedReformat->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output0.mha");
-	//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(1));
-	//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output1.vtp");
-	//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(2));
-	//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output2.vtp");
-	//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(3));
-	//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output3.vtp");
-	//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(4));
-	//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output4.vtp");
-	//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(5));
-	//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output5.vtp");
+	{
+		CurvedReformat = vtkSmartPointer<ImageCurvedReformat>::New();
+		CurvedReformat->SetInputData(0, ImageData);
+		CurvedReformat->SetInputData(1, clModel);
+		CurvedReformat->SetSegmentId(SelectID);
+		CurvedReformat->SetTwistIndex(0);
+		CurvedReformat->Update();
 
-	vtkSmartPointer<vtkRenderer> CurvedRenderer = vtkSmartPointer<vtkRenderer>::New();
+		//vtkSmartPointer<vtkPolyData> poly;
+		//SaveVTKImage(CurvedReformat->GetOutput(), "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output0.mha");
+		//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(1));
+		//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output1.vtp");
+		//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(2));
+		//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output2.vtp");
+		//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(3));
+		//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output3.vtp");
+		//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(4));
+		//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output4.vtp");
+		//poly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(5));
+		//SavePolyData(poly, "C:\\work\\Coronary_Slicer\\testdata\\CurvedReformat_output5.vtp");
 
-	vtkSmartPointer<vtkImageSliceMapper> imageResliceMapper = vtkSmartPointer<vtkImageSliceMapper>::New();
-	imageResliceMapper->SetInputConnection(CurvedReformat->GetOutputPort(0));
-	vtkSmartPointer<vtkImageSlice> imageSlice = vtkSmartPointer<vtkImageSlice>::New();
-	imageSlice->SetMapper(imageResliceMapper);
-	imageSlice->GetProperty()->SetColorWindow(1358);
-	imageSlice->GetProperty()->SetColorLevel(-27);
-	vtkSmartPointer<vtkRenderer> imageSliceRender = vtkSmartPointer<vtkRenderer>::New();
-	CurvedRenderer->AddViewProp(imageSlice);
-	
-	vtkSmartPointer<vtkPolyDataMapper> LumenContourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-	LumenContourMapper->SetInputConnection(CurvedReformat->GetOutputPort(2));
-	vtkSmartPointer<vtkActor> LumenContourActor = vtkSmartPointer<vtkActor>::New();
-	LumenContourActor->SetMapper(LumenContourMapper);
-	LumenContourActor->GetProperty()->SetColor(1.0, 0.0, 0.0);
-	LumenContourActor->GetProperty()->SetLineWidth(3.0f);
-	LumenContourActor->GetProperty()->SetOpacity(0.6);
-	LumenContourActor->PickableOff();
-	CurvedRenderer->AddActor(LumenContourActor);
+		vtkSmartPointer<vtkRenderer> CurvedRenderer = vtkSmartPointer<vtkRenderer>::New();
 
-	vtkSmartPointer<vtkPolyDataMapper> clMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-	clMapper->SetInputConnection(CurvedReformat->GetOutputPort(4));
-	vtkSmartPointer<vtkActor> clActor = vtkSmartPointer<vtkActor>::New();
-	clActor->SetMapper(clMapper);
-	clActor->GetProperty()->SetColor(0.3, 0.4, 0.9);
-	clActor->GetProperty()->SetLineWidth(3.0f);
-	clActor->GetProperty()->SetOpacity(0.6);
-	clActor->PickableOff();
-	CurvedRenderer->AddActor(clActor);
+		vtkSmartPointer<vtkImageSliceMapper> CurvedimageResliceMapper = vtkSmartPointer<vtkImageSliceMapper>::New();
+		CurvedimageResliceMapper->SetInputConnection(CurvedReformat->GetOutputPort(0));
+		vtkSmartPointer<vtkImageSlice> CurvedimageSlice = vtkSmartPointer<vtkImageSlice>::New();
+		CurvedimageSlice->SetMapper(CurvedimageResliceMapper);
+		CurvedimageSlice->GetProperty()->SetColorWindow(1358);
+		CurvedimageSlice->GetProperty()->SetColorLevel(-27);
+		CurvedRenderer->AddViewProp(CurvedimageSlice);
+
+		vtkSmartPointer<vtkPolyDataMapper> LumenContourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		LumenContourMapper->SetInputConnection(CurvedReformat->GetOutputPort(2));
+		vtkSmartPointer<vtkActor> LumenContourActor = vtkSmartPointer<vtkActor>::New();
+		LumenContourActor->SetMapper(LumenContourMapper);
+		LumenContourActor->GetProperty()->SetColor(1.0, 0.0, 0.0);
+		LumenContourActor->GetProperty()->SetLineWidth(3.0f);
+		LumenContourActor->GetProperty()->SetOpacity(0.6);
+		LumenContourActor->PickableOff();
+		CurvedRenderer->AddActor(LumenContourActor);
+
+		vtkSmartPointer<vtkPolyDataMapper> clMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		clMapper->SetInputConnection(CurvedReformat->GetOutputPort(4));
+		vtkSmartPointer<vtkActor> clActor = vtkSmartPointer<vtkActor>::New();
+		clActor->SetMapper(clMapper);
+		clActor->GetProperty()->SetColor(0.3, 0.4, 0.9);
+		clActor->GetProperty()->SetLineWidth(3.0f);
+		clActor->GetProperty()->SetOpacity(0.6);
+		clActor->PickableOff();
+		CurvedRenderer->AddActor(clActor);
 
 
-	this->GetRenderWindow()->AddRenderer(CurvedRenderer);	
+		widget1->GetRenderWindow()->AddRenderer(CurvedRenderer);
 
-	vtkCamera* camera = CurvedRenderer->GetActiveCamera();
-	camera->ParallelProjectionOn();
-	camera->SetPosition(0, 30, 1);
-	camera->SetFocalPoint(0, 30, 0);
-	camera->SetParallelScale(30);
+		vtkCamera* camera = CurvedRenderer->GetActiveCamera();
+		camera->ParallelProjectionOn();
+		camera->SetPosition(0, 30, 1);
+		camera->SetFocalPoint(0, 30, 0);
+		camera->SetParallelScale(30);
 
-	this->GetRenderWindow()->Render();
+		widget1->GetRenderWindow()->Render();
+	}
+
+	{
+		ObliqueReformat = vtkSmartPointer<ImageObliqueReformat>::New();
+		ObliqueReformat->SetInputData(0, ImageData);
+		ObliqueReformat->SetInputData(1, clModel);
+		ObliqueReformat->SetSegmentId(SelectID);
+		ObliqueReformat->SetPointId(0);
+		ObliqueReformat->Update();
+
+		vtkSmartPointer<vtkRenderer> ObliqueRenderer = vtkSmartPointer<vtkRenderer>::New();
+
+		vtkSmartPointer<vtkImageSliceMapper> ObliqueimageResliceMapper = vtkSmartPointer<vtkImageSliceMapper>::New();
+		ObliqueimageResliceMapper->SetInputConnection(ObliqueReformat->GetOutputPort(0));
+		vtkSmartPointer<vtkImageSlice> ObliqueimageSlice = vtkSmartPointer<vtkImageSlice>::New();
+		ObliqueimageSlice->SetMapper(ObliqueimageResliceMapper);
+		ObliqueimageSlice->GetProperty()->SetColorWindow(1358);
+		ObliqueimageSlice->GetProperty()->SetColorLevel(-27);
+		ObliqueRenderer->AddViewProp(ObliqueimageSlice);
+
+		vtkSmartPointer<vtkPolyDataMapper> LumenContourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		LumenContourMapper->SetInputConnection(ObliqueReformat->GetOutputPort(2));
+		vtkSmartPointer<vtkActor> LumenContourActor = vtkSmartPointer<vtkActor>::New();
+		LumenContourActor->SetMapper(LumenContourMapper);
+		LumenContourActor->GetProperty()->SetColor(1.0, 0.0, 0.0);
+		LumenContourActor->GetProperty()->SetLineWidth(3.0f);
+		LumenContourActor->GetProperty()->SetOpacity(0.6);
+		LumenContourActor->PickableOff();
+		ObliqueRenderer->AddActor(LumenContourActor);
+
+		vtkSmartPointer<vtkPolyDataMapper> clMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		clMapper->SetInputConnection(ObliqueReformat->GetOutputPort(4));
+		vtkSmartPointer<vtkActor> clActor = vtkSmartPointer<vtkActor>::New();
+		clActor->SetMapper(clMapper);
+		clActor->GetProperty()->SetColor(0.3, 0.4, 0.9);
+		clActor->GetProperty()->SetLineWidth(3.0f);
+		clActor->GetProperty()->SetOpacity(0.6);
+		clActor->PickableOff();
+		ObliqueRenderer->AddActor(clActor);
+
+		widget2->GetRenderWindow()->AddRenderer(ObliqueRenderer);
+
+		vtkCamera* camera = ObliqueRenderer->GetActiveCamera();
+		camera->ParallelProjectionOn();
+		camera->SetPosition(0, 30, 1);
+		camera->SetFocalPoint(0, 30, 0);
+		camera->SetParallelScale(30);
+
+		widget2->GetRenderWindow()->Render();
+	}
+
+
+
+
+
 
 /*	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	VesselEditingMapper->SetInputData(lumenModel);
@@ -306,7 +373,13 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	this->TransformCoronaryNode = NULL;
 
 	VesselEditingWidget = new QVesselEditingWidget;
-	VesselEditingWidget->resize(600, 1200);
+	QDesktopWidget *desktop = QApplication::desktop();
+	int screenWidth = desktop->width();
+	int screenHeight = desktop->height();
+
+	VesselEditingWidget->resize(screenWidth / 5, screenHeight / 1.2);
+	VesselEditingWidget->move(0, 0);
+	VesselEditingWidget->setWindowTitle("VesselEditingWidget");
 	VesselEditingWidget->setVisible(false);
 
 
