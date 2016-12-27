@@ -52,6 +52,7 @@
 // VTK includes
 #include <vtkObject.h>
 
+#include "vtkSmartPointer.h"
 #include "vtkXMLPolyDataReader.h"
 #include "vtkMetaImageReader.h"
 
@@ -73,13 +74,16 @@
 #include "vtkImageSlice.h"
 #include "vtkImageProperty.h"
 #include "vtkInteractorStyleImage.h"
+#include "vtkPropPicker.h"
+#include "vtkAssemblyPath.h"
+#include "vtkPointLocator.h"
 
 #include "vtkCellPicker.h"
-#include "vtkSmartPointer.h"
 #include "vtkMRMLScene.h"
 #include "ImageStretchCurvedReformat.h"
 #include "ImageCurvedReformat.h"
 #include "ImageObliqueReformat.h"
+
 
 
 

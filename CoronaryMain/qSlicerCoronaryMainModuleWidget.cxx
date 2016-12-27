@@ -33,19 +33,192 @@ public:
 
 	ORSliceStyle()
 	{
-		cellid = 0;
+		this->widget = NULL;
+		this->clModel = NULL;
+		this->ObliqueReformat = NULL;
+		this->obliqueImageSlicer = NULL;
+		this->locator = vtkSmartPointer<vtkPointLocator>::New();
+
+		this->pick = false;
+	//	clTube = NULL;
 	}
 	~ORSliceStyle()
 	{
 	}
 
-	virtual void OnLeftButtonDown()
+	bool Pick(double picked[3])
 	{
-		std::cout << "OnLeftButtonDown, cellid = " << cellid << std::endl;
+		int x = widget->GetInteractor()->GetEventPosition()[0];
+		int y = widget->GetInteractor()->GetEventPosition()[1];
+
+		this->FindPokedRenderer(x, y);
+		if (this->CurrentRenderer == NULL) return false;
+
+		vtkPropPicker *picker = vtkPropPicker::SafeDownCast(widget->GetInteractor()->GetPicker());
+		if (picker == NULL) return false;
+
+		// Pick at the mouse location provided by the interactor
+		picker->Pick(x, y, 0.0, this->CurrentRenderer);
+
+		// There could be other props assigned to this picker, so 
+		// make sure we picked the image actor
+		vtkAssemblyPath* path = picker->GetPath();
+		bool validPick = false;
+
+		if (path)
+		{
+			vtkCollectionSimpleIterator sit;
+			path->InitTraversal(sit);
+			vtkAssemblyNode *node;
+			for (int i = 0; i < path->GetNumberOfItems() && !validPick; ++i)
+			{
+				node = path->GetNextNode(sit);
+				if (obliqueImageSlicer == vtkImageSlice::SafeDownCast(node->GetViewProp()))
+				{
+					validPick = true;
+				}
+			}
+		}
+
+		if (!validPick)
+			return false;
+
+		// Get the world coordinates of the picked
+		picker->GetPickPosition(picked);
+
+		return true;
 	}
 
+	virtual void OnLeftButtonDown()
+	{
+	//	std::cout << "OnLeftButtonDown, cellid = " << cellid << std::endl;
+	//	double pos[3] = {0.0, 0.0, 0.0};
+	//	this->Pick(pos);
+
+		if (!clModel || !ObliqueReformat || !obliqueImageSlicer)
+			return;
+
+		if (this->Pick(lastpickpos))
+		{
+			vtkPolyData *lumenPoly = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(2));
+			vtkPolyData *lumenCenter = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(4));
+
+			if (!lumenPoly || !lumenCenter) return;
+
+			vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+			if (!clLumenRadius) return;
+
+			std::cout << "lastpickpos = " << lastpickpos[0] << ", " << lastpickpos[1] << ", " << lastpickpos[2] << std::endl;
+
+			locator = vtkSmartPointer<vtkPointLocator>::New();
+			locator->SetDataSet(lumenPoly);
+			locator->SetNumberOfPointsPerBucket(5);
+			locator->AutomaticOn();
+			locator->BuildLocator();
+			double dist2;
+			vtkIdType focalId = locator->FindClosestPointWithinRadius(4.0, lastpickpos, dist2);
+		//	std::cout << "focalId = " << focalId << ", dist2 = " << dist2 << std::endl;
+
+			if (focalId >= 0 && focalId < lumenPoly->GetNumberOfPoints())
+			{
+				vtkDoubleArray *paramArray = vtkDoubleArray::SafeDownCast(lumenPoly->GetPointData()->GetArray("Param"));
+				if (!paramArray) return;
+
+				double param[2];
+				paramArray->GetTuple(focalId, param);
+				focalParam[0] = vtkIdType(param[0] + 0.5);
+				focalParam[1] = vtkIdType(param[1] + 0.5) % clLumenRadius->GetNumberOfComponents();
+				vtkIdType segmentId = this->ObliqueReformat->GetSegmentId();
+				
+				if (segmentId >= 0 && segmentId < clModel->GetNumberOfCells())
+				{
+					vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+					clModel->GetCellPoints(segmentId, idlist);
+					if (focalParam[0] >= 0 && focalParam[0] < idlist->GetNumberOfIds() &&
+						focalParam[1] >= 0 && focalParam[1] < clLumenRadius->GetNumberOfComponents())
+					{
+						focalParam[0] = idlist->GetId(focalParam[0]);
+						pick = true;
+						if (!widget->GetInteractor()->GetControlKey())
+							ObliqueReformat->UpdateImageOff();
+
+					//	std::cout << "focalParam = " << focalParam[0] << ", " << focalParam[1] << ". segmentId = " << segmentId << std::endl;
+
+						//clTube->SetUpdateSegment(segmentId);
+					}
+				}
+			}
+		}
+	}
+
+	virtual void OnLeftButtonUp()
+	{
+		if (pick)
+		{
+			//locator->Delete();
+			pick = false;
+			ObliqueReformat->UpdateImageOn();
+		}
+	}
+
+	virtual void OnMouseMove()
+	{
+		if (pick)
+		{
+			if (this->Pick(pickpos))
+			{
+				double coord[3], dir[3], move[3];
+				vtkMath::Subtract(pickpos, lastpickpos, move);
+
+				//std::cout << "move = " << move[0] << ", " << move[1] << ", " << move[2] << std::endl;
+				
+				if (widget->GetInteractor()->GetShiftKey())
+				{
+					int step = move[1];// widget->GetInteractor()->GetEventPosition()[1] - widget->GetInteractor()->GetLastEventPosition()[1];
+					vtkDoubleArray *clRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Radius"));
+					vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+					double newradius;
+					newradius = clRadius->GetValue(focalParam[0]) * (1.0 + step * 0.02);
+					if (newradius < 0.1) newradius = 0.1;
+					else if (newradius > 10.0) newradius = 10.0;
+					clRadius->SetValue(focalParam[0], newradius);
+					for (int j = 0; j < clLumenRadius->GetNumberOfComponents(); j++)
+					{
+						newradius = clLumenRadius->GetComponent(focalParam[0], j) * (1.0 + step * 0.02);
+						if (newradius < 0.1) newradius = 0.1;
+						else if (newradius > 10.0) newradius = 10.0;
+						clLumenRadius->SetComponent(focalParam[0], j, newradius);
+					}
+				}
+				
+
+				std::swap(lastpickpos, pickpos);
+			}
+		}
+
+
+		this->Superclass::OnMouseMove();
+	}
+
+
 public:
-	int cellid;
+
+	QVTKWidget* widget;
+
+	vtkPolyData* clModel;
+	ImageObliqueReformat* ObliqueReformat;
+	vtkImageSlice *obliqueImageSlicer;
+	
+
+	vtkSmartPointer<vtkPointLocator> locator;
+	vtkIdType focalParam[2];
+	double pickpos[3];
+	double lastpickpos[3];
+
+	bool pick;
+//	ExtendTubeFilter	* clTube;
+
+
 };
 vtkStandardNewMacro(ORSliceStyle);
 
@@ -62,6 +235,7 @@ QVesselEditingWidget::QVesselEditingWidget()
 	setLayout(layout);	
 
 	ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
+	ORSliceStyleCallback->widget = this->widget2;
 	widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
 }
 
@@ -252,7 +426,12 @@ void QVesselEditingWidget::forcerenderslot()
 
 		widget2->GetRenderWindow()->Render();
 
-		this->ORSliceStyleCallback->cellid = this->SelectID;
+		this->ORSliceStyleCallback->clModel = this->clModel;
+		this->ORSliceStyleCallback->ObliqueReformat = this->ObliqueReformat;
+		this->ORSliceStyleCallback->obliqueImageSlicer = ObliqueimageSlice;
+	//	this->ORSliceStyleCallback->clTube = centerlineTube;
+
+
 	}
 
 
