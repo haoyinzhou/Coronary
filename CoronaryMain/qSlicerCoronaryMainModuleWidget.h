@@ -87,9 +87,6 @@
 
 
 
-
-
-
 class qSlicerCoronaryMainModuleWidgetPrivate;
 class vtkMRMLNode;
 

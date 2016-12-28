@@ -304,7 +304,6 @@ bool vtkSlicerCoronaryMainLogic
 	centerlineTube->SetInputData(centerlineModel);
 	centerlineTube->SetInputImageData(imageData);
 	centerlineTube->Update();
-
 	
 	LumenModel = centerlineTube->GetOutput(2);
 
@@ -364,7 +363,6 @@ bool vtkSlicerCoronaryMainLogic
 	LumenDisplayNode->SelectableOff();
 	LumenNode->SetAndObservePolyData(LumenModel_display);
 	LumenNode->ApplyTransformMatrix(transformMatrix);
-	
 	
 
 	std::cout << "BuildCenterlinesMeshLogic Done! " << std::endl;

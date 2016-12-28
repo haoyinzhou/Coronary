@@ -526,9 +526,6 @@ void QVesselEditingWidget::forcerenderslot()
 		this->ORSliceStyleCallback->clModel = this->clModel;
 		this->ORSliceStyleCallback->ObliqueReformat = this->ObliqueReformat;
 		this->ORSliceStyleCallback->obliqueImageSlicer = ObliqueimageSlice;
-	//	this->ORSliceStyleCallback->clTube = centerlineTube;
-
-
 	}
 
 
@@ -1229,7 +1226,6 @@ public:
 
 		mainwidget->ShowSelectedVesselThreeD(pickid);
 
-
 		mainwidget->send_visibilitychanged(true);
 		mainwidget->send_selectidchanged(pickid);
 		mainwidget->send_clmodelchanged(clmodel, lumenmodel);
@@ -1430,7 +1426,10 @@ bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
 
 	Q_D(qSlicerCoronaryMainModuleWidget);
 
-	d->logic()->TestLogic();
+	d->logic()->BuildCenterlinesMeshLogic();
+	SetupKeyMouseObserver();
+
+//	d->logic()->TestLogic();
 
 	std::cout << "TestButtonFunc end" << std::endl;
 

@@ -1046,7 +1046,6 @@ int ExtendTubeFilter::RequestData(
 		
 		smoothvtkpolydata(output2, 10, 2);
 
-
 //		output2->GetPointData()->AddArray(bifurcationPoints); bifurcationPoints->Delete();
 
 /*
