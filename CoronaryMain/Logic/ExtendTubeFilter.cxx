@@ -10,7 +10,7 @@ vtkStandardNewMacro(ExtendTubeFilter);
 ExtendTubeFilter::ExtendTubeFilter()
 {
 	this->Capping = 0;
-	this->LongitudinalRefineSteps = 3;//2;
+	this->LongitudinalRefineSteps = SmartCoronary::LongitudinalRefineSteps;//2;
 	this->CircumferentialRefineSteps = 0;//1;
 	this->LongitudinalResampleSteps = 1;
 	this->CircumferentialResampleSteps = 1; // do not change it

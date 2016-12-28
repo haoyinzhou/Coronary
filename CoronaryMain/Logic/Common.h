@@ -66,6 +66,8 @@
 
 using namespace cv;
 
+
+
 namespace SmartCoronary
 {
 	enum LVCorLandMarkList{
@@ -78,6 +80,11 @@ namespace SmartCoronary
 		RIGHT_CORONARY_OSTIUM,
 		//////////////////////////////////////////////////////////////////////////
 		NUMBER_OF_LVCOR_LANDMARKS
+	};
+
+	enum TUBEPARAMETERS
+	{
+		LongitudinalRefineSteps = 3
 	};
 }
 

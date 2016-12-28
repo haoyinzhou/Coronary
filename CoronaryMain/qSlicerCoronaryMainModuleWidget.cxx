@@ -40,6 +40,7 @@ public:
 		this->locator = vtkSmartPointer<vtkPointLocator>::New();
 
 		this->pick = false;
+		this->slide = false;
 	//	clTube = NULL;
 	}
 	~ORSliceStyle()
@@ -108,7 +109,7 @@ public:
 			vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
 			if (!clLumenRadius) return;
 
-			std::cout << "lastpickpos = " << lastpickpos[0] << ", " << lastpickpos[1] << ", " << lastpickpos[2] << std::endl;
+		//	std::cout << "lastpickpos = " << lastpickpos[0] << ", " << lastpickpos[1] << ", " << lastpickpos[2] << std::endl;
 
 			locator = vtkSmartPointer<vtkPointLocator>::New();
 			locator->SetDataSet(lumenPoly);
@@ -126,10 +127,11 @@ public:
 
 				double param[2];
 				paramArray->GetTuple(focalId, param);
-				focalParam[0] = vtkIdType(param[0] + 0.5);
+
+				focalParam[0] = vtkIdType((SmartCoronary::LongitudinalRefineSteps + 1) * param[0] + 0.5);
 				focalParam[1] = vtkIdType(param[1] + 0.5) % clLumenRadius->GetNumberOfComponents();
 				vtkIdType segmentId = this->ObliqueReformat->GetSegmentId();
-				
+
 				if (segmentId >= 0 && segmentId < clModel->GetNumberOfCells())
 				{
 					vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
@@ -141,10 +143,6 @@ public:
 						pick = true;
 						if (!widget->GetInteractor()->GetControlKey())
 							ObliqueReformat->UpdateImageOff();
-
-					//	std::cout << "focalParam = " << focalParam[0] << ", " << focalParam[1] << ". segmentId = " << segmentId << std::endl;
-
-						//clTube->SetUpdateSegment(segmentId);
 					}
 				}
 			}
@@ -161,20 +159,74 @@ public:
 		}
 	}
 
+	virtual void OnRightButtonDown()
+	{
+		if (this->ObliqueReformat)
+		{
+			vtkIdType segmentId = this->ObliqueReformat->GetSegmentId();
+			vtkIdType pId = this->ObliqueReformat->GetPointId();
+			vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+			clModel->GetCellPoints(segmentId, idlist);
+
+			if (segmentId >= 0 && segmentId < clModel->GetNumberOfCells()
+				&& pId >= 0 && pId < idlist->GetNumberOfIds())
+			{
+				slide = true;
+				ObliqueReformat->UpdateImageOn();
+			}
+		}
+		//this->Superclass::OnRightButtonDown();
+	}
+
+	virtual void OnRightButtonUp()
+	{
+		if (slide)
+		{
+			slide = false;
+		}
+		//this->Superclass::OnRightButtonUp();
+	}
+	
+
 	virtual void OnMouseMove()
 	{
+		//std::cout << "slide = " << slide << ", pick = " << pick << std::endl;
+		if (slide)
+		{
+			int eventpos[2], lasteventpos[2];
+			this->Interactor->GetEventPosition(eventpos);
+			this->Interactor->GetLastEventPosition(lasteventpos);
+			int step = eventpos[0] - lasteventpos[0];
+
+			if (step != 0)
+			{
+				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
+				widget->GetRenderWindow()->Render();
+
+				vtkPolyData* lumenPoly = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(2));
+				vtkDoubleArray *paramArray = vtkDoubleArray::SafeDownCast(lumenPoly->GetPointData()->GetArray("Param"));
+				double param[2];
+				paramArray->GetTuple(1, param);
+
+		//		std::cout << "ObliqueReformat.pid = " << ObliqueReformat->GetPointId() << ", param = " << param[0] << ", " << param[1] << std::endl;
+			}
+		}
+
 		if (pick)
 		{
 			if (this->Pick(pickpos))
 			{
-				double coord[3], dir[3], move[3];
+				double move[3];
 				vtkMath::Subtract(pickpos, lastpickpos, move);
-
-				//std::cout << "move = " << move[0] << ", " << move[1] << ", " << move[2] << std::endl;
 				
-				if (widget->GetInteractor()->GetShiftKey())
+				int eventpos[2], lasteventpos[2];
+				this->Interactor->GetEventPosition(eventpos);
+				this->Interactor->GetLastEventPosition(lasteventpos);
+
+				if (this->Interactor->GetShiftKey())
 				{
-					int step = move[1];// widget->GetInteractor()->GetEventPosition()[1] - widget->GetInteractor()->GetLastEventPosition()[1];
+					int step = eventpos[1] - lasteventpos[1];
+
 					vtkDoubleArray *clRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Radius"));
 					vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
 					double newradius;
@@ -190,7 +242,52 @@ public:
 						clLumenRadius->SetComponent(focalParam[0], j, newradius);
 					}
 				}
-				
+
+				else
+				{
+					if (this->Interactor->GetControlKey())
+					{
+						double axis1[3], axis2[3];
+						vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
+						vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
+						clAxis1->GetTuple(focalParam[0], axis1);
+						clAxis2->GetTuple(focalParam[0], axis2);
+						double coord[3];
+						clModel->GetPoint(focalParam[0], coord);
+						for (int k = 0; k < 3; k++)
+						{
+							coord[k] += (pickpos[0] - lastpickpos[0]) * axis1[k] + (pickpos[1] - lastpickpos[1]) * axis2[k];
+						}
+						clModel->GetPoints()->SetPoint(focalParam[0], coord);
+					}
+					else
+					{						
+						vtkDoubleArray *clArray;
+						clArray = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+						vtkPolyData *lumenCenter = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(4));
+						double coord[3], dir[3];
+						lumenCenter->GetPoint(0, coord);
+						//std::cout << "lumenCenter coord = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
+						vtkMath::Subtract(lastpickpos, coord, dir);
+						vtkMath::Normalize(dir);
+						double moveproj = vtkMath::Dot(move, dir);
+
+						std::cout << "moving focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+
+						double newradius = clArray->GetComponent(focalParam[0], focalParam[1]);
+						newradius += moveproj;
+						if (newradius < 0.1) newradius = 0.1;
+						else if (newradius > 10.0) newradius = 10.0;
+						clArray->SetComponent(focalParam[0], focalParam[1], newradius);
+
+						std::cout << "moving2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+						std::cout << clArray->GetComponent(focalParam[0], focalParam[1]) << std::endl;
+					}
+				}
+
+
+				clModel->Modified();
+				this->Interactor->Render();
 
 				std::swap(lastpickpos, pickpos);
 			}
@@ -207,8 +304,7 @@ public:
 
 	vtkPolyData* clModel;
 	ImageObliqueReformat* ObliqueReformat;
-	vtkImageSlice *obliqueImageSlicer;
-	
+	vtkImageSlice *obliqueImageSlicer;	
 
 	vtkSmartPointer<vtkPointLocator> locator;
 	vtkIdType focalParam[2];
@@ -216,6 +312,7 @@ public:
 	double lastpickpos[3];
 
 	bool pick;
+	bool slide;
 //	ExtendTubeFilter	* clTube;
 
 

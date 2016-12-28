@@ -83,6 +83,7 @@
 #include "ImageStretchCurvedReformat.h"
 #include "ImageCurvedReformat.h"
 #include "ImageObliqueReformat.h"
+#include "Common.h"
 
 
 
