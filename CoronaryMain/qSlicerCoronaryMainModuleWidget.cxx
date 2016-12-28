@@ -33,7 +33,7 @@ public:
 
 	ORSliceStyle()
 	{
-		this->widget = NULL;
+	//	this->widget = NULL;
 		this->clModel = NULL;
 		this->ObliqueReformat = NULL;
 		this->obliqueImageSlicer = NULL;
@@ -49,13 +49,13 @@ public:
 
 	bool Pick(double picked[3])
 	{
-		int x = widget->GetInteractor()->GetEventPosition()[0];
-		int y = widget->GetInteractor()->GetEventPosition()[1];
+		int x = this->Interactor->GetEventPosition()[0];
+		int y = this->Interactor->GetEventPosition()[1];
 
 		this->FindPokedRenderer(x, y);
 		if (this->CurrentRenderer == NULL) return false;
 
-		vtkPropPicker *picker = vtkPropPicker::SafeDownCast(widget->GetInteractor()->GetPicker());
+		vtkPropPicker *picker = vtkPropPicker::SafeDownCast(this->Interactor->GetPicker());
 		if (picker == NULL) return false;
 
 		// Pick at the mouse location provided by the interactor
@@ -141,7 +141,7 @@ public:
 					{
 						focalParam[0] = idlist->GetId(focalParam[0]);
 						pick = true;
-						if (!widget->GetInteractor()->GetControlKey())
+						if (!this->Interactor->GetControlKey())
 							ObliqueReformat->UpdateImageOff();
 					}
 				}
@@ -196,17 +196,12 @@ public:
 			int eventpos[2], lasteventpos[2];
 			this->Interactor->GetEventPosition(eventpos);
 			this->Interactor->GetLastEventPosition(lasteventpos);
-			int step = eventpos[0] - lasteventpos[0];
+			int step = max(eventpos[0] - lasteventpos[0], eventpos[1] - lasteventpos[1]);
 
 			if (step != 0)
 			{
 				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
 				widget->GetRenderWindow()->Render();
-
-				vtkPolyData* lumenPoly = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(2));
-				vtkDoubleArray *paramArray = vtkDoubleArray::SafeDownCast(lumenPoly->GetPointData()->GetArray("Param"));
-				double param[2];
-				paramArray->GetTuple(1, param);
 
 		//		std::cout << "ObliqueReformat.pid = " << ObliqueReformat->GetPointId() << ", param = " << param[0] << ", " << param[1] << std::endl;
 			}
@@ -256,7 +251,7 @@ public:
 						clModel->GetPoint(focalParam[0], coord);
 						for (int k = 0; k < 3; k++)
 						{
-							coord[k] += (pickpos[0] - lastpickpos[0]) * axis1[k] + (pickpos[1] - lastpickpos[1]) * axis2[k];
+							coord[k] -= (pickpos[0] - lastpickpos[0]) * axis1[k] + (pickpos[1] - lastpickpos[1]) * axis2[k];
 						}
 						clModel->GetPoints()->SetPoint(focalParam[0], coord);
 					}
@@ -272,7 +267,7 @@ public:
 						vtkMath::Normalize(dir);
 						double moveproj = vtkMath::Dot(move, dir);
 
-						std::cout << "moving focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+					//	std::cout << "moving focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 
 						double newradius = clArray->GetComponent(focalParam[0], focalParam[1]);
 						newradius += moveproj;
@@ -280,11 +275,10 @@ public:
 						else if (newradius > 10.0) newradius = 10.0;
 						clArray->SetComponent(focalParam[0], focalParam[1], newradius);
 
-						std::cout << "moving2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
-						std::cout << clArray->GetComponent(focalParam[0], focalParam[1]) << std::endl;
+					//	std::cout << "moving2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+					//	std::cout << clArray->GetComponent(focalParam[0], focalParam[1]) << std::endl;
 					}
 				}
-
 
 				clModel->Modified();
 				this->Interactor->Render();
@@ -293,10 +287,27 @@ public:
 			}
 		}
 
-
 		this->Superclass::OnMouseMove();
 	}
 
+	virtual void OnKeyPress()
+	{
+		std::string key = this->Interactor->GetKeySym();
+
+		if (key == "Up" || key == "Down")
+		{
+			int step = (key == "Up") ? 1 : -1;
+			if (step != 0)
+			{
+				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
+				widget->GetRenderWindow()->Render();
+			}
+			return;
+		}
+
+	//	this->Superclass::OnKeyPress();
+		return;
+	}
 
 public:
 
@@ -315,7 +326,6 @@ public:
 	bool slide;
 //	ExtendTubeFilter	* clTube;
 
-
 };
 vtkStandardNewMacro(ORSliceStyle);
 
@@ -325,7 +335,7 @@ QVesselEditingWidget::QVesselEditingWidget()
 {
 	widget1 = new QVTKWidget;
 	widget2 = new QVTKWidget;
-	
+
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->addWidget(widget1, 1);
 	layout->addWidget(widget2, 1);
@@ -452,7 +462,7 @@ void QVesselEditingWidget::forcerenderslot()
 		clActor->SetMapper(clMapper);
 		clActor->GetProperty()->SetColor(0.3, 0.4, 0.9);
 		clActor->GetProperty()->SetLineWidth(3.0f);
-		clActor->GetProperty()->SetOpacity(0.6);
+		clActor->GetProperty()->SetOpacity(1.0);
 		clActor->PickableOff();
 		CurvedRenderer->AddActor(clActor);
 
@@ -508,8 +518,8 @@ void QVesselEditingWidget::forcerenderslot()
 		vtkSmartPointer<vtkActor> clActor = vtkSmartPointer<vtkActor>::New();
 		clActor->SetMapper(clMapper);
 		clActor->GetProperty()->SetColor(0.3, 0.4, 0.9);
-		clActor->GetProperty()->SetLineWidth(3.0f);
-		clActor->GetProperty()->SetOpacity(0.6);
+		clActor->GetProperty()->SetPointSize(6.0f);
+		clActor->GetProperty()->SetOpacity(1.0);
 		clActor->PickableOff();
 		ObliqueRenderer->AddActor(clActor);
 
