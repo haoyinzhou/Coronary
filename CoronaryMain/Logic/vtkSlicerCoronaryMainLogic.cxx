@@ -297,7 +297,7 @@ bool vtkSlicerCoronaryMainLogic
 		addedclnode.clear();
 	}
 
-	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel.vtp");
+	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\centerlineModel_BuildCenterlinesMeshLogic.vtp");
 
 	centerlineTube = vtkSmartPointer<ExtendTubeFilter>::New();
 	centerlineTube->SetWillBuildBifurcationMesh(this->WillBuildBifurcationMesh);
@@ -307,18 +307,20 @@ bool vtkSlicerCoronaryMainLogic
 	
 	LumenModel = centerlineTube->GetOutput(2);
 
-//	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel.vtp");
+	//SavePolyData(centerlineTube->GetOutput(0), "C:\\work\\Coronary_Slicer\\testdata\\centerlineTubeGetOutput(0)_BuildCenterlinesMeshLogic.vtp");
+	//SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel_BuildCenterlinesMeshLogic.vtp");
 
 	centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
 	LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
-	centerlineModel_display->DeepCopy(centerlineTube->GetOutput(0));
+	centerlineModel_display->DeepCopy(centerlineModel);
 	LumenModel_display->DeepCopy(LumenModel);
 
-	//
+	
 	clNode = vtkSmartPointer< vtkMRMLModelNode >::New();
 	clDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
 	LumenNode = vtkSmartPointer< vtkMRMLModelNode >::New();
 	LumenDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+
 
 	vtkSmartPointer<vtkMatrix4x4> transformMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
 	transformMatrix->SetElement(0, 0, -1); transformMatrix->SetElement(0, 1, 0);  transformMatrix->SetElement(0, 2, 0);  transformMatrix->SetElement(0, 3, 0);
@@ -364,7 +366,6 @@ bool vtkSlicerCoronaryMainLogic
 	LumenNode->SetAndObservePolyData(LumenModel_display);
 	LumenNode->ApplyTransformMatrix(transformMatrix);
 	
-
 	std::cout << "BuildCenterlinesMeshLogic Done! " << std::endl;
 	return true;
 }

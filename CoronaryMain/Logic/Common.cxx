@@ -1412,6 +1412,241 @@ void AxisCenterline(vtkPolyData* clModel, double planenormal[3])
 	//std::cout << "Leaving AxisCenterline" << std::endl;
 }
 
+bool DensifyCenterline(vtkPolyData* clModel)
+{
+	vtkDoubleArray *clRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Radius"));
+	vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+	vtkDoubleArray *clWallThickness = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("WallThickness"));
+	vtkDoubleArray *clDir = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Dir"));
+	vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
+	vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
+
+	if (!clRadius || !clLumenRadius || !clWallThickness || !clDir || !clAxis1 || !clAxis2)
+	{
+		return false;
+	}
+	if (clLumenRadius->GetNumberOfComponents() != clWallThickness->GetNumberOfComponents() || clLumenRadius->GetNumberOfComponents() < 3)
+	{
+		return false;
+	}
+
+	vtkIdType inCellId;
+	vtkIdType npts = 0, *pts = NULL;
+
+	vtkSmartPointer<vtkPoints> out0Points = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkCellArray> out0Lines = vtkSmartPointer<vtkCellArray>::New();
+	vtkSmartPointer<vtkDoubleArray> out0Radius = vtkSmartPointer<vtkDoubleArray>::New();
+	out0Radius->SetName("Radius");
+	out0Radius->SetNumberOfComponents(1);
+	vtkSmartPointer<vtkDoubleArray> out0LumenRadius = vtkSmartPointer<vtkDoubleArray>::New();
+	out0LumenRadius->SetName("LumenRadius");
+	out0LumenRadius->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1));
+	vtkSmartPointer<vtkDoubleArray> out0WallThickness = vtkSmartPointer<vtkDoubleArray>::New();
+	out0WallThickness->SetName("WallThickness");
+	out0WallThickness->SetNumberOfComponents(clWallThickness->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1));
+	vtkSmartPointer<vtkDoubleArray> out0Dir = vtkSmartPointer<vtkDoubleArray>::New();
+	out0Dir->SetName("Dir");
+	out0Dir->SetNumberOfComponents(3);
+	vtkSmartPointer<vtkDoubleArray> out0Axis1 = vtkSmartPointer<vtkDoubleArray>::New();
+	out0Axis1->SetName("Axis1");
+	out0Axis1->SetNumberOfComponents(3);
+	vtkSmartPointer<vtkDoubleArray> out0Axis2 = vtkSmartPointer<vtkDoubleArray>::New();
+	out0Axis2->SetName("Axis2");
+	out0Axis2->SetNumberOfComponents(3);
+	vtkSmartPointer<vtkDoubleArray> out0LongiParam = vtkSmartPointer<vtkDoubleArray>::New();
+	out0LongiParam->SetName("LongiParam");
+	out0LongiParam->SetNumberOfComponents(1);
+	vtkSmartPointer<vtkDoubleArray> out0CircumParam = vtkSmartPointer<vtkDoubleArray>::New();
+	out0CircumParam->SetName("CircumParam");
+	out0CircumParam->SetNumberOfComponents(out0LumenRadius->GetNumberOfComponents());
+
+	vtkSmartPointer<vtkCardinalSpline> spline = vtkSmartPointer<vtkCardinalSpline>::New();
+
+	//Cell Data for output 0
+	vtkSmartPointer<vtkPolyData> output0 = vtkSmartPointer<vtkPolyData>::New();
+	output0->GetCellData()->CopyAllocate(clModel->GetCellData());
+	vtkPoints*	inPoints = clModel->GetPoints();
+	vtkCellArray* inLines = clModel->GetLines();
+
+	double *radii = new double[clLumenRadius->GetNumberOfComponents()];
+	double *thickness = new double[clWallThickness->GetNumberOfComponents()];
+	double *refineradii = new double[clLumenRadius->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1)];
+	double *refineradii_2 = new double[clLumenRadius->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1)];
+	double *refinethickness = new double[clWallThickness->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1)];
+	double radius, coord[3], center[3];
+	double sdir[3], edir[3], saxis1[3], eaxis1[3], saxis2[3], eaxis2[3];
+	double dir[3], axis1[3], axis2[3];
+	double longiparam;
+	double *circumparam = new double[clLumenRadius->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1)];
+	double rot[3][3], rotaxis[3], rotangle;
+	double cstep = 1.0 / out0LumenRadius->GetNumberOfComponents();
+	double cirstep = 2.0*M_PI*cstep;
+	double circumstep = clLumenRadius->GetNumberOfComponents()*cstep;
+
+	for (inCellId = 0, inLines->InitTraversal(); inLines->GetNextCell(npts, pts); inCellId++)
+	{
+		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+
+		vtkSmartPointer<vtkTupleInterpolator> pointInterpolator = vtkSmartPointer<vtkTupleInterpolator>::New();
+		pointInterpolator->SetNumberOfComponents(3);
+		vtkSmartPointer<vtkTupleInterpolator> radiusInterpolator = vtkSmartPointer<vtkTupleInterpolator>::New();
+		radiusInterpolator->SetNumberOfComponents(1);
+		vtkSmartPointer<vtkTupleInterpolator> lumenRadiusInterpolator = vtkSmartPointer<vtkTupleInterpolator>::New();
+		lumenRadiusInterpolator->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents());
+		vtkSmartPointer<vtkTupleInterpolator> wallThicknessInterpolator = vtkSmartPointer<vtkTupleInterpolator>::New();
+		wallThicknessInterpolator->SetNumberOfComponents(clWallThickness->GetNumberOfComponents());
+		for (vtkIdType j = 0; j < npts; j ++)
+		{
+			inPoints->GetPoint(pts[j], coord);
+			pointInterpolator->AddTuple(j, coord);
+			radius = clRadius->GetValue(pts[j]);
+			radiusInterpolator->AddTuple(j, &radius);
+			clLumenRadius->GetTuple(pts[j], radii);
+			lumenRadiusInterpolator->AddTuple(j, radii);
+			clWallThickness->GetTuple(pts[j], thickness);
+			wallThicknessInterpolator->AddTuple(j, thickness);
+		}
+
+		for (vtkIdType j = 0; j < npts; j++)
+		{
+			//out0Points, out0Radius, out0LumenRadius, out0WallThickness, out0LongiParam
+			pointInterpolator->InterpolateTuple(j, coord);
+			idlist->InsertNextId(out0Points->InsertNextPoint(coord));
+			radiusInterpolator->InterpolateTuple(j, &radius);
+			out0Radius->InsertNextValue(radius);
+			lumenRadiusInterpolator->InterpolateTuple(j, radii);
+			InterpolateRefine(spline, radii, clLumenRadius->GetNumberOfComponents(), refineradii, SmartCoronary::CircumferentialRefineSteps);
+			out0LumenRadius->InsertNextTuple(refineradii);
+			wallThicknessInterpolator->InterpolateTuple(j, thickness);
+			InterpolateRefine(spline, thickness, clWallThickness->GetNumberOfComponents(), refinethickness, SmartCoronary::CircumferentialRefineSteps);
+			out0WallThickness->InsertNextTuple(refinethickness);
+			out0LongiParam->InsertNextValue(j);
+
+			//out0Dir, out0Axis1, out0Axis2
+			if (j == 0)
+			{
+				if (npts == 2)
+				{
+					inPoints->GetPoint(pts[j], coord);
+					inPoints->GetPoint(pts[j + 1], sdir);
+					vtkMath::Subtract(sdir, coord, sdir);
+					vtkMath::Normalize(sdir);
+					vtkMath::Perpendiculars(sdir, saxis1, saxis2, 0.0);
+				}
+				else
+				{
+					clDir->GetTuple(pts[j + 1], sdir);
+					clAxis1->GetTuple(pts[j + 1], saxis1);
+					clAxis2->GetTuple(pts[j + 1], saxis2);
+				}
+				std::copy(sdir, sdir + 3, edir);
+				std::copy(saxis1, saxis1 + 3, eaxis1);
+				std::copy(saxis2, saxis2 + 3, eaxis2);
+			}
+			else
+			{
+				std::copy(edir, edir + 3, sdir);
+				std::copy(eaxis1, eaxis1 + 3, saxis1);
+				std::copy(eaxis2, eaxis2 + 3, saxis2);
+				if (j<npts - 2)
+				{
+					clDir->GetTuple(pts[j + 1], edir);
+					clAxis1->GetTuple(pts[j + 1], eaxis1);
+					clAxis2->GetTuple(pts[j + 1], eaxis2);
+				}
+				else
+				{
+					std::copy(sdir, sdir + 3, edir);
+					std::copy(saxis1, saxis1 + 3, eaxis1);
+					std::copy(saxis2, saxis2 + 3, eaxis2);
+				}
+			}
+			out0Dir->InsertNextTuple(sdir);
+			out0Axis1->InsertNextTuple(saxis1);
+			out0Axis2->InsertNextTuple(saxis2);
+
+			if (j == npts - 1) break;
+
+			if (SmartCoronary::LongitudinalRefineSteps > 0)
+			{
+				if (edir[0] == sdir[0] && edir[1] == sdir[1] && edir[2] == sdir[2])
+				{
+					rotaxis[0] = 0.0; rotaxis[1] = 0.0; rotaxis[2] = 0.0;
+					rotangle = 0.0;
+				}
+				else
+				{
+					vtkMath::Cross(sdir, edir, rotaxis);
+					vtkMath::Normalize(rotaxis);
+					rotangle = acos(vtkMath::Dot(sdir, edir));
+				}
+
+				double lrs = 1.0 / (SmartCoronary::LongitudinalRefineSteps + 1);
+				for (int k = 1; k <= SmartCoronary::LongitudinalRefineSteps; k++)
+				{
+					double s = j + k*lrs;
+					pointInterpolator->InterpolateTuple(s, coord);
+					idlist->InsertNextId(out0Points->InsertNextPoint(coord));
+					radiusInterpolator->InterpolateTuple(s, &radius);
+					out0Radius->InsertNextValue(radius);
+					lumenRadiusInterpolator->InterpolateTuple(s, radii);
+					InterpolateRefine(spline, radii, clLumenRadius->GetNumberOfComponents(), refineradii, SmartCoronary::CircumferentialRefineSteps);
+					out0LumenRadius->InsertNextTuple(refineradii);
+					wallThicknessInterpolator->InterpolateTuple(s, thickness);
+					InterpolateRefine(spline, thickness, clWallThickness->GetNumberOfComponents(), refinethickness, SmartCoronary::CircumferentialRefineSteps);
+					out0WallThickness->InsertNextTuple(refinethickness);
+					out0LongiParam->InsertNextValue(s);
+
+					double angle = k*lrs*rotangle;
+					GetRotationMatrix(rotaxis, angle, rot);
+					vtkMath::Multiply3x3(rot, saxis1, axis1);
+					vtkMath::Multiply3x3(rot, saxis2, axis2);
+					vtkMath::Multiply3x3(rot, sdir, dir);
+					vtkMath::Normalize(axis1);
+					vtkMath::Normalize(axis2);
+					vtkMath::Normalize(dir);
+					out0Dir->InsertNextTuple(dir);
+					out0Axis1->InsertNextTuple(axis1);
+					out0Axis2->InsertNextTuple(axis2);
+
+
+				}
+			}
+		}
+
+		vtkIdType outcellId = out0Lines->InsertNextCell(idlist);
+		output0->GetCellData()->CopyData(clModel->GetCellData(), inCellId, outcellId);
+
+		for (int k = 0; k < out0CircumParam->GetNumberOfComponents(); k ++)
+		{
+			circumparam[k] = k * circumstep;
+		}
+		out0CircumParam->InsertNextTuple(circumparam);
+	}
+
+	clModel->SetPoints(out0Points);
+	clModel->SetLines(out0Lines);
+	clModel->GetPointData()->AddArray(out0Radius);
+	clModel->GetPointData()->AddArray(out0LumenRadius);
+	clModel->GetPointData()->AddArray(out0WallThickness);
+	clModel->GetPointData()->AddArray(out0Dir);
+	clModel->GetPointData()->AddArray(out0Axis1);
+	clModel->GetPointData()->AddArray(out0Axis2);
+	clModel->GetPointData()->AddArray(out0LongiParam);
+	clModel->GetCellData()->AddArray(out0CircumParam);
+	
+
+	delete[] radii;
+	delete[] thickness;
+	delete[] refineradii_2;
+	delete[] refineradii;
+	delete[] refinethickness;
+	delete[] circumparam;
+
+	return true;
+}
+
+
 template<class ImageType>
 void SaveITKImage(typename ImageType::Pointer image, const char* fileName)
 {
@@ -1710,11 +1945,15 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		RadiusCenterline(clModel);
 		LumenWallCenterline(clModel);
 		AxisCenterline(clModel);
+		DensifyCenterline(clModel);
 		append->AddInputData(clModel);
 	}
 
+
 	append->Update();
 	centerlineModel->DeepCopy(append->GetOutput());
+
+	//SavePolyData(centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\densifiedclmodel.vtp");
 	
 	std::cout << "DetectCenterline_core done!" << std::endl;
 
@@ -2520,4 +2759,25 @@ bool PinPoly(std::vector<double> *poly, int x, int y)
 		j = i;
 	}
 	return inside;
+}
+
+void InterpolateRefine(vtkCardinalSpline *spline, double *in, int insize, double *out, int refinesteps)
+{
+	//if(!spline || !in || !out || insize<2 || refinesteps<0 ) return;
+
+	spline->RemoveAllPoints();
+	for (int i = 0; i < insize; i++)
+	{
+		spline->AddPoint(i, in[i]);
+	}
+	spline->ClosedOn();
+	spline->Compute();
+	int ct = 0;
+	for (int i = 0; i < insize; i++)
+	{
+		out[ct++] = spline->Evaluate(i);
+		double rs = 1.0 / (refinesteps + 1);
+		for (int j = 1; j <= refinesteps; j++)
+			out[ct++] = spline->Evaluate(i + j*rs);
+	}
 }

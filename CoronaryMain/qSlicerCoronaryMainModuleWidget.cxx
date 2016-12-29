@@ -960,7 +960,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		logic->centerlineModel = vtkPolyData::SafeDownCast(logic->centerlineId->GetOutput());
 		
 		logic->BuildCenterlinesMeshLogic();
-				
+			
 		SetupKeyMouseObserver();
 
 		d->progressBar->setValue(100);
@@ -1448,7 +1448,7 @@ bool qSlicerCoronaryMainModuleWidget
 	VesselPickCallBack->Slicer3DRenderWindowInteractor = RenderWindowInteractorthreeD;
 	VesselPickCallBack->Slicer3DRender = rendercollection->GetFirstRenderer();
 	VesselPickCallBack->mainwidget = this;
-	VesselPickCallBack->clmodel = logic->centerlineTube->GetOutput(0);
+	VesselPickCallBack->clmodel = logic->centerlineModel;
 	VesselPickCallBack->lumenmodel = logic->centerlineTube->GetOutput(2);
 	VesselPickCallBack->imagedata = logic->imageData;
 
@@ -1458,7 +1458,7 @@ bool qSlicerCoronaryMainModuleWidget
 	CtrlKeyPressedInteractionCallback->VesselPicker = VesselPicker;
 	CtrlKeyPressedInteractionCallback->VesselPickCallBack = VesselPickCallBack;
 	CtrlKeyPressedInteractionCallback->addedvesselpickobservertag = &addedvesselpickobservertag;
-	CtrlKeyPressedInteractionCallback->clmodel = logic->centerlineTube->GetOutput(0);
+	CtrlKeyPressedInteractionCallback->clmodel = logic->centerlineModel;
 	addedctrlobservertag.push_back(RenderWindowInteractorthreeD->AddObserver(vtkCommand::KeyPressEvent, CtrlKeyPressedInteractionCallback));
 
 	vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback> CtrlKeyReleasedInteractionCallback = vtkSmartPointer<vtkCtrlKeyReleasedInteractionCallback>::New();
@@ -1482,6 +1482,8 @@ bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
 
 	d->logic()->BuildCenterlinesMeshLogic();
 	SetupKeyMouseObserver();
+
+//	SavePolyData(d->logic()->centerlineTube->GetOutput(0), "C:\\work\\Coronary_Slicer\\testdata\\centerlineTube0.vtp");
 
 //	d->logic()->TestLogic();
 

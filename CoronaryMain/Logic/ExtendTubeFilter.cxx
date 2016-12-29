@@ -11,7 +11,7 @@ ExtendTubeFilter::ExtendTubeFilter()
 {
 	this->Capping = 0;
 	this->LongitudinalRefineSteps = SmartCoronary::LongitudinalRefineSteps;//2;
-	this->CircumferentialRefineSteps = 0;//1;
+	this->CircumferentialRefineSteps = SmartCoronary::CircumferentialRefineSteps;//1;
 	this->LongitudinalResampleSteps = 1;
 	this->CircumferentialResampleSteps = 1; // do not change it
 	this->RadiusScale = 1.0;
@@ -103,6 +103,7 @@ int ExtendTubeFilter::RequestData(
 	vtkInformationVector **inputVector,
 	vtkInformationVector *outputVector)
 {
+	std::cout << "extendtubefilter begin!" << std::endl;
 	// get the info objects
 	vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);	
 	vtkInformation *out0Info = outputVector->GetInformationObject(0);
@@ -159,41 +160,59 @@ int ExtendTubeFilter::RequestData(
 		return 1;
 	}
 
+
 	vtkIdType inCellId;
 	vtkIdType npts = 0, *pts = NULL;
 
-	vtkPoints *out0Points = vtkPoints::New();
-	vtkCellArray *out0Lines = vtkCellArray::New();
-	vtkDoubleArray *out0Radius = vtkDoubleArray::New();
-	out0Radius->SetName("Radius");
-	out0Radius->SetNumberOfComponents(1);
-	vtkDoubleArray *out0LumenRadius = vtkDoubleArray::New();
-	out0LumenRadius->SetName("LumenRadius");
-	out0LumenRadius->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1));
-	vtkDoubleArray *out0WallThickness = vtkDoubleArray::New();
-	out0WallThickness->SetName("WallThickness");
-	out0WallThickness->SetNumberOfComponents(clWallThickness->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1));
-	vtkDoubleArray *out0Dir = vtkDoubleArray::New();
-	out0Dir->SetName("Dir");
-	out0Dir->SetNumberOfComponents(3);
-	vtkDoubleArray *out0Axis1 = vtkDoubleArray::New();
-	out0Axis1->SetName("Axis1");
-	out0Axis1->SetNumberOfComponents(3);
-	vtkDoubleArray *out0Axis2 = vtkDoubleArray::New();
-	out0Axis2->SetName("Axis2");
-	out0Axis2->SetNumberOfComponents(3);
-	vtkDoubleArray *out0LongiParam = vtkDoubleArray::New();
-	out0LongiParam->SetName("LongiParam");
-	out0LongiParam->SetNumberOfComponents(1);
-	vtkDoubleArray *out0CircumParam = vtkDoubleArray::New();
-	out0CircumParam->SetName("CircumParam");
-	out0CircumParam->SetNumberOfComponents(out0LumenRadius->GetNumberOfComponents());
+	output0->DeepCopy(input);
 
-	vtkCardinalSpline *spline = vtkCardinalSpline::New();
+//	SavePolyData(output0, "C:\\work\\Coronary_Slicer\\testdata\\output0.vtp");
+
+	vtkPoints* out0Points = output0->GetPoints();
+	vtkCellArray* out0Lines = output0->GetLines();
+
+	vtkDoubleArray *out0Radius = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("Radius"));
+	vtkDoubleArray *out0LumenRadius = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("LumenRadius"));
+	vtkDoubleArray *out0WallThickness = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("WallThickness"));
+	vtkDoubleArray *out0Dir = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("Dir"));
+	vtkDoubleArray *out0Axis1 = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("Axis1"));
+	vtkDoubleArray *out0Axis2 = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("Axis2"));
+	vtkDoubleArray *out0LongiParam = vtkDoubleArray::SafeDownCast(output0->GetPointData()->GetArray("LongiParam"));
+	vtkDoubleArray *out0CircumParam = vtkDoubleArray::SafeDownCast(output0->GetCellData()->GetArray("CircumParam"));
+
+	if (!out0Radius || !out0LumenRadius || !out0WallThickness || !out0Dir || !out0Axis1 || !out0Axis2 || !out0LongiParam || !out0CircumParam)
+		return 1;
+
+	//vtkDoubleArray *out0Radius = vtkDoubleArray::SafeDownCast(out0Lines->get);
+	//out0Radius->SetName("Radius");
+	//out0Radius->SetNumberOfComponents(1);
+	//vtkDoubleArray *out0LumenRadius = vtkDoubleArray::New();
+	//out0LumenRadius->SetName("LumenRadius");
+	//out0LumenRadius->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1));
+	//vtkDoubleArray *out0WallThickness = vtkDoubleArray::New();
+	//out0WallThickness->SetName("WallThickness");
+	//out0WallThickness->SetNumberOfComponents(clWallThickness->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1));
+	//vtkDoubleArray *out0Dir = vtkDoubleArray::New();
+	//out0Dir->SetName("Dir");
+	//out0Dir->SetNumberOfComponents(3);
+	//vtkDoubleArray *out0Axis1 = vtkDoubleArray::New();
+	//out0Axis1->SetName("Axis1");
+	//out0Axis1->SetNumberOfComponents(3);
+	//vtkDoubleArray *out0Axis2 = vtkDoubleArray::New();
+	//out0Axis2->SetName("Axis2");
+	//out0Axis2->SetNumberOfComponents(3);
+	//vtkDoubleArray *out0LongiParam = vtkDoubleArray::New();
+	//out0LongiParam->SetName("LongiParam");
+	//out0LongiParam->SetNumberOfComponents(1);
+	//vtkDoubleArray *out0CircumParam = vtkDoubleArray::New();
+	//out0CircumParam->SetName("CircumParam");
+	//out0CircumParam->SetNumberOfComponents(out0LumenRadius->GetNumberOfComponents());
+
+	//vtkCardinalSpline *spline = vtkCardinalSpline::New();
 
 	//Cell Data for output 0
-	output0->GetCellData()->CopyAllocate(input->GetCellData());
-	vtkPoints*		inPoints = input->GetPoints();
+	//output0->GetCellData()->CopyAllocate(input->GetCellData());
+	vtkPoints* inPoints = input->GetPoints();
 	vtkCellArray* inLines = input->GetLines();
 
 	double *radii = new double[clLumenRadius->GetNumberOfComponents()];
@@ -207,209 +226,210 @@ int ExtendTubeFilter::RequestData(
 	double longiparam;
 	double *circumparam = new double[clLumenRadius->GetNumberOfComponents()*(this->CircumferentialRefineSteps+1)];
 	double rot[3][3], rotaxis[3], rotangle;
-	double cstep = 1.0/out0LumenRadius->GetNumberOfComponents();
+	double cstep = 1.0/clLumenRadius->GetNumberOfComponents();
 	double cirstep  = 2.0*M_PI*cstep;
 	double circumstep = clLumenRadius->GetNumberOfComponents()*cstep;
 
-	for(inCellId=0, inLines->InitTraversal(); inLines->GetNextCell(npts,pts); inCellId++)
-	{
-		if( this->UpdateSegment >= 0 && inCellId != this->UpdateSegment ) continue;
+	//for(inCellId=0, inLines->InitTraversal(); inLines->GetNextCell(npts,pts); inCellId++)
+	//{
+	//	if( this->UpdateSegment >= 0 && inCellId != this->UpdateSegment ) continue;
 
-		vtkIdList *idlist = vtkIdList::New();
+	//	vtkIdList *idlist = vtkIdList::New();
 
-		vtkTupleInterpolator* pointInterpolator = vtkTupleInterpolator::New();
-		pointInterpolator->SetNumberOfComponents(3);
-		vtkTupleInterpolator* radiusInterpolator = vtkTupleInterpolator::New();
-		radiusInterpolator->SetNumberOfComponents(1);
-		vtkTupleInterpolator* lumenRadiusInterpolator = vtkTupleInterpolator::New();
-		lumenRadiusInterpolator->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents());
-		vtkTupleInterpolator* wallThicknessInterpolator = vtkTupleInterpolator::New();
-		wallThicknessInterpolator->SetNumberOfComponents(clWallThickness->GetNumberOfComponents());
-		for(vtkIdType j=0; j<npts; j++)
-		{
-			inPoints->GetPoint(pts[j], coord);
-			pointInterpolator->AddTuple(j, coord);
-			radius = clRadius->GetValue(pts[j]);
-			radiusInterpolator->AddTuple(j, &radius);
-			clLumenRadius->GetTuple(pts[j], radii);
-			lumenRadiusInterpolator->AddTuple(j, radii);
-			clWallThickness->GetTuple(pts[j], thickness);
-			wallThicknessInterpolator->AddTuple(j, thickness);
-		}
+	//	vtkTupleInterpolator* pointInterpolator = vtkTupleInterpolator::New();
+	//	pointInterpolator->SetNumberOfComponents(3);
+	//	vtkTupleInterpolator* radiusInterpolator = vtkTupleInterpolator::New();
+	//	radiusInterpolator->SetNumberOfComponents(1);
+	//	vtkTupleInterpolator* lumenRadiusInterpolator = vtkTupleInterpolator::New();
+	//	lumenRadiusInterpolator->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents());
+	//	vtkTupleInterpolator* wallThicknessInterpolator = vtkTupleInterpolator::New();
+	//	wallThicknessInterpolator->SetNumberOfComponents(clWallThickness->GetNumberOfComponents());
+	//	for(vtkIdType j=0; j<npts; j++)
+	//	{
+	//		inPoints->GetPoint(pts[j], coord);
+	//		pointInterpolator->AddTuple(j, coord);
+	//		radius = clRadius->GetValue(pts[j]);
+	//		radiusInterpolator->AddTuple(j, &radius);
+	//		clLumenRadius->GetTuple(pts[j], radii);
+	//		lumenRadiusInterpolator->AddTuple(j, radii);
+	//		clWallThickness->GetTuple(pts[j], thickness);
+	//		wallThicknessInterpolator->AddTuple(j, thickness);
+	//	}
 
-		for(vtkIdType j=0; j<npts; j++)
-		{
-			//out0Points, out0Radius, out0LumenRadius, out0WallThickness, out0LongiParam
-			pointInterpolator->InterpolateTuple(j, coord);
-			idlist->InsertNextId(out0Points->InsertNextPoint(coord));
-			radiusInterpolator->InterpolateTuple(j, &radius);
-			out0Radius->InsertNextValue(radius);
-			lumenRadiusInterpolator->InterpolateTuple(j, radii);
-			InterpolateRefine(spline, radii, clLumenRadius->GetNumberOfComponents(), refineradii, this->CircumferentialRefineSteps);
-			out0LumenRadius->InsertNextTuple(refineradii);
-			wallThicknessInterpolator->InterpolateTuple(j, thickness);
-			InterpolateRefine(spline, thickness, clWallThickness->GetNumberOfComponents(), refinethickness, this->CircumferentialRefineSteps);
-			out0WallThickness->InsertNextTuple(refinethickness);
-			out0LongiParam->InsertNextValue(j);
+	//	for(vtkIdType j=0; j<npts; j++)
+	//	{
+	//		//out0Points, out0Radius, out0LumenRadius, out0WallThickness, out0LongiParam
+	//		pointInterpolator->InterpolateTuple(j, coord);
+	//		idlist->InsertNextId(out0Points->InsertNextPoint(coord));
+	//		radiusInterpolator->InterpolateTuple(j, &radius);
+	//		out0Radius->InsertNextValue(radius);
+	//		lumenRadiusInterpolator->InterpolateTuple(j, radii);
+	//		InterpolateRefine(spline, radii, clLumenRadius->GetNumberOfComponents(), refineradii, this->CircumferentialRefineSteps);
+	//		out0LumenRadius->InsertNextTuple(refineradii);
+	//		wallThicknessInterpolator->InterpolateTuple(j, thickness);
+	//		InterpolateRefine(spline, thickness, clWallThickness->GetNumberOfComponents(), refinethickness, this->CircumferentialRefineSteps);
+	//		out0WallThickness->InsertNextTuple(refinethickness);
+	//		out0LongiParam->InsertNextValue(j);
 
-			//out0Dir, out0Axis1, out0Axis2
-			if(j==0)
-			{
-				if(npts==2)
-				{
-					inPoints->GetPoint(pts[j], coord);
-					inPoints->GetPoint(pts[j+1], sdir);
-					vtkMath::Subtract(sdir, coord, sdir);
-					vtkMath::Normalize(sdir);
-					vtkMath::Perpendiculars(sdir, saxis1, saxis2, 0.0);
-				}
-				else
-				{
-					clDir->GetTuple(pts[j+1], sdir);
-					clAxis1->GetTuple(pts[j+1], saxis1);
-					clAxis2->GetTuple(pts[j+1], saxis2);
-				}
-				std::copy(sdir, sdir+3, edir);
-				std::copy(saxis1, saxis1+3, eaxis1);
-				std::copy(saxis2, saxis2+3, eaxis2);
-			}
-			else
-			{
-				std::copy(edir, edir+3, sdir);
-				std::copy(eaxis1, eaxis1+3, saxis1);
-				std::copy(eaxis2, eaxis2+3, saxis2);
-				if(j<npts-2)
-				{
-					clDir->GetTuple(pts[j+1], edir);
-					clAxis1->GetTuple(pts[j+1], eaxis1);
-					clAxis2->GetTuple(pts[j+1], eaxis2);
-				}
-				else
-				{
-					std::copy(sdir, sdir+3, edir);
-					std::copy(saxis1, saxis1+3, eaxis1);
-					std::copy(saxis2, saxis2+3, eaxis2);
-				}
-			}
-			out0Dir->InsertNextTuple(sdir);
-			out0Axis1->InsertNextTuple(saxis1);
-			out0Axis2->InsertNextTuple(saxis2);
+	//		//out0Dir, out0Axis1, out0Axis2
+	//		if(j==0)
+	//		{
+	//			if(npts==2)
+	//			{
+	//				inPoints->GetPoint(pts[j], coord);
+	//				inPoints->GetPoint(pts[j+1], sdir);
+	//				vtkMath::Subtract(sdir, coord, sdir);
+	//				vtkMath::Normalize(sdir);
+	//				vtkMath::Perpendiculars(sdir, saxis1, saxis2, 0.0);
+	//			}
+	//			else
+	//			{
+	//				clDir->GetTuple(pts[j+1], sdir);
+	//				clAxis1->GetTuple(pts[j+1], saxis1);
+	//				clAxis2->GetTuple(pts[j+1], saxis2);
+	//			}
+	//			std::copy(sdir, sdir+3, edir);
+	//			std::copy(saxis1, saxis1+3, eaxis1);
+	//			std::copy(saxis2, saxis2+3, eaxis2);
+	//		}
+	//		else
+	//		{
+	//			std::copy(edir, edir+3, sdir);
+	//			std::copy(eaxis1, eaxis1+3, saxis1);
+	//			std::copy(eaxis2, eaxis2+3, saxis2);
+	//			if(j<npts-2)
+	//			{
+	//				clDir->GetTuple(pts[j+1], edir);
+	//				clAxis1->GetTuple(pts[j+1], eaxis1);
+	//				clAxis2->GetTuple(pts[j+1], eaxis2);
+	//			}
+	//			else
+	//			{
+	//				std::copy(sdir, sdir+3, edir);
+	//				std::copy(saxis1, saxis1+3, eaxis1);
+	//				std::copy(saxis2, saxis2+3, eaxis2);
+	//			}
+	//		}
+	//		out0Dir->InsertNextTuple(sdir);
+	//		out0Axis1->InsertNextTuple(saxis1);
+	//		out0Axis2->InsertNextTuple(saxis2);
 
-			if(j==npts-1) break;
+	//		if(j==npts-1) break;
 
-			if(this->LongitudinalRefineSteps>0)
-			{
-				if( edir[0] == sdir[0] && edir[1] == sdir[1] && edir[2] == sdir[2] )
-				{
-					rotaxis[0] = 0.0; rotaxis[1] = 0.0; rotaxis[2] = 0.0;
-					rotangle = 0.0;
-				}
-				else
-				{
-					vtkMath::Cross(sdir, edir, rotaxis);
-					vtkMath::Normalize(rotaxis);
-					rotangle = acos(vtkMath::Dot(sdir, edir));
-				}
+	//		if(this->LongitudinalRefineSteps>0)
+	//		{
+	//			if( edir[0] == sdir[0] && edir[1] == sdir[1] && edir[2] == sdir[2] )
+	//			{
+	//				rotaxis[0] = 0.0; rotaxis[1] = 0.0; rotaxis[2] = 0.0;
+	//				rotangle = 0.0;
+	//			}
+	//			else
+	//			{
+	//				vtkMath::Cross(sdir, edir, rotaxis);
+	//				vtkMath::Normalize(rotaxis);
+	//				rotangle = acos(vtkMath::Dot(sdir, edir));
+	//			}
 
-				double lrs = 1.0/(this->LongitudinalRefineSteps+1);
-				for(int k=1; k<=this->LongitudinalRefineSteps; k++)
-				{
-					double s = j+k*lrs;
-					pointInterpolator->InterpolateTuple(s, coord);
-					idlist->InsertNextId(out0Points->InsertNextPoint(coord));
-					radiusInterpolator->InterpolateTuple(s, &radius);
-					out0Radius->InsertNextValue(radius);
-					lumenRadiusInterpolator->InterpolateTuple(s, radii);
-					InterpolateRefine(spline, radii, clLumenRadius->GetNumberOfComponents(), refineradii, this->CircumferentialRefineSteps);
-					out0LumenRadius->InsertNextTuple(refineradii);
-					wallThicknessInterpolator->InterpolateTuple(s, thickness);
-					InterpolateRefine(spline, thickness, clWallThickness->GetNumberOfComponents(), refinethickness, this->CircumferentialRefineSteps);
-					out0WallThickness->InsertNextTuple(refinethickness);
-					out0LongiParam->InsertNextValue(s);
+	//			double lrs = 1.0/(this->LongitudinalRefineSteps+1);
+	//			for(int k=1; k<=this->LongitudinalRefineSteps; k++)
+	//			{
+	//				double s = j+k*lrs;
+	//				pointInterpolator->InterpolateTuple(s, coord);
+	//				idlist->InsertNextId(out0Points->InsertNextPoint(coord));
+	//				radiusInterpolator->InterpolateTuple(s, &radius);
+	//				out0Radius->InsertNextValue(radius);
+	//				lumenRadiusInterpolator->InterpolateTuple(s, radii);
+	//				InterpolateRefine(spline, radii, clLumenRadius->GetNumberOfComponents(), refineradii, this->CircumferentialRefineSteps);
+	//				out0LumenRadius->InsertNextTuple(refineradii);
+	//				wallThicknessInterpolator->InterpolateTuple(s, thickness);
+	//				InterpolateRefine(spline, thickness, clWallThickness->GetNumberOfComponents(), refinethickness, this->CircumferentialRefineSteps);
+	//				out0WallThickness->InsertNextTuple(refinethickness);
+	//				out0LongiParam->InsertNextValue(s);
 
-					double angle = k*lrs*rotangle;
-					GetRotationMatrix(rotaxis, angle, rot);
-					vtkMath::Multiply3x3(rot, saxis1, axis1);
-					vtkMath::Multiply3x3(rot, saxis2, axis2);
-					vtkMath::Multiply3x3(rot, sdir, dir);
-					vtkMath::Normalize(axis1);
-					vtkMath::Normalize(axis2);
-					vtkMath::Normalize(dir);
-					out0Dir->InsertNextTuple(dir);
-					out0Axis1->InsertNextTuple(axis1);
-					out0Axis2->InsertNextTuple(axis2);
-				}
-			}
-		}
-				
-		pointInterpolator->Delete();
-		radiusInterpolator->Delete();
-		lumenRadiusInterpolator->Delete();
-		wallThicknessInterpolator->Delete();
+	//				double angle = k*lrs*rotangle;
+	//				GetRotationMatrix(rotaxis, angle, rot);
+	//				vtkMath::Multiply3x3(rot, saxis1, axis1);
+	//				vtkMath::Multiply3x3(rot, saxis2, axis2);
+	//				vtkMath::Multiply3x3(rot, sdir, dir);
+	//				vtkMath::Normalize(axis1);
+	//				vtkMath::Normalize(axis2);
+	//				vtkMath::Normalize(dir);
+	//				out0Dir->InsertNextTuple(dir);
+	//				out0Axis1->InsertNextTuple(axis1);
+	//				out0Axis2->InsertNextTuple(axis2);
+	//			}
+	//		}
+	//	}
+	//			
+	//	pointInterpolator->Delete();
+	//	radiusInterpolator->Delete();
+	//	lumenRadiusInterpolator->Delete();
+	//	wallThicknessInterpolator->Delete();
 
-		vtkIdType outcellId = out0Lines->InsertNextCell(idlist);
-		idlist->Delete();
-		output0->GetCellData()->CopyData(input->GetCellData(),inCellId,outcellId);
+	//	vtkIdType outcellId = out0Lines->InsertNextCell(idlist);
+	//	idlist->Delete();
+	//	output0->GetCellData()->CopyData(input->GetCellData(),inCellId,outcellId);
 
-		for(int k=0; k<out0CircumParam->GetNumberOfComponents(); k++)
-		{
-			circumparam[k] = k*circumstep;
-		}
-		out0CircumParam->InsertNextTuple(circumparam);
-	}
-	delete[] radii;
-	delete[] thickness;
-	spline->Delete();
+	//	for(int k=0; k<out0CircumParam->GetNumberOfComponents(); k++)
+	//	{
+	//		circumparam[k] = k*circumstep;
+	//	}
+	//	out0CircumParam->InsertNextTuple(circumparam);
+	//}
+	//delete[] radii;
+	//delete[] thickness;
+	//spline->Delete();
 
 
-	if( this->UpdateSegment >= 0 )
-	{
-		//Assume the topology would not change
-		vtkPoints* cachePoints = out0cache->GetPoints();
-		vtkDoubleArray *cacheRadius = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Radius"));
-		vtkDoubleArray *cacheLumenRadius = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("LumenRadius"));
-		vtkDoubleArray *cacheWallThickness = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("WallThickness"));
-		vtkDoubleArray *cacheDir = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Dir"));
-		vtkDoubleArray *cacheAxis1 = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Axis1"));
-		vtkDoubleArray *cacheAxis2 = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Axis2"));
-		vtkDoubleArray *cacheLongiParam = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("LongiParam"));
-		vtkDoubleArray *cacheCircumParam = vtkDoubleArray::SafeDownCast(out0cache->GetCellData()->GetArray("CircumParam"));
-		inLines = out0cache->GetLines();
-		for(inCellId=0, inLines->InitTraversal(); inLines->GetNextCell(npts,pts); inCellId++)
-		{
-			if(inCellId == this->UpdateSegment)
-			{
-				for(vtkIdType j=0; j<npts; j++)
-				{
-					cachePoints->SetPoint(pts[j], out0Points->GetPoint(j));
-					cacheRadius->SetValue(pts[j], out0Radius->GetValue(j));
-					cacheLumenRadius->SetTuple(pts[j], out0LumenRadius->GetTuple(j));
-					cacheWallThickness->SetTuple(pts[j], out0WallThickness->GetTuple(j));
-					cacheDir->SetTuple(pts[j], out0Dir->GetTuple(j));
-					cacheAxis1->SetTuple(pts[j], out0Axis1->GetTuple(j));
-					cacheAxis2->SetTuple(pts[j], out0Axis2->GetTuple(j));
-					cacheLongiParam->SetValue(pts[j], out0LongiParam->GetValue(j));
-				}
-				cacheCircumParam->SetTuple(inCellId, out0CircumParam->GetTuple(0));
-				break;
-			}
-		}
-		output0->DeepCopy(out0cache);		
-	}
-	else
-	{
-		output0->SetPoints(out0Points);
-		output0->SetLines(out0Lines);
-		output0->GetPointData()->AddArray(out0Radius);
-		output0->GetPointData()->AddArray(out0LumenRadius);
-		output0->GetPointData()->AddArray(out0WallThickness);
-		output0->GetPointData()->AddArray(out0Dir);
-		output0->GetPointData()->AddArray(out0Axis1);
-		output0->GetPointData()->AddArray(out0Axis2);
-		output0->GetPointData()->AddArray(out0LongiParam);
-		output0->GetCellData()->AddArray(out0CircumParam);
-	}
-	out0cache->DeepCopy(output0);
+	//if( this->UpdateSegment >= 0 )
+	//{
+	//	//Assume the topology would not change
+	//	vtkPoints* cachePoints = out0cache->GetPoints();
+	//	vtkDoubleArray *cacheRadius = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Radius"));
+	//	vtkDoubleArray *cacheLumenRadius = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("LumenRadius"));
+	//	vtkDoubleArray *cacheWallThickness = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("WallThickness"));
+	//	vtkDoubleArray *cacheDir = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Dir"));
+	//	vtkDoubleArray *cacheAxis1 = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Axis1"));
+	//	vtkDoubleArray *cacheAxis2 = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("Axis2"));
+	//	vtkDoubleArray *cacheLongiParam = vtkDoubleArray::SafeDownCast(out0cache->GetPointData()->GetArray("LongiParam"));
+	//	vtkDoubleArray *cacheCircumParam = vtkDoubleArray::SafeDownCast(out0cache->GetCellData()->GetArray("CircumParam"));
+	//	inLines = out0cache->GetLines();
+	//	for(inCellId=0, inLines->InitTraversal(); inLines->GetNextCell(npts,pts); inCellId++)
+	//	{
+	//		if(inCellId == this->UpdateSegment)
+	//		{
+	//			for(vtkIdType j=0; j<npts; j++)
+	//			{
+	//				cachePoints->SetPoint(pts[j], out0Points->GetPoint(j));
+	//				cacheRadius->SetValue(pts[j], out0Radius->GetValue(j));
+	//				cacheLumenRadius->SetTuple(pts[j], out0LumenRadius->GetTuple(j));
+	//				cacheWallThickness->SetTuple(pts[j], out0WallThickness->GetTuple(j));
+	//				cacheDir->SetTuple(pts[j], out0Dir->GetTuple(j));
+	//				cacheAxis1->SetTuple(pts[j], out0Axis1->GetTuple(j));
+	//				cacheAxis2->SetTuple(pts[j], out0Axis2->GetTuple(j));
+	//				cacheLongiParam->SetValue(pts[j], out0LongiParam->GetValue(j));
+	//			}
+	//			cacheCircumParam->SetTuple(inCellId, out0CircumParam->GetTuple(0));
+	//			break;
+	//		}
+	//	}
+	//	output0->DeepCopy(out0cache);		
+	//}
+	//else
+	//{
+	//	output0->SetPoints(out0Points);
+	//	output0->SetLines(out0Lines);
+	//	output0->GetPointData()->AddArray(out0Radius);
+	//	output0->GetPointData()->AddArray(out0LumenRadius);
+	//	output0->GetPointData()->AddArray(out0WallThickness);
+	//	output0->GetPointData()->AddArray(out0Dir);
+	//	output0->GetPointData()->AddArray(out0Axis1);
+	//	output0->GetPointData()->AddArray(out0Axis2);
+	//	output0->GetPointData()->AddArray(out0LongiParam);
+	//	output0->GetCellData()->AddArray(out0CircumParam);
+	//}
+	//out0cache->DeepCopy(output0);
+
 
 	if( this->UpdateSegment < 0 )
 	{
@@ -1121,23 +1141,24 @@ int ExtendTubeFilter::RequestData(
 
 		delete[] HeadPID;
 		delete[] TailPID;
-
 	}	
+
 
 	delete[] refineradii_2;
 	delete[] refineradii;
 	delete[] refinethickness;
 	delete[] circumparam;
-	out0Points->Delete();
-	out0Lines->Delete();
-	out0Radius->Delete();
-	out0LumenRadius->Delete();
-	out0WallThickness->Delete();
-	out0Dir->Delete();
-	out0Axis1->Delete();
-	out0Axis2->Delete();
-	out0LongiParam->Delete();
-	out0CircumParam->Delete();
+
+//	out0Points->Delete();
+//	out0Lines->Delete();
+//	out0Radius->Delete();
+//	out0LumenRadius->Delete();
+//	out0WallThickness->Delete();
+//	out0Dir->Delete();
+//	out0Axis1->Delete();
+//	out0Axis2->Delete();
+//	out0LongiParam->Delete();
+//	out0CircumParam->Delete();
 	
 
 	return 1;

@@ -84,7 +84,8 @@ namespace SmartCoronary
 
 	enum TUBEPARAMETERS
 	{
-		LongitudinalRefineSteps = 3
+		LongitudinalRefineSteps = 3,
+		CircumferentialRefineSteps = 0
 	};
 }
 
@@ -138,8 +139,10 @@ void SumImageHist(vtkImageData* sumImage, double* sumimage, int corner1[3], int 
 void Hessian(vtkImageData* sumImage, double* sumimage, double coord[3], double eigvalue[3], double eigvector[3][3], int cellsize);
 void GetRotationMatrix(double axis[3], double angle, double rot[3][3]);
 void AxisCenterline(vtkPolyData* clModel, double planenormal[3] = NULL);
+bool DensifyCenterline(vtkPolyData* clModel);
 void RayFeatures(vtkImageInterpolator* interpolator, const double point[3], const double normal[3], double thickness, cv::Mat& features);
 int CentralizedThisContour(double center[3], double axis1[3], double axis2[3], int RingSize, double center_new[3], double* Radius, double* Thickness);
+void InterpolateRefine(vtkCardinalSpline *spline, double *in, int insize, double *out, int refinesteps);
 
 
 void fillBifurcationTriangle(CBifurcationTriangle* t
