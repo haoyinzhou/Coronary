@@ -108,11 +108,11 @@ public:
 
 
 signals:
-	void clcoordchanged(vtkIdType, double[3]);
-	void lumencoordchanged(vtkIdType, vtkIdType, double[3]);
+	void clcoordchanged(vtkIdType, double, double, double);
+	void lumenradiuschanged(vtkIdType, vtkIdType, double);
 public:
-	void send_clcoordchanged(vtkIdType, double[3]);
-	void send_lumencoordchanged(vtkIdType, vtkIdType, double[3]);
+	void send_clcoordchanged(vtkIdType, double, double, double);
+	void send_lumenradiuschanged(vtkIdType, vtkIdType, double);
 
 	
 public slots:
@@ -125,7 +125,6 @@ public slots:
 
 public:
 	vtkPolyData* clModel;
-//	vtkPolyData* lumenModel;
 	vtkImageData* ImageData;
 	vtkIdType SelectID;
 
@@ -192,8 +191,8 @@ public:
 	void send_forcerendersingal();
 
 public slots:
-	void setclcoordslot(vtkIdType, double[3]);
-	void setlumencoordslot(vtkIdType, vtkIdType, double[3]);
+	void setclcoordslot(vtkIdType, double, double, double);
+	void setlumenradiusslot(vtkIdType, vtkIdType, double);
 
 
 public:

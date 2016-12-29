@@ -145,7 +145,7 @@ public:
 						if (!this->Interactor->GetControlKey())
 							ObliqueReformat->UpdateImageOff();
 
-						std::cout << "focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+						std::cout << "2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 					}
 				}
 			}
@@ -238,6 +238,8 @@ public:
 						if (newradius < 0.1) newradius = 0.1;
 						else if (newradius > 10.0) newradius = 10.0;
 						clLumenRadius->SetComponent(focalParam[0], j, newradius);
+
+						surperwidget->send_lumenradiuschanged(focalParam[0], j, newradius);
 					}
 				}
 				else
@@ -256,6 +258,9 @@ public:
 							coord[k] -= (pickpos[0] - lastpickpos[0]) * axis1[k] + (pickpos[1] - lastpickpos[1]) * axis2[k];
 						}
 						clModel->GetPoints()->SetPoint(focalParam[0], coord);
+
+						std::cout << "in moving, sid = " << focalParam[0] << ", coord = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
+						surperwidget->send_clcoordchanged(focalParam[0], coord[0], coord[1], coord[2]);
 					}
 					else
 					{						
@@ -277,13 +282,15 @@ public:
 						else if (newradius > 10.0) newradius = 10.0;
 						clArray->SetComponent(focalParam[0], focalParam[1], newradius);
 
+						surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
+
 					//	std::cout << "moving2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 					//	std::cout << clArray->GetComponent(focalParam[0], focalParam[1]) << std::endl;
 						
 						// just for debug
-						double radius00 = clArray->GetComponent(307, 0);
-						std::cout << "in moving radius[307][0] = " << radius00 << std::endl;
-						surperwidget->send_clmodelmodified(3);		
+					//	double radius00 = clArray->GetComponent(307, 0);
+					//	std::cout << "in moving radius[307][0] = " << radius00 << std::endl;
+					//	surperwidget->send_clmodelmodified(3);		
 					}
 				}
 
@@ -600,10 +607,15 @@ void QVesselEditingWidget::SaveVTKImage(vtkImageData *image, const char* fileNam
 	}
 }
 
-void QVesselEditingWidget::send_clmodelmodified(vtkIdType d)
+void QVesselEditingWidget::send_clcoordchanged(vtkIdType pointid, double x, double y, double z)
 {
-	emit clmodelmodified(d);
+	emit clcoordchanged(pointid, x, y, z);
 }
+void QVesselEditingWidget::send_lumenradiuschanged(vtkIdType pointid, vtkIdType lumenpointid, double radius)
+{
+	emit lumenradiuschanged(pointid, lumenpointid, radius);
+}
+
 
 void qSlicerCoronaryMainModuleWidget::send_visibilitychanged(bool f)
 {
@@ -711,8 +723,9 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
 	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
 	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
-	connect(VesselEditingWidget, SIGNAL(clmodelmodified(vtkIdType)), this, SLOT(setclmodelslot(vtkIdType)));
-		
+	connect(VesselEditingWidget, SIGNAL(clcoordchanged(vtkIdType, double, double, double)), this, SLOT(setclcoordslot(vtkIdType, double, double, double)));
+	connect(VesselEditingWidget, SIGNAL(lumenradiuschanged(vtkIdType, vtkIdType, double)), this, SLOT(setlumenradiusslot(vtkIdType, vtkIdType, double)));
+
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
 	d->progressBar->setValue(0);
@@ -1190,19 +1203,33 @@ bool qSlicerCoronaryMainModuleWidget
 	return true;
 }
 
-void qSlicerCoronaryMainModuleWidget::setclmodelslot(vtkIdType sid)
+void qSlicerCoronaryMainModuleWidget::setclcoordslot(vtkIdType pointid, double x, double y, double z)
+{
+	std::cout << "in slot, pointid = " << pointid << ", newcoord = " << x << ", " << y << ", " << z << std::endl;
+
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	double coord[3] = { x, y, z };
+	logic->centerlineModel->GetPoints()->SetPoint(pointid, coord);
+	
+	return;
+}
+
+void qSlicerCoronaryMainModuleWidget::setlumenradiusslot(vtkIdType pointid, vtkIdType lumenpointid, double newradius)
 {
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
-	// just for debug
 	vtkDoubleArray *clArray;
 	clArray = vtkDoubleArray::SafeDownCast(logic->centerlineModel->GetPointData()->GetArray("LumenRadius"));
-	double radius00 = clArray->GetComponent(307, 0);
-	std::cout << "in slot" << "radius[307][0] = " << radius00 << std::endl;
+	clArray->SetComponent(pointid, lumenpointid, newradius);
+
+	std::cout << "in slot, pointid = " << pointid << ", lumenpointid = " << lumenpointid << ", newradius = " << newradius << std::endl;
 
 	return;
 }
+
 
 class CVesselPickCallBack : public vtkCommand
 {
