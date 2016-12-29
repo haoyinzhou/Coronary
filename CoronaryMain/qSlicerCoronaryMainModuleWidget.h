@@ -108,23 +108,24 @@ public:
 
 
 signals:
-	void clmodelmodified(vtkIdType);
-
+	void clcoordchanged(vtkIdType, double[3]);
+	void lumencoordchanged(vtkIdType, vtkIdType, double[3]);
 public:
-	void send_clmodelmodified(vtkIdType);
+	void send_clcoordchanged(vtkIdType, double[3]);
+	void send_lumencoordchanged(vtkIdType, vtkIdType, double[3]);
 
 	
 public slots:
 	void setvisibleslot(bool);
 	void setselectidslot(vtkIdType);
-	void setclmodelslot(vtkPolyData*, vtkPolyData*);
+	void setclmodelslot(vtkPolyData*);
 	void setimagedataslot(vtkImageData*);
 	void resetslot(void);
 	void forcerenderslot(void);
 
 public:
 	vtkPolyData* clModel;
-	vtkPolyData* lumenModel;
+//	vtkPolyData* lumenModel;
 	vtkImageData* ImageData;
 	vtkIdType SelectID;
 
@@ -135,7 +136,6 @@ public:
 public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);
 	void SaveVTKImage(vtkImageData *image, const char* fileName);  // just for debug
-
 };
 
 
@@ -167,8 +167,7 @@ public slots:
 	void updateprogressbar(int i);
 
 	bool TestButtonFunc();
-
-
+	
 public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);
 	void SaveVTKImage(vtkImageData *image, const char* fileName);
@@ -179,7 +178,7 @@ public:
 signals:
 	void visibilitychanged(bool);
 	void selectidchanged(vtkIdType);
-	void clmodelchanged(vtkPolyData*, vtkPolyData*);
+	void clmodelchanged(vtkPolyData*);
 	void imagedatachanged(vtkImageData*);
 	void resetsingal();
 	void forcerendersingal();
@@ -187,14 +186,15 @@ signals:
 public:
 	void send_visibilitychanged(bool);
 	void send_selectidchanged(vtkIdType);
-	void send_clmodelchanged(vtkPolyData*, vtkPolyData*);
+	void send_clmodelchanged(vtkPolyData*);
 	void send_imagedatachanged(vtkImageData*);
 	void send_resetsingal();
 	void send_forcerendersingal();
 
 public slots:
-	void setclmodelslot(vtkIdType sid);
-	
+	void setclcoordslot(vtkIdType, double[3]);
+	void setlumencoordslot(vtkIdType, vtkIdType, double[3]);
+
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;

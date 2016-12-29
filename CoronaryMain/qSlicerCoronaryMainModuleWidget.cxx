@@ -210,7 +210,7 @@ public:
 			}
 		}
 
-		if (pick)
+		else if (pick)
 		{
 			if (this->Pick(pickpos))
 			{
@@ -244,7 +244,6 @@ public:
 				{
 					if (this->Interactor->GetControlKey())
 					{
-						std::cout << "moving with control key" << lastpickpos[0] << lastpickpos[1] << std::endl;
 						double axis1[3], axis2[3];
 						vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
 						vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
@@ -283,14 +282,13 @@ public:
 						
 						// just for debug
 						double radius00 = clArray->GetComponent(307, 0);
-						std::cout << "radius[307][0] = " << radius00 << std::endl;
-						surperwidget->send_clmodelmodified(3);
+						std::cout << "in moving radius[307][0] = " << radius00 << std::endl;
+						surperwidget->send_clmodelmodified(3);		
 					}
 				}
 
 				clModel->Modified();
-				//this->Interactor->Render();
-				widget->GetRenderWindow()->Render();
+				this->Interactor->Render();
 
 				std::swap(lastpickpos, pickpos);
 			}
@@ -302,6 +300,7 @@ public:
 	virtual void OnKeyPress()
 	{
 		std::string key = this->Interactor->GetKeySym();
+		std::cout << "key = " << key << std::endl;
 
 		if (key == "Up" || key == "Down")
 		{
@@ -309,10 +308,14 @@ public:
 			if (step != 0)
 			{
 				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
-				widget->GetRenderWindow()->Render();
+				this->Interactor->Render();
 			}
-			return;
 		}
+		else if (key == "Control_L")
+		{
+			ObliqueReformat->UpdateImageOn();
+		}
+
 
 	//	this->Superclass::OnKeyPress();
 		return;
@@ -368,7 +371,6 @@ QVesselEditingWidget::~QVesselEditingWidget()
 
 void QVesselEditingWidget::setvisibleslot(bool f)
 {
-	std::cout << "set visible slot" << std::endl;
 	this->setVisible(f);
 
 	int parentHeight = this->height();
@@ -379,26 +381,21 @@ void QVesselEditingWidget::setvisibleslot(bool f)
 
 void QVesselEditingWidget::setselectidslot(vtkIdType id)
 {
-	std::cout << "set selectid slot, id = " << id << std::endl;
 	this->SelectID = id;
 }
 
-void QVesselEditingWidget::setclmodelslot(vtkPolyData* cl, vtkPolyData* lumen)
+void QVesselEditingWidget::setclmodelslot(vtkPolyData* cl)
 {
-	std::cout << "set clmodel slot" << std::endl;
 	this->clModel = cl;
-	this->lumenModel = lumen;
 }
 
 void QVesselEditingWidget::setimagedataslot(vtkImageData* p)
 {
-	std::cout << "set imagedata slot" << std::endl;
 	this->ImageData = p;
 }
 
 void QVesselEditingWidget::resetslot()
 {
-	std::cout << "reset slot" << std::endl;
 
 	this->clModel = NULL;
 	this->ImageData = NULL;
@@ -414,8 +411,6 @@ void QVesselEditingWidget::resetslot()
 
 void QVesselEditingWidget::forcerenderslot()
 {
-	std::cout << "force render slot" << std::endl;
-	std::cout << "SelectID = " << SelectID << std::endl;
 	{
 		vtkSmartPointer<vtkRendererCollection> rendercollection = widget1->GetRenderWindow()->GetRenderers();
 		rendercollection->InitTraversal();
@@ -568,7 +563,6 @@ void QVesselEditingWidget::forcerenderslot()
 
 	//VesselEditingRenderWindowInteractor->Start();
 
-	std::cout << "force render slot done!" << std::endl;
 }
 
 void QVesselEditingWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
@@ -619,9 +613,9 @@ void qSlicerCoronaryMainModuleWidget::send_selectidchanged(vtkIdType id)
 {
 	emit selectidchanged(id);
 }
-void qSlicerCoronaryMainModuleWidget::send_clmodelchanged(vtkPolyData* cl, vtkPolyData* lumen)
+void qSlicerCoronaryMainModuleWidget::send_clmodelchanged(vtkPolyData* cl)
 {
-	emit clmodelchanged(cl, lumen);
+	emit clmodelchanged(cl);
 }
 void qSlicerCoronaryMainModuleWidget::send_imagedatachanged(vtkImageData* p)
 {
@@ -713,13 +707,12 @@ void qSlicerCoronaryMainModuleWidget::setup()
 
 	connect(this, SIGNAL(visibilitychanged(bool)), VesselEditingWidget, SLOT(setvisibleslot(bool)));
 	connect(this, SIGNAL(selectidchanged(vtkIdType)), VesselEditingWidget, SLOT(setselectidslot(vtkIdType)));
-	connect(this, SIGNAL(clmodelchanged(vtkPolyData*, vtkPolyData*)), VesselEditingWidget, SLOT(setclmodelslot(vtkPolyData*, vtkPolyData*)));
+	connect(this, SIGNAL(clmodelchanged(vtkPolyData*)), VesselEditingWidget, SLOT(setclmodelslot(vtkPolyData*)));
 	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
 	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
 	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
 	connect(VesselEditingWidget, SIGNAL(clmodelmodified(vtkIdType)), this, SLOT(setclmodelslot(vtkIdType)));
-
-	
+		
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
 	d->progressBar->setValue(0);
@@ -795,7 +788,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 		if (d->checkBox_loadlandmarks->isChecked() == false)
 		{
 			logic->DetectLandmarksLogic(VolumeNode, d->progressBar);
-			for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+			for (int i = SmartCoronary::LEFT_CORONARY_OSTIUM; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
 			{
 				std::cout << "landmarkcoord " << i << " = " << logic->landmarks[i][0] << ", " << logic->landmarks[i][1] << ", " << logic->landmarks[i][2] << std::endl;
 			}
@@ -1135,7 +1128,6 @@ bool qSlicerCoronaryMainModuleWidget
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
-	std::cout << "ShowSelectedVesselThreeD begin!" << std::endl;
 
 	vtkSmartPointer<vtkIdTypeArray> centerlineSelectId = vtkSmartPointer<vtkIdTypeArray>::New();
 	centerlineSelectId->SetName("SegmentId");
@@ -1194,15 +1186,12 @@ bool qSlicerCoronaryMainModuleWidget
 	SelectedClDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
 	SelectedClNode->SetAndObservePolyData(selectpolydata);
 
-	std::cout << "ShowSelectedVesselThreeD end!" << std::endl;
 
 	return true;
 }
 
 void qSlicerCoronaryMainModuleWidget::setclmodelslot(vtkIdType sid)
 {
-	std::cout << "mainwidget setclmodelslot" << std::endl;
-
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
@@ -1210,7 +1199,7 @@ void qSlicerCoronaryMainModuleWidget::setclmodelslot(vtkIdType sid)
 	vtkDoubleArray *clArray;
 	clArray = vtkDoubleArray::SafeDownCast(logic->centerlineModel->GetPointData()->GetArray("LumenRadius"));
 	double radius00 = clArray->GetComponent(307, 0);
-	std::cout << "radius[307][0] = " << radius00 << std::endl;
+	std::cout << "in slot" << "radius[307][0] = " << radius00 << std::endl;
 
 	return;
 }
@@ -1266,7 +1255,7 @@ public:
 
 		mainwidget->send_visibilitychanged(true);
 		mainwidget->send_selectidchanged(pickid);
-		mainwidget->send_clmodelchanged(clmodel, lumenmodel);
+		mainwidget->send_clmodelchanged(clmodel);
 		mainwidget->send_imagedatachanged(imagedata);
 		//mainwidget->send_resetsingal();
 		mainwidget->send_forcerendersingal();
