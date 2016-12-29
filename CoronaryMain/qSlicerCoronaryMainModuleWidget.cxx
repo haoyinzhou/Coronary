@@ -244,6 +244,7 @@ public:
 				{
 					if (this->Interactor->GetControlKey())
 					{
+						std::cout << "moving with control key" << lastpickpos[0] << lastpickpos[1] << std::endl;
 						double axis1[3], axis2[3];
 						vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
 						vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
@@ -288,7 +289,8 @@ public:
 				}
 
 				clModel->Modified();
-				this->Interactor->Render();
+				//this->Interactor->Render();
+				widget->GetRenderWindow()->Render();
 
 				std::swap(lastpickpos, pickpos);
 			}
