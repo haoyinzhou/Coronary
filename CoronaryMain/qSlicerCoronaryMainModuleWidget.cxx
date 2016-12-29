@@ -33,7 +33,8 @@ public:
 
 	ORSliceStyle()
 	{
-	//	this->widget = NULL;
+		this->surperwidget = NULL;
+		this->widget = NULL;
 		this->clModel = NULL;
 		this->ObliqueReformat = NULL;
 		this->obliqueImageSlicer = NULL;
@@ -143,6 +144,8 @@ public:
 						pick = true;
 						if (!this->Interactor->GetControlKey())
 							ObliqueReformat->UpdateImageOff();
+
+						std::cout << "focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 					}
 				}
 			}
@@ -237,7 +240,6 @@ public:
 						clLumenRadius->SetComponent(focalParam[0], j, newradius);
 					}
 				}
-
 				else
 				{
 					if (this->Interactor->GetControlKey())
@@ -277,6 +279,11 @@ public:
 
 					//	std::cout << "moving2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 					//	std::cout << clArray->GetComponent(focalParam[0], focalParam[1]) << std::endl;
+						
+						// just for debug
+						double radius00 = clArray->GetComponent(307, 0);
+						std::cout << "radius[307][0] = " << radius00 << std::endl;
+						surperwidget->send_clmodelmodified(3);
 					}
 				}
 
@@ -310,7 +317,7 @@ public:
 	}
 
 public:
-
+	QVesselEditingWidget* surperwidget;
 	QVTKWidget* widget;
 
 	vtkPolyData* clModel;
@@ -324,7 +331,6 @@ public:
 
 	bool pick;
 	bool slide;
-//	ExtendTubeFilter	* clTube;
 
 };
 vtkStandardNewMacro(ORSliceStyle);
@@ -333,17 +339,18 @@ vtkStandardNewMacro(ORSliceStyle);
 
 QVesselEditingWidget::QVesselEditingWidget()
 {
-	widget1 = new QVTKWidget;
-	widget2 = new QVTKWidget;
+	this->widget1 = new QVTKWidget;
+	this->widget2 = new QVTKWidget;
 
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->addWidget(widget1, 1);
 	layout->addWidget(widget2, 1);
 	setLayout(layout);	
 
-	ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
-	ORSliceStyleCallback->widget = this->widget2;
-	widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
+	this->ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
+	this->ORSliceStyleCallback->surperwidget = this;
+	this->ORSliceStyleCallback->widget = this->widget2;
+	this->widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
@@ -537,8 +544,7 @@ void QVesselEditingWidget::forcerenderslot()
 		this->ORSliceStyleCallback->ObliqueReformat = this->ObliqueReformat;
 		this->ORSliceStyleCallback->obliqueImageSlicer = ObliqueimageSlice;
 	}
-
-
+	
 
 /*	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	VesselEditingMapper->SetInputData(lumenModel);
@@ -598,9 +604,10 @@ void QVesselEditingWidget::SaveVTKImage(vtkImageData *image, const char* fileNam
 	}
 }
 
-
-
-
+void QVesselEditingWidget::send_clmodelmodified(vtkIdType d)
+{
+	emit clmodelmodified(d);
+}
 
 void qSlicerCoronaryMainModuleWidget::send_visibilitychanged(bool f)
 {
@@ -626,7 +633,6 @@ void qSlicerCoronaryMainModuleWidget::send_forcerendersingal()
 {
 	emit forcerendersingal();
 }
-
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -709,6 +715,7 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
 	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
 	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
+	connect(VesselEditingWidget, SIGNAL(clmodelmodified(vtkIdType)), this, SLOT(setclmodelslot(vtkIdType)));
 
 	
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
@@ -1190,6 +1197,21 @@ bool qSlicerCoronaryMainModuleWidget
 	return true;
 }
 
+void qSlicerCoronaryMainModuleWidget::setclmodelslot(vtkIdType sid)
+{
+	std::cout << "mainwidget setclmodelslot" << std::endl;
+
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	// just for debug
+	vtkDoubleArray *clArray;
+	clArray = vtkDoubleArray::SafeDownCast(logic->centerlineModel->GetPointData()->GetArray("LumenRadius"));
+	double radius00 = clArray->GetComponent(307, 0);
+	std::cout << "radius[307][0] = " << radius00 << std::endl;
+
+	return;
+}
 
 class CVesselPickCallBack : public vtkCommand
 {
@@ -1203,7 +1225,7 @@ public:
 
 	virtual void Execute(vtkObject *caller, unsigned long, void*)
 	{
-		std::cout << "Mouse click!" << std::endl;
+	//	std::cout << "Mouse click!" << std::endl;
 		if (Slicer3DRenderWindowInteractor == NULL)
 			return;
 		if (clmodel->GetNumberOfCells() == 0)
@@ -1211,7 +1233,7 @@ public:
 
 		int pickpixel[2];
 		Slicer3DRenderWindowInteractor->GetEventPosition(pickpixel);
-		std::cout << "pickpixel = " << pickpixel[0] << ", " << pickpixel[1] << std::endl;
+	//	std::cout << "pickpixel = " << pickpixel[0] << ", " << pickpixel[1] << std::endl;
 
 		vtkSmartPointer< vtkCellPicker > picker = vtkCellPicker::SafeDownCast(Slicer3DRenderWindowInteractor->GetPicker());
 		picker->Pick(pickpixel[0], pickpixel[1], 0, Slicer3DRender);
@@ -1232,7 +1254,11 @@ public:
 			return;
 		LastSelectedID = pickid;
 
-		std::cout << "pickid = " << pickid << std::endl;
+		std::cout << "CVesselPickCallBack pickid = " << pickid << std::endl;
+		vtkDoubleArray *clArray;
+		clArray = vtkDoubleArray::SafeDownCast(clmodel->GetPointData()->GetArray("LumenRadius"));
+		double radius00 = clArray->GetComponent(307, 0);
+		std::cout << "radius[307][0] = " << radius00 << std::endl;
 
 		mainwidget->ShowSelectedVesselThreeD(pickid);
 

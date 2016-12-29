@@ -106,6 +106,13 @@ public:
 
 	vtkSmartPointer<ORSliceStyle> ORSliceStyleCallback;
 
+
+signals:
+	void clmodelmodified(vtkIdType);
+
+public:
+	void send_clmodelmodified(vtkIdType);
+
 	
 public slots:
 	void setvisibleslot(bool);
@@ -185,6 +192,9 @@ public:
 	void send_resetsingal();
 	void send_forcerendersingal();
 
+public slots:
+	void setclmodelslot(vtkIdType sid);
+	
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;
@@ -194,8 +204,7 @@ public:
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
 	vtkSmartPointer<vtkCellPicker> VesselPicker;
 	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
-
-
+	
 public:
 	bool RemoveAllSelectedVesselThreeD();
 	bool ShowSelectedVesselThreeD(vtkIdType);
