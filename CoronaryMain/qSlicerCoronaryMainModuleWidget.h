@@ -163,8 +163,6 @@ public slots:
 
 	void SetCheckBoxBuildBifurcationMesh(int);
 
-	void updateprogressbar(int i);
-
 	bool TestButtonFunc();
 	
 public:

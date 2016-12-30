@@ -42,7 +42,10 @@ public:
 
 		this->pick = false;
 		this->slide = false;
-	//	clTube = NULL;
+
+		this->pickedids[0] = 0;
+		this->pickedids[1] = 0;
+		this->smoothclradius = 5.5;
 	}
 	~ORSliceStyle()
 	{
@@ -87,6 +90,43 @@ public:
 
 		// Get the world coordinates of the picked
 		picker->GetPickPosition(picked);
+
+		return true;
+	}
+
+	bool GetNeighorClPoints(vector< vtkIdType >* ids_out, vector< double >* dis_out)
+	{		
+		ids_out->clear();
+		dis_out->clear();
+
+		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+		clModel->GetCellPoints(pickedids[0], idlist);
+
+		for (int i = (pickedids[1] - 1) >= 0 ? pickedids[1] - 1 : 0; i >= 0; i --)
+		{
+			if (idlist->GetId(pickedids[1]) == idlist->GetId(i))
+				continue;
+
+			double dis = abs(pickedids[1] - i);
+			if (dis > smoothclradius)
+				break;
+
+			ids_out->push_back(idlist->GetId(i));
+			dis_out->push_back(dis);
+		}	
+
+		for (int i = (pickedids[1] + 1) < idlist->GetNumberOfIds() ? (pickedids[1] + 1) : idlist->GetNumberOfIds() - 1; i < idlist->GetNumberOfIds(); i ++)
+		{
+			if (idlist->GetId(pickedids[1]) == idlist->GetId(i))
+				continue;
+
+			double dis = abs(pickedids[1] - i);
+			if (dis > smoothclradius)
+				break;
+
+			ids_out->push_back(idlist->GetId(i));
+			dis_out->push_back(dis);
+		}
 
 		return true;
 	}
@@ -140,12 +180,15 @@ public:
 					if (focalParam[0] >= 0 && focalParam[0] < idlist->GetNumberOfIds() &&
 						focalParam[1] >= 0 && focalParam[1] < clLumenRadius->GetNumberOfComponents())
 					{
+						pickedids[0] = segmentId;
+						pickedids[1] = focalParam[0];
+
 						focalParam[0] = idlist->GetId(focalParam[0]);
 						pick = true;
 						if (!this->Interactor->GetControlKey())
 							ObliqueReformat->UpdateImageOff();
 
-						std::cout << "2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+			//			std::cout << "2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 					}
 				}
 			}
@@ -239,7 +282,7 @@ public:
 						else if (newradius > 10.0) newradius = 10.0;
 						clLumenRadius->SetComponent(focalParam[0], j, newradius);
 
-						surperwidget->send_lumenradiuschanged(focalParam[0], j, newradius);
+				//		surperwidget->send_lumenradiuschanged(focalParam[0], j, newradius);
 					}
 				}
 				else
@@ -251,16 +294,31 @@ public:
 						vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
 						clAxis1->GetTuple(focalParam[0], axis1);
 						clAxis2->GetTuple(focalParam[0], axis2);
-						double coord[3];
+						double coord[3], coordmove[3];
 						clModel->GetPoint(focalParam[0], coord);
 						for (int k = 0; k < 3; k++)
 						{
-							coord[k] -= (pickpos[0] - lastpickpos[0]) * axis1[k] + (pickpos[1] - lastpickpos[1]) * axis2[k];
+							coordmove[k] = -(pickpos[0] - lastpickpos[0]) * axis1[k] - (pickpos[1] - lastpickpos[1]) * axis2[k];
+							coord[k] += coordmove[k];
 						}
 						clModel->GetPoints()->SetPoint(focalParam[0], coord);
 
-						std::cout << "in moving, sid = " << focalParam[0] << ", coord = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
 						surperwidget->send_clcoordchanged(focalParam[0], coord[0], coord[1], coord[2]);
+
+						vector<vtkIdType> neighorclid;
+						vector<double> distance;
+						GetNeighorClPoints(&neighorclid, &distance);
+						for (int i = 0; i < neighorclid.size(); i ++)
+						{
+							double rd = distance.at(i) / smoothclradius;
+							double weight = 1.0 - rd * rd;
+							double wm[3];
+							for (int k = 0; k < 3; k ++) wm[k] = weight * coordmove[k];
+							clModel->GetPoint(neighorclid.at(i), coord);
+							for (int k = 0; k < 3; k++) 	coord[k] += wm[k];
+							clModel->GetPoints()->SetPoint(neighorclid.at(i), coord);
+							surperwidget->send_clcoordchanged(neighorclid.at(i), coord[0], coord[1], coord[2]);
+						}
 					}
 					else
 					{						
@@ -278,24 +336,26 @@ public:
 
 						double newradius = clArray->GetComponent(focalParam[0], focalParam[1]);
 						newradius += moveproj;
-						if (newradius < 0.1) newradius = 0.1;
-						else if (newradius > 10.0) newradius = 10.0;
+						if (newradius < 0.1)
+						{
+							newradius = 0.1;
+							moveproj = 0.0;
+						}
+						else if (newradius > 10.0)
+						{
+							newradius = 10.0;
+							moveproj = 0.0;
+						}
 						clArray->SetComponent(focalParam[0], focalParam[1], newradius);
 
-						surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
+					//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
 
-					//	std::cout << "moving2 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
-					//	std::cout << clArray->GetComponent(focalParam[0], focalParam[1]) << std::endl;
-						
-						// just for debug
-					//	double radius00 = clArray->GetComponent(307, 0);
-					//	std::cout << "in moving radius[307][0] = " << radius00 << std::endl;
-					//	surperwidget->send_clmodelmodified(3);		
 					}
 				}
 
 				clModel->Modified();
 				this->Interactor->Render();
+				surperwidget->widget1->GetRenderWindow()->Render();
 
 				std::swap(lastpickpos, pickpos);
 			}
@@ -338,12 +398,15 @@ public:
 
 	vtkSmartPointer<vtkPointLocator> locator;
 	vtkIdType focalParam[2];
+	
 	double pickpos[3];
 	double lastpickpos[3];
 
 	bool pick;
 	bool slide;
 
+	vtkIdType pickedids[2]; // pickedids[0] segment id; pickedids[1] point id in this segment (not the real pid)
+	double smoothclradius;
 };
 vtkStandardNewMacro(ORSliceStyle);
 
@@ -870,6 +933,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 
 		if (d->checkBox_loadcenterlines->isChecked() == false)
 		{
+			this->send_visibilitychanged(false);
+
 			double z[3] = { 0.0, 0.0, 0.0 };
 			if (vtkMath::Distance2BetweenPoints(logic->landmarks[SmartCoronary::LEFT_CORONARY_OSTIUM], z) < 1e-3
 				&& vtkMath::Distance2BetweenPoints(logic->landmarks[SmartCoronary::RIGHT_CORONARY_OSTIUM], z) < 1e-3)
@@ -882,6 +947,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 			logic->LumenModel = vtkSmartPointer<vtkPolyData>::New();
 			logic->LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
 			logic->DetectCenterlinesLogic(d->progressBar);
+
 		}
 		else
 		{
@@ -963,6 +1029,8 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 			
 		SetupKeyMouseObserver();
 
+		this->send_visibilitychanged(false);
+
 		d->progressBar->setValue(100);
 	}
 	return true;
@@ -972,6 +1040,9 @@ bool qSlicerCoronaryMainModuleWidget::DetectLumenButtonFunc()
 {
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	this->send_visibilitychanged(false);
+
 	if (logic != NULL)
 	{
 		if (logic->DetectLumenLogic(d->progressBar))
@@ -1076,13 +1147,6 @@ bool qSlicerCoronaryMainModuleWidget::SaveCenterlinesButtonFunc()
 	return true;
 }
 
-
-
-void qSlicerCoronaryMainModuleWidget::updateprogressbar(int i)
-{
-	Q_D(qSlicerCoronaryMainModuleWidget);
-	d->progressBar->setValue(i);
-}
 
 void qSlicerCoronaryMainModuleWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
 {
@@ -1205,14 +1269,28 @@ bool qSlicerCoronaryMainModuleWidget
 
 void qSlicerCoronaryMainModuleWidget::setclcoordslot(vtkIdType pointid, double x, double y, double z)
 {
-	std::cout << "in slot, pointid = " << pointid << ", newcoord = " << x << ", " << y << ", " << z << std::endl;
+//	std::cout << "in slot, pointid = " << pointid << ", newcoord = " << x << ", " << y << ", " << z << std::endl;
 
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
-	double coord[3] = { x, y, z };
-	logic->centerlineModel->GetPoints()->SetPoint(pointid, coord);
+//	double coord[3] = { x, y, z };
+//	logic->centerlineModel->GetPoints()->SetPoint(pointid, coord);
 	
+	double coorddisplay[3] = { -x, -y, z };
+	logic->centerlineModel_display->GetPoints()->SetPoint(pointid, coorddisplay);
+	logic->centerlineModel_display->Modified();
+
+
+/*	vtkDoubleArray *LumenRadius = vtkDoubleArray::SafeDownCast(logic->centerlineModel_display->GetPointData()->GetArray("LumenRadius"));
+	vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(logic->centerlineModel_display->GetPointData()->GetArray("Axis1"));
+	vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(logic->centerlineModel_display->GetPointData()->GetArray("Axis2"));
+
+	clAxis1->GetTuple(pointid, axis1);
+	clAxis2->GetTuple(pointid, axis2);
+	double coord[3];
+*/
+
 	return;
 }
 
@@ -1221,11 +1299,24 @@ void qSlicerCoronaryMainModuleWidget::setlumenradiusslot(vtkIdType pointid, vtkI
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
-	vtkDoubleArray *clArray;
-	clArray = vtkDoubleArray::SafeDownCast(logic->centerlineModel->GetPointData()->GetArray("LumenRadius"));
+	vtkDoubleArray *clArray = vtkDoubleArray::SafeDownCast(logic->centerlineModel_display->GetPointData()->GetArray("LumenRadius"));
 	clArray->SetComponent(pointid, lumenpointid, newradius);
+	
+	vtkDoubleArray *clAxis1 = vtkDoubleArray::SafeDownCast(logic->centerlineModel->GetPointData()->GetArray("Axis1"));
+	vtkDoubleArray *clAxis2 = vtkDoubleArray::SafeDownCast(logic->centerlineModel->GetPointData()->GetArray("Axis2"));
+	double axis1[3], axis2[3];
+	clAxis1->GetTuple(pointid, axis1);
+	clAxis2->GetTuple(pointid, axis2);
 
-	std::cout << "in slot, pointid = " << pointid << ", lumenpointid = " << lumenpointid << ", newradius = " << newradius << std::endl;
+	double center[3], coord[3];
+	logic->centerlineModel->GetPoints()->GetPoint(pointid, center);
+
+	double cirstep = 2 * M_PI / clArray->GetNumberOfComponents();
+	for (int l = 0; l < 3; l++)
+	{
+		coord[l] = center[l] + newradius * (cos(lumenpointid*cirstep) * axis1[l] + sin(lumenpointid*cirstep) * axis2[l]);
+	}
+
 
 	return;
 }
