@@ -48,6 +48,8 @@
 #include "qfiledialog.h"
 #include "QShowEvent"
 #include "QSizePolicy"
+#include "QSlider"
+#include "QPushButton"
 
 // VTK includes
 #include <vtkObject.h>
@@ -106,6 +108,9 @@ public:
 
 	vtkSmartPointer<ORSliceStyle> ORSliceStyleCallback;
 
+public:
+	double smoothclradius;
+
 
 signals:
 	void clcoordchanged(vtkIdType, double, double, double);
@@ -125,6 +130,7 @@ public slots:
 	void resetslot(void);
 	void forcerenderslot(void);
 
+	
 public:
 	vtkPolyData* clModel;
 	vtkImageData* ImageData;

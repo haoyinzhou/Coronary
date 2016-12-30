@@ -46,7 +46,6 @@ public:
 
 		this->pickedids[0] = 0;
 		this->pickedids[1] = 0;
-		this->smoothclradius = 5.5;
 	}
 	~ORSliceStyle()
 	{
@@ -109,7 +108,7 @@ public:
 				continue;
 
 			double dis = abs(pickedids[1] - i);
-			if (dis > smoothclradius)
+			if (dis > surperwidget->smoothclradius)
 				break;
 
 			ids_out->push_back(idlist->GetId(i));
@@ -122,7 +121,7 @@ public:
 				continue;
 
 			double dis = abs(pickedids[1] - i);
-			if (dis > smoothclradius)
+			if (dis > surperwidget->smoothclradius)
 				break;
 
 			ids_out->push_back(idlist->GetId(i));
@@ -301,7 +300,7 @@ public:
 
 						for (int i = 0; i < neighorclid.size(); i ++)
 						{
-							double rd = distance.at(i) / smoothclradius;
+							double rd = distance.at(i) / surperwidget->smoothclradius;
 							double weight = 1.0 - rd * rd;
 							double weightedmove = weight * moveproj;
 							double neighorradius = weightedmove + clLumenRadius->GetComponent(neighorclid.at(i), j);
@@ -339,7 +338,7 @@ public:
 						GetNeighorClPoints(&neighorclid, &distance);
 						for (int i = 0; i < neighorclid.size(); i ++)
 						{
-							double rd = distance.at(i) / smoothclradius;
+							double rd = distance.at(i) / surperwidget->smoothclradius;
 							double weight = 1.0 - rd * rd;
 							double wm[3];
 							for (int k = 0; k < 3; k ++) wm[k] = weight * coordmove[k];
@@ -385,7 +384,7 @@ public:
 	
 							for (int i = 0; i < neighorclid.size(); i++)
 							{
-								double rd = distance.at(i) / smoothclradius;
+								double rd = distance.at(i) / surperwidget->smoothclradius;
 								double weight = 1.0 - rd * rd;
 								double weightedmove = weight * moveproj;
 								double neighorradius = weightedmove + clArray->GetComponent(neighorclid.at(i), focalParam[1]);
@@ -454,7 +453,6 @@ public:
 	bool slide;
 
 	vtkIdType pickedids[2]; // pickedids[0] segment id; pickedids[1] point id in this segment (not the real pid)
-	double smoothclradius;
 };
 vtkStandardNewMacro(ORSliceStyle);
 
@@ -468,14 +466,16 @@ QVesselEditingWidget::QVesselEditingWidget()
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->addWidget(widget1, 1);
 	layout->addWidget(widget2, 1);
-	setLayout(layout);	
+	this->setLayout(layout);
 
 	this->ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
 	this->ORSliceStyleCallback->surperwidget = this;
 	this->ORSliceStyleCallback->widget = this->widget2;
 	this->widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
 
-	Visiblity = false;
+	this->Visiblity = false;
+	this->smoothclradius = 5.5;
+
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
@@ -498,11 +498,11 @@ void QVesselEditingWidget::setvisibleslot(bool f)
 	this->setVisible(f);
 
 	int parentHeight = this->height();
-	widget1->setMinimumHeight(0.65 * parentHeight);
+	widget1->setMinimumHeight(0.5 * parentHeight);
+	widget2->setMinimumHeight(0.35 * parentHeight);
 
 	if (Visiblity == false && f == true)
 	{
-		std::cout << "emit removemouseobserveratmainwidget()" << std::endl;
 		emit removemouseobserveratmainwidget();
 	}
 
@@ -696,7 +696,6 @@ void QVesselEditingWidget::forcerenderslot()
 }
 
 
-
 void QVesselEditingWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
 {
 	if (!poly) return;
@@ -832,7 +831,7 @@ void qSlicerCoronaryMainModuleWidget::setup()
 
 	VesselEditingWidget->resize(screenWidth / 5, screenHeight / 1.2);
 	VesselEditingWidget->move(0, 0);
-	VesselEditingWidget->setWindowTitle("VesselEditingWidget");
+	VesselEditingWidget->setWindowTitle("Vessel Editing Widget");
 	VesselEditingWidget->setVisible(false);
 
 
