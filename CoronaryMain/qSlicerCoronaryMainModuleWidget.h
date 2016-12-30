@@ -110,6 +110,8 @@ public:
 signals:
 	void clcoordchanged(vtkIdType, double, double, double);
 	void lumenradiuschanged(vtkIdType, vtkIdType, double);
+	void removemouseobserveratmainwidget();
+
 public:
 	void send_clcoordchanged(vtkIdType, double, double, double);
 	void send_lumenradiuschanged(vtkIdType, vtkIdType, double);
@@ -131,6 +133,11 @@ public:
 	vtkSmartPointer<ImageStretchCurvedReformat>	 stretchCurvedReformat;
 	vtkSmartPointer<ImageCurvedReformat>	 CurvedReformat;
 	vtkSmartPointer<ImageObliqueReformat> ObliqueReformat;
+
+	bool Visiblity;
+
+protected:
+	virtual void closeEvent(QCloseEvent *event);
 
 public:
 	void SavePolyData(vtkPolyData *poly, const char* fileName);
@@ -191,7 +198,7 @@ public:
 public slots:
 	void setclcoordslot(vtkIdType, double, double, double);
 	void setlumenradiusslot(vtkIdType, vtkIdType, double);
-
+	void removemouseobserverslot();
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;
@@ -205,6 +212,7 @@ public:
 public:
 	bool RemoveAllSelectedVesselThreeD();
 	bool ShowSelectedVesselThreeD(vtkIdType);
+	bool RemoveKeyMouseObserver();
 	bool SetupKeyMouseObserver();
 	
 protected:

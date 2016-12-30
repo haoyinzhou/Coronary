@@ -42,6 +42,7 @@ public:
 
 		this->pick = false;
 		this->slide = false;
+		this->pickdis = 0.0;
 
 		this->pickedids[0] = 0;
 		this->pickedids[1] = 0;
@@ -157,8 +158,8 @@ public:
 			locator->SetNumberOfPointsPerBucket(5);
 			locator->AutomaticOn();
 			locator->BuildLocator();
-			double dist2;
-			vtkIdType focalId = locator->FindClosestPointWithinRadius(4.0, lastpickpos, dist2);
+
+			vtkIdType focalId = locator->FindClosestPointWithinRadius(15.0, lastpickpos, this->pickdis);
 		//	std::cout << "focalId = " << focalId << ", dist2 = " << dist2 << std::endl;
 
 			if (focalId >= 0 && focalId < lumenPoly->GetNumberOfPoints())
@@ -219,6 +220,9 @@ public:
 			{
 				slide = true;
 				ObliqueReformat->UpdateImageOn();
+
+				pickedids[0] = segmentId;
+				pickedids[1] = pId;
 			}
 		}
 		//this->Superclass::OnRightButtonDown();
@@ -233,10 +237,8 @@ public:
 		//this->Superclass::OnRightButtonUp();
 	}
 	
-
 	virtual void OnMouseMove()
 	{
-		//std::cout << "slide = " << slide << ", pick = " << pick << std::endl;
 		if (slide)
 		{
 			int eventpos[2], lasteventpos[2];
@@ -249,7 +251,6 @@ public:
 				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
 				widget->GetRenderWindow()->Render();
 
-		//		std::cout << "ObliqueReformat.pid = " << ObliqueReformat->GetPointId() << ", param = " << param[0] << ", " << param[1] << std::endl;
 			}
 		}
 
@@ -275,12 +276,40 @@ public:
 					if (newradius < 0.1) newradius = 0.1;
 					else if (newradius > 10.0) newradius = 10.0;
 					clRadius->SetValue(focalParam[0], newradius);
+
+
+					vector<vtkIdType> neighorclid;
+					vector<double> distance;
+					GetNeighorClPoints(&neighorclid, &distance);
+
 					for (int j = 0; j < clLumenRadius->GetNumberOfComponents(); j++)
 					{
-						newradius = clLumenRadius->GetComponent(focalParam[0], j) * (1.0 + step * 0.02);
-						if (newradius < 0.1) newradius = 0.1;
-						else if (newradius > 10.0) newradius = 10.0;
+						newradius = clLumenRadius->GetComponent(focalParam[0], j);
+						double moveproj = clLumenRadius->GetComponent(focalParam[0], j) * step * 0.02;
+						newradius += moveproj;
+						if (newradius < 0.1)
+						{
+							newradius = 0.1;
+							moveproj = 0.0;
+						}
+						else if (newradius > 10.0)
+						{
+							newradius = 10.0;
+							moveproj = 0.0;
+						}
 						clLumenRadius->SetComponent(focalParam[0], j, newradius);
+
+						for (int i = 0; i < neighorclid.size(); i ++)
+						{
+							double rd = distance.at(i) / smoothclradius;
+							double weight = 1.0 - rd * rd;
+							double weightedmove = weight * moveproj;
+							double neighorradius = weightedmove + clLumenRadius->GetComponent(neighorclid.at(i), j);
+							neighorradius = neighorradius < 0.1 ? 0.1 : neighorradius;
+							neighorradius = neighorradius > 10.0 ? 10.0 : neighorradius;
+
+							clLumenRadius->SetComponent(neighorclid.at(i), j, neighorradius);
+						}
 
 				//		surperwidget->send_lumenradiuschanged(focalParam[0], j, newradius);
 					}
@@ -321,35 +350,53 @@ public:
 						}
 					}
 					else
-					{						
-						vtkDoubleArray *clArray;
-						clArray = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
-						vtkPolyData *lumenCenter = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(4));
-						double coord[3], dir[3];
-						lumenCenter->GetPoint(0, coord);
-						//std::cout << "lumenCenter coord = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
-						vtkMath::Subtract(lastpickpos, coord, dir);
-						vtkMath::Normalize(dir);
-						double moveproj = vtkMath::Dot(move, dir);
-
-					//	std::cout << "moving focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
-
-						double newradius = clArray->GetComponent(focalParam[0], focalParam[1]);
-						newradius += moveproj;
-						if (newradius < 0.1)
+					{	
+						if (this->pickdis < 4.0)
 						{
-							newradius = 0.1;
-							moveproj = 0.0;
-						}
-						else if (newradius > 10.0)
-						{
-							newradius = 10.0;
-							moveproj = 0.0;
-						}
-						clArray->SetComponent(focalParam[0], focalParam[1], newradius);
+							vtkDoubleArray *clArray;
+							clArray = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+							vtkPolyData *lumenCenter = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(4));
+							double coord[3], dir[3];
+							lumenCenter->GetPoint(0, coord);
+							//std::cout << "lumenCenter coord = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
+							vtkMath::Subtract(lastpickpos, coord, dir);
+							vtkMath::Normalize(dir);
+							double moveproj = vtkMath::Dot(move, dir);
 
-					//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
+							//	std::cout << "moving focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
 
+							double newradius = clArray->GetComponent(focalParam[0], focalParam[1]);
+							newradius += moveproj;
+							if (newradius < 0.1)
+							{
+								newradius = 0.1;
+								moveproj = 0.0;
+							}
+							else if (newradius > 10.0)
+							{
+								newradius = 10.0;
+								moveproj = 0.0;
+							}
+							clArray->SetComponent(focalParam[0], focalParam[1], newradius);
+							
+							vector<vtkIdType> neighorclid;
+							vector<double> distance;
+							GetNeighorClPoints(&neighorclid, &distance);
+	
+							for (int i = 0; i < neighorclid.size(); i++)
+							{
+								double rd = distance.at(i) / smoothclradius;
+								double weight = 1.0 - rd * rd;
+								double weightedmove = weight * moveproj;
+								double neighorradius = weightedmove + clArray->GetComponent(neighorclid.at(i), focalParam[1]);
+								neighorradius = neighorradius < 0.1 ? 0.1 : neighorradius;
+								neighorradius = neighorradius > 10.0 ? 10.0 : neighorradius;
+
+								clArray->SetComponent(neighorclid.at(i), focalParam[1], neighorradius);
+							}
+
+							//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
+						}
 					}
 				}
 
@@ -403,6 +450,7 @@ public:
 	double lastpickpos[3];
 
 	bool pick;
+	double pickdis;
 	bool slide;
 
 	vtkIdType pickedids[2]; // pickedids[0] segment id; pickedids[1] point id in this segment (not the real pid)
@@ -426,6 +474,8 @@ QVesselEditingWidget::QVesselEditingWidget()
 	this->ORSliceStyleCallback->surperwidget = this;
 	this->ORSliceStyleCallback->widget = this->widget2;
 	this->widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
+
+	Visiblity = false;
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
@@ -437,15 +487,26 @@ QVesselEditingWidget::~QVesselEditingWidget()
 	delete[] widget2;
 }
 
-
+void QVesselEditingWidget::closeEvent(QCloseEvent *event)
+{
+	this->Visiblity = false;
+	QVTKWidget::closeEvent(event);
+}
 
 void QVesselEditingWidget::setvisibleslot(bool f)
 {
 	this->setVisible(f);
 
 	int parentHeight = this->height();
-
 	widget1->setMinimumHeight(0.65 * parentHeight);
+
+	if (Visiblity == false && f == true)
+	{
+		std::cout << "emit removemouseobserveratmainwidget()" << std::endl;
+		emit removemouseobserveratmainwidget();
+	}
+
+	Visiblity = f;
 }
 
 
@@ -466,7 +527,6 @@ void QVesselEditingWidget::setimagedataslot(vtkImageData* p)
 
 void QVesselEditingWidget::resetslot()
 {
-
 	this->clModel = NULL;
 	this->ImageData = NULL;
 
@@ -635,6 +695,8 @@ void QVesselEditingWidget::forcerenderslot()
 
 }
 
+
+
 void QVesselEditingWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
 {
 	if (!poly) return;
@@ -678,6 +740,8 @@ void QVesselEditingWidget::send_lumenradiuschanged(vtkIdType pointid, vtkIdType 
 {
 	emit lumenradiuschanged(pointid, lumenpointid, radius);
 }
+
+
 
 
 void qSlicerCoronaryMainModuleWidget::send_visibilitychanged(bool f)
@@ -788,6 +852,7 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
 	connect(VesselEditingWidget, SIGNAL(clcoordchanged(vtkIdType, double, double, double)), this, SLOT(setclcoordslot(vtkIdType, double, double, double)));
 	connect(VesselEditingWidget, SIGNAL(lumenradiuschanged(vtkIdType, vtkIdType, double)), this, SLOT(setlumenradiusslot(vtkIdType, vtkIdType, double)));
+	connect(VesselEditingWidget, SIGNAL(removemouseobserveratmainwidget()), this, SLOT(removemouseobserverslot()));
 
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
@@ -1321,6 +1386,18 @@ void qSlicerCoronaryMainModuleWidget::setlumenradiusslot(vtkIdType pointid, vtkI
 	return;
 }
 
+void qSlicerCoronaryMainModuleWidget::removemouseobserverslot()
+{
+	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
+
+	for (int i = 0; i < this->addedvesselpickobservertag.size(); i++)
+		RenderWindowInteractorthreeD->RemoveObserver(this->addedvesselpickobservertag.at(i));
+	this->addedvesselpickobservertag.clear();
+}
+
+
 
 class CVesselPickCallBack : public vtkCommand
 {
@@ -1359,15 +1436,9 @@ public:
 			pickid = segmentidarray->GetValue(pickid);
 		}
 
-		if (pickid == LastSelectedID)
-			return;
+	//	if (pickid == LastSelectedID)
+	//		return;
 		LastSelectedID = pickid;
-
-		std::cout << "CVesselPickCallBack pickid = " << pickid << std::endl;
-		vtkDoubleArray *clArray;
-		clArray = vtkDoubleArray::SafeDownCast(clmodel->GetPointData()->GetArray("LumenRadius"));
-		double radius00 = clArray->GetComponent(307, 0);
-		std::cout << "radius[307][0] = " << radius00 << std::endl;
 
 		mainwidget->ShowSelectedVesselThreeD(pickid);
 
@@ -1484,6 +1555,22 @@ public:
 
 };
 
+bool qSlicerCoronaryMainModuleWidget
+::RemoveKeyMouseObserver()
+{
+	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
+
+	for (int i = 0; i < this->addedvesselpickobservertag.size(); i++)
+		RenderWindowInteractorthreeD->RemoveObserver(this->addedvesselpickobservertag.at(i));
+	this->addedvesselpickobservertag.clear();
+
+	for (int i = 0; i < this->addedctrlobservertag.size(); i++)
+		RenderWindowInteractorthreeD->RemoveObserver(this->addedctrlobservertag.at(i));
+	this->addedctrlobservertag.clear();
+	return true;
+}
 
 
 bool qSlicerCoronaryMainModuleWidget
@@ -1495,7 +1582,8 @@ bool qSlicerCoronaryMainModuleWidget
 	if (logic->centerlineTube->GetOutput(0)->GetNumberOfCells() == 0)
 		return false;
 
-	RemoveAllSelectedVesselThreeD();
+	qSlicerCoronaryMainModuleWidget::RemoveAllSelectedVesselThreeD();
+	qSlicerCoronaryMainModuleWidget::RemoveKeyMouseObserver();
 
 	// set ctrl observer
 	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
@@ -1523,13 +1611,6 @@ bool qSlicerCoronaryMainModuleWidget
 	*/
 	
 	
-	for (int i = 0; i < addedvesselpickobservertag.size(); i++)
-		RenderWindowInteractorthreeD->RemoveObserver(addedvesselpickobservertag.at(i));
-	addedvesselpickobservertag.clear();
-
-	for (int i = 0; i < addedctrlobservertag.size(); i++)
-		RenderWindowInteractorthreeD->RemoveObserver(addedctrlobservertag.at(i));
-	addedctrlobservertag.clear();
 
 	VesselPicker = vtkSmartPointer<vtkCellPicker>::New();
 	VesselPicker->SetTolerance(0.005);
