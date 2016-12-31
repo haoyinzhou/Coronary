@@ -33,7 +33,7 @@ public:
 
 	ORSliceStyle()
 	{
-		this->surperwidget = NULL;
+		this->superwidget = NULL;
 		this->widget = NULL;
 		this->clModel = NULL;
 		this->ObliqueReformat = NULL;
@@ -46,6 +46,12 @@ public:
 
 		this->pickedids[0] = 0;
 		this->pickedids[1] = 0;
+
+		for (int l = 0; l < 3; l++)
+		{
+			pickpos[l] = 0.0;
+			lastpickpos[l] = 0.0;
+		}
 	}
 	~ORSliceStyle()
 	{
@@ -59,7 +65,7 @@ public:
 		this->FindPokedRenderer(x, y);
 		if (this->CurrentRenderer == NULL) return false;
 
-		vtkPropPicker *picker = vtkPropPicker::SafeDownCast(this->Interactor->GetPicker());
+		vtkSmartPointer<vtkPropPicker> picker = vtkPropPicker::SafeDownCast(this->Interactor->GetPicker());
 		if (picker == NULL) return false;
 
 		// Pick at the mouse location provided by the interactor
@@ -108,7 +114,7 @@ public:
 				continue;
 
 			double dis = abs(pickedids[1] - i);
-			if (dis > surperwidget->smoothclradius)
+			if (dis > superwidget->smoothclradius)
 				break;
 
 			ids_out->push_back(idlist->GetId(i));
@@ -121,7 +127,7 @@ public:
 				continue;
 
 			double dis = abs(pickedids[1] - i);
-			if (dis > surperwidget->smoothclradius)
+			if (dis > superwidget->smoothclradius)
 				break;
 
 			ids_out->push_back(idlist->GetId(i));
@@ -229,10 +235,7 @@ public:
 
 	virtual void OnRightButtonUp()
 	{
-		if (slide)
-		{
-			slide = false;
-		}
+		slide = false;
 		//this->Superclass::OnRightButtonUp();
 	}
 	
@@ -276,7 +279,6 @@ public:
 					else if (newradius > 10.0) newradius = 10.0;
 					clRadius->SetValue(focalParam[0], newradius);
 
-
 					vector<vtkIdType> neighorclid;
 					vector<double> distance;
 					GetNeighorClPoints(&neighorclid, &distance);
@@ -300,7 +302,7 @@ public:
 
 						for (int i = 0; i < neighorclid.size(); i ++)
 						{
-							double rd = distance.at(i) / surperwidget->smoothclradius;
+							double rd = distance.at(i) / superwidget->smoothclradius;
 							double weight = 1.0 - rd * rd;
 							double weightedmove = weight * moveproj;
 							double neighorradius = weightedmove + clLumenRadius->GetComponent(neighorclid.at(i), j);
@@ -331,21 +333,21 @@ public:
 						}
 						clModel->GetPoints()->SetPoint(focalParam[0], coord);
 
-						surperwidget->send_clcoordchanged(focalParam[0], coord[0], coord[1], coord[2]);
+						superwidget->send_clcoordchanged(focalParam[0], coord[0], coord[1], coord[2]);
 
 						vector<vtkIdType> neighorclid;
 						vector<double> distance;
 						GetNeighorClPoints(&neighorclid, &distance);
 						for (int i = 0; i < neighorclid.size(); i ++)
 						{
-							double rd = distance.at(i) / surperwidget->smoothclradius;
+							double rd = distance.at(i) / superwidget->smoothclradius;
 							double weight = 1.0 - rd * rd;
 							double wm[3];
 							for (int k = 0; k < 3; k ++) wm[k] = weight * coordmove[k];
 							clModel->GetPoint(neighorclid.at(i), coord);
 							for (int k = 0; k < 3; k++) 	coord[k] += wm[k];
 							clModel->GetPoints()->SetPoint(neighorclid.at(i), coord);
-							surperwidget->send_clcoordchanged(neighorclid.at(i), coord[0], coord[1], coord[2]);
+							superwidget->send_clcoordchanged(neighorclid.at(i), coord[0], coord[1], coord[2]);
 						}
 					}
 					else
@@ -384,7 +386,7 @@ public:
 	
 							for (int i = 0; i < neighorclid.size(); i++)
 							{
-								double rd = distance.at(i) / surperwidget->smoothclradius;
+								double rd = distance.at(i) / superwidget->smoothclradius;
 								double weight = 1.0 - rd * rd;
 								double weightedmove = weight * moveproj;
 								double neighorradius = weightedmove + clArray->GetComponent(neighorclid.at(i), focalParam[1]);
@@ -401,7 +403,7 @@ public:
 
 				clModel->Modified();
 				this->Interactor->Render();
-				surperwidget->widget1->GetRenderWindow()->Render();
+				superwidget->widget1->GetRenderWindow()->Render();
 
 				std::swap(lastpickpos, pickpos);
 			}
@@ -413,7 +415,6 @@ public:
 	virtual void OnKeyPress()
 	{
 		std::string key = this->Interactor->GetKeySym();
-		std::cout << "key = " << key << std::endl;
 
 		if (key == "Up" || key == "Down")
 		{
@@ -429,13 +430,12 @@ public:
 			ObliqueReformat->UpdateImageOn();
 		}
 
-
 	//	this->Superclass::OnKeyPress();
 		return;
 	}
 
 public:
-	QVesselEditingWidget* surperwidget;
+	QVesselEditingWidget* superwidget;
 	QVTKWidget* widget;
 
 	vtkPolyData* clModel;
@@ -457,6 +457,351 @@ public:
 vtkStandardNewMacro(ORSliceStyle);
 
 
+class CRRotateStyle : public vtkInteractorStyleImage
+{
+public:
+	static CRRotateStyle *New();
+	vtkTypeMacro(CRRotateStyle, vtkInteractorStyleImage);
+	
+	CRRotateStyle()
+	{
+		this->superwidget = NULL;
+		this->widget = NULL;
+		this->clModel = NULL;
+		this->CurvedReformat = NULL;
+		this->curvedImageSlicer = NULL;
+		this->locator = vtkSmartPointer<vtkPointLocator>::New();
+		this->focalId = -1;
+
+		this->pick = false;
+		this->rotate = false;
+		this->pickdis = 0;
+
+		this->pickedids[0] = 0;
+		this->pickedids[1] = 0;
+
+		for (int l = 0; l < 3; l++)
+		{
+			pickpos[l] = 0.0;
+			lastpickpos[l] = 0.0;
+		}
+	}
+
+	~CRRotateStyle()
+	{
+
+	}
+	
+	bool Pick(double picked[3])
+	{
+		int x = this->Interactor->GetEventPosition()[0];
+		int y = this->Interactor->GetEventPosition()[1];
+
+		this->FindPokedRenderer(x, y);
+		if (this->CurrentRenderer == NULL) return false;
+
+		vtkPropPicker *picker = vtkPropPicker::SafeDownCast(this->Interactor->GetPicker());
+		if (picker == NULL) return false;
+
+		// Pick at the mouse location provided by the interactor
+		picker->Pick(x, y, 0.0, this->CurrentRenderer);
+
+		// There could be other props assigned to this picker, so 
+		// make sure we picked the image actor
+		vtkAssemblyPath* path = picker->GetPath();
+		bool validPick = false;
+
+		if (path)
+		{
+			vtkCollectionSimpleIterator sit;
+			path->InitTraversal(sit);
+			vtkAssemblyNode *node;
+			for (int i = 0; i < path->GetNumberOfItems() && !validPick; ++i)
+			{
+				node = path->GetNextNode(sit);
+				if (curvedImageSlicer == vtkImageSlice::SafeDownCast(node->GetViewProp()))
+					validPick = true;
+			}
+		}
+		if (!validPick)
+			return false;
+		// Get the world coordinates of the picked
+		picker->GetPickPosition(picked);
+		
+		return true;
+	}
+
+
+	bool GetNeighorClPoints(vector< vtkIdType >* ids_out, vector< double >* dis_out)
+	{
+		ids_out->clear();
+		dis_out->clear();
+
+		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+		clModel->GetCellPoints(pickedids[0], idlist);
+
+		for (int i = (pickedids[1] - 1) >= 0 ? pickedids[1] - 1 : 0; i >= 0; i--)
+		{
+			if (idlist->GetId(pickedids[1]) == idlist->GetId(i))
+				continue;
+
+			double dis = abs(pickedids[1] - i);
+			if (dis > superwidget->smoothclradius)
+				break;
+
+			ids_out->push_back(idlist->GetId(i));
+			dis_out->push_back(dis);
+		}
+
+		for (int i = (pickedids[1] + 1) < idlist->GetNumberOfIds() ? (pickedids[1] + 1) : idlist->GetNumberOfIds() - 1; i < idlist->GetNumberOfIds(); i++)
+		{
+			if (idlist->GetId(pickedids[1]) == idlist->GetId(i))
+				continue;
+
+			double dis = abs(pickedids[1] - i);
+			if (dis > superwidget->smoothclradius)
+				break;
+
+			ids_out->push_back(idlist->GetId(i));
+			dis_out->push_back(dis);
+		}
+
+		return true;
+	}
+	
+	virtual void OnLeftButtonDown()
+	{
+		if (!clModel || !CurvedReformat || !curvedImageSlicer)
+			return;
+
+		if (this->Pick(lastpickpos))
+		{
+			vtkPolyData *lumenPoly = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(2));
+			vtkPolyData *lumenCenter = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(4));
+
+			if (!lumenPoly || !lumenCenter) return;
+
+			vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+			if (!clLumenRadius) return;
+
+			locator = vtkSmartPointer<vtkPointLocator>::New();
+			locator->SetDataSet(lumenPoly);
+			locator->SetNumberOfPointsPerBucket(5);
+			locator->AutomaticOn();
+			locator->BuildLocator();
+
+			this->focalId = locator->FindClosestPointWithinRadius(4.0, lastpickpos, this->pickdis);
+			//	std::cout << "focalId = " << focalId << ", dist2 = " << dist2 << std::endl;
+
+			if (this->focalId >= 0 && this->focalId < lumenPoly->GetNumberOfPoints())
+			{
+				vtkDoubleArray *paramArray = vtkDoubleArray::SafeDownCast(lumenPoly->GetPointData()->GetArray("Param"));
+				if (!paramArray) return;
+
+				double param[2];
+				paramArray->GetTuple(focalId, param);
+
+				focalParam[0] = vtkIdType((SmartCoronary::LongitudinalRefineSteps + 1) * param[0] + 0.5);
+				focalParam[1] = vtkIdType(param[1] + 0.5) % clLumenRadius->GetNumberOfComponents();
+				vtkIdType segmentId = this->CurvedReformat->GetSegmentId();
+
+				if (segmentId >= 0 && segmentId < clModel->GetNumberOfCells())
+				{
+					vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+					clModel->GetCellPoints(segmentId, idlist);
+					if (focalParam[0] >= 0 && focalParam[0] < idlist->GetNumberOfIds() &&
+						focalParam[1] >= 0 && focalParam[1] < clLumenRadius->GetNumberOfComponents())
+					{
+						pickedids[0] = segmentId;
+						pickedids[1] = focalParam[0];
+
+						focalParam[0] = idlist->GetId(focalParam[0]);
+						pick = true;
+					//	if (!this->Interactor->GetControlKey())
+					//		CurvedReformat->UpdateImageOff();
+
+				//		std::cout << "this->focalId = " << this->focalId << "focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+					}
+				}
+			}
+		}
+	}
+	
+	virtual void OnLeftButtonUp()
+	{
+		if (pick)
+		{
+			pick = false;
+			this->focalId = -1;
+		//	CurvedReformat->UpdateImageOn();
+		}
+	}
+	
+	virtual void OnRightButtonDown()
+	{
+		if (CurvedReformat && CurvedReformat->GetSegmentId() >= 0)
+		{
+			rotate = true;
+			CurvedReformat->UpdateImageOn();
+		}
+		return;
+		//this->Superclass::OnRightButtonDown();
+	}
+	virtual void OnRightButtonUp()
+	{
+		rotate = false;
+		//this->Superclass::OnRightButtonUp();
+	}
+
+	virtual void OnMouseMove()
+	{
+		if (rotate)
+		{
+			int eventpos[2], lasteventpos[2];
+			this->Interactor->GetEventPosition(eventpos);
+			this->Interactor->GetLastEventPosition(lasteventpos);
+			int step = max(eventpos[0] - lasteventpos[0], eventpos[1] - lasteventpos[1]);
+
+			if (step != 0)
+			{
+				CurvedReformat->SetTwistIndex(CurvedReformat->GetTwistIndex() + step);
+				this->Interactor->Render();
+			}
+		}
+		else if (pick)
+		{
+			if (Pick(pickpos))
+			{
+				this->clModel->Modified();
+
+				double move[3];
+				vtkMath::Subtract(pickpos, lastpickpos, move);
+
+				int eventpos[2], lasteventpos[2];
+				this->Interactor->GetEventPosition(eventpos);
+				this->Interactor->GetLastEventPosition(lasteventpos);
+		//		std::cout << "eventpos = " << eventpos[0] << ", " << eventpos[1] << std::endl;
+		//		std::cout << "lasteventpos = " << lasteventpos[0] << ", " << lasteventpos[1] << std::endl;
+				
+				if (this->Interactor->GetShiftKey())
+				{
+				}
+				else
+				{
+					double coord[3], dir[3];
+					vtkPolyData *lumenCenter = vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(4));
+					lumenCenter->GetPoint(focalId / 2, coord);
+					vtkMath::Subtract(lastpickpos, coord, dir);
+					vtkMath::Normalize(dir);
+					double moveproj = vtkMath::Dot(move, dir);
+
+					if (this->pickdis < 4.0)
+					{
+						vtkDoubleArray *clArray = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+					//	std::cout << "moving focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+
+						double newradius = clArray->GetComponent(focalParam[0], focalParam[1]);
+						newradius += moveproj;
+						if (newradius < 0.1)
+						{
+							newradius = 0.1;
+							moveproj = 0.0;
+						}
+						else if (newradius > 10.0)
+						{
+							newradius = 10.0;
+							moveproj = 0.0;
+						}
+						clArray->SetComponent(focalParam[0], focalParam[1], newradius);
+
+						vector<vtkIdType> neighorclid;
+						vector<double> distance;
+						GetNeighorClPoints(&neighorclid, &distance);
+
+						for (int i = 0; i < neighorclid.size(); i++)
+						{
+							double rd = distance.at(i) / superwidget->smoothclradius;
+							double weight = 1.0 - rd * rd;
+							double weightedmove = weight * moveproj;
+							double neighorradius = weightedmove + clArray->GetComponent(neighorclid.at(i), focalParam[1]);
+							neighorradius = neighorradius < 0.1 ? 0.1 : neighorradius;
+							neighorradius = neighorradius > 10.0 ? 10.0 : neighorradius;
+
+							clArray->SetComponent(neighorclid.at(i), focalParam[1], neighorradius);
+						}
+						
+						//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
+					}				
+				}			
+				this->clModel->Modified();
+				this->Interactor->Render();
+				superwidget->widget2->GetRenderWindow()->Render();
+
+				std::swap(lastpickpos, pickpos);	
+			}
+		}		
+		
+		this->Superclass::OnMouseMove();
+	}
+	
+	virtual void OnKeyPress()
+	{
+		std::string key = this->Interactor->GetKeySym();
+
+		if (key == "Left" || key == "Right")
+		{
+			int step = (key == "Right") ? 1 : -1;
+			if (step != 0)
+			{
+				CurvedReformat->SetTwistIndex(CurvedReformat->GetTwistIndex() + step);
+				this->Interactor->Render();
+			}
+		}
+		else if (key == "g")
+		{
+		//	if (pick)
+			{
+				if (Pick(pickpos))
+				{
+					std::cout << "g key!" << std::endl;
+					this->clModel->Modified();
+				}
+			}
+		}
+
+
+
+		//	this->Superclass::OnKeyPress();
+		return;
+	}
+
+public:
+
+	QVesselEditingWidget* superwidget;
+	QVTKWidget* widget;
+
+	vtkPolyData* clModel;
+	ImageCurvedReformat* CurvedReformat;
+	vtkImageSlice *curvedImageSlicer;
+
+	vtkSmartPointer<vtkPointLocator> locator;
+	vtkIdType focalParam[2];
+	vtkIdType focalId;
+	
+	double pickpos[3];
+	double lastpickpos[3];
+	double pickdis;
+
+	bool pick;
+	bool rotate;
+
+	vtkIdType pickedids[2]; // pickedids[0] segment id; pickedids[1] point id in this segment (not the real pid)
+
+};
+vtkStandardNewMacro(CRRotateStyle);
+
+
+
 
 QVesselEditingWidget::QVesselEditingWidget()
 {
@@ -469,13 +814,18 @@ QVesselEditingWidget::QVesselEditingWidget()
 	this->setLayout(layout);
 
 	this->ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
-	this->ORSliceStyleCallback->surperwidget = this;
+	this->ORSliceStyleCallback->superwidget = this;
 	this->ORSliceStyleCallback->widget = this->widget2;
 	this->widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
 
+	this->CRRotateStyleCallback = vtkSmartPointer<CRRotateStyle>::New();
+	this->CRRotateStyleCallback->superwidget = this;
+	this->CRRotateStyleCallback->widget = this->widget1;
+	this->widget1->GetInteractor()->SetInteractorStyle(CRRotateStyleCallback);
+
+
 	this->Visiblity = false;
 	this->smoothclradius = 5.5;
-
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
@@ -555,6 +905,7 @@ void QVesselEditingWidget::forcerenderslot()
 		CurvedReformat->SetInputData(1, clModel);
 		CurvedReformat->SetSegmentId(SelectID);
 		CurvedReformat->SetTwistIndex(0);
+		CurvedReformat->UpdateImageOn();
 		CurvedReformat->Update();
 
 		//vtkSmartPointer<vtkPolyData> poly;
@@ -607,8 +958,12 @@ void QVesselEditingWidget::forcerenderslot()
 		camera->SetPosition(0, 30, 1);
 		camera->SetFocalPoint(0, 30, 0);
 		camera->SetParallelScale(30);
-
+	
 		widget1->GetRenderWindow()->Render();
+
+		this->CRRotateStyleCallback->clModel = this->clModel;
+		this->CRRotateStyleCallback->CurvedReformat = this->CurvedReformat;
+		this->CRRotateStyleCallback->curvedImageSlicer = CurvedimageSlice;
 	}
 
 	{

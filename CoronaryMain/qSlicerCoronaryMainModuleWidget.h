@@ -94,6 +94,7 @@ class vtkMRMLNode;
 
 class CVesselPickCallBack;
 class ORSliceStyle;
+class CRRotateStyle;
 
 class QVesselEditingWidget : public QVTKWidget
 {
@@ -107,6 +108,7 @@ public:
 	QVTKWidget* widget2;
 
 	vtkSmartPointer<ORSliceStyle> ORSliceStyleCallback;
+	vtkSmartPointer<CRRotateStyle> CRRotateStyleCallback;
 
 public:
 	double smoothclradius;
