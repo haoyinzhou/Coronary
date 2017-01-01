@@ -300,10 +300,13 @@ public:
 						}
 						clLumenRadius->SetComponent(focalParam[0], j, newradius);
 
-						for (int i = 0; i < neighorclid.size(); i ++)
+						for (int i = 0; i < neighorclid.size(); i++)
 						{
-							double rd = distance.at(i) / superwidget->smoothclradius;
-							double weight = 1.0 - rd * rd;
+							double vd = clLumenRadius->GetComponent(neighorclid.at(i), j) - clLumenRadius->GetComponent(focalParam[0], j);
+							if (vd * moveproj > 0.0) continue;
+
+							double hd = distance.at(i) / superwidget->smoothclradius;
+							double weight = exp(-hd * hd * 5);
 							double weightedmove = weight * moveproj;
 							double neighorradius = weightedmove + clLumenRadius->GetComponent(neighorclid.at(i), j);
 							neighorradius = neighorradius < 0.1 ? 0.1 : neighorradius;
@@ -386,8 +389,11 @@ public:
 	
 							for (int i = 0; i < neighorclid.size(); i++)
 							{
-								double rd = distance.at(i) / superwidget->smoothclradius;
-								double weight = 1.0 - rd * rd;
+								double vd = clArray->GetComponent(neighorclid.at(i), focalParam[1]) - clArray->GetComponent(focalParam[0], focalParam[1]);
+								if (vd * moveproj > 0.0) continue;
+
+								double hd = distance.at(i) / superwidget->smoothclradius;
+								double weight = exp(-hd * hd * 5);
 								double weightedmove = weight * moveproj;
 								double neighorradius = weightedmove + clArray->GetComponent(neighorclid.at(i), focalParam[1]);
 								neighorradius = neighorradius < 0.1 ? 0.1 : neighorradius;
@@ -395,7 +401,6 @@ public:
 
 								clArray->SetComponent(neighorclid.at(i), focalParam[1], neighorradius);
 							}
-
 							//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
 						}
 					}
@@ -432,6 +437,14 @@ public:
 
 	//	this->Superclass::OnKeyPress();
 		return;
+	}
+
+	virtual void OnLeave()
+	{
+		pick = false;
+		ObliqueReformat->UpdateImageOn();
+
+		slide = false;
 	}
 
 public:
@@ -720,8 +733,11 @@ public:
 
 						for (int i = 0; i < neighorclid.size(); i++)
 						{
-							double rd = distance.at(i) / superwidget->smoothclradius;
-							double weight = 1.0 - rd * rd;
+							double vd = clArray->GetComponent(neighorclid.at(i), focalParam[1]) - clArray->GetComponent(focalParam[0], focalParam[1]);
+							if (vd * moveproj > 0.0) continue;
+
+							double hd = distance.at(i) / superwidget->smoothclradius;
+							double weight = exp(-hd * hd * 5);
 							double weightedmove = weight * moveproj;
 							double neighorradius = weightedmove + clArray->GetComponent(neighorclid.at(i), focalParam[1]);
 							neighorradius = neighorradius < 0.1 ? 0.1 : neighorradius;
@@ -730,7 +746,7 @@ public:
 							clArray->SetComponent(neighorclid.at(i), focalParam[1], neighorradius);
 						}
 						
-						//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
+							//	surperwidget->send_lumenradiuschanged(focalParam[0], focalParam[1], newradius);
 					}				
 				}			
 				this->clModel->Modified();
@@ -759,20 +775,17 @@ public:
 		}
 		else if (key == "g")
 		{
-		//	if (pick)
-			{
-				if (Pick(pickpos))
-				{
-					std::cout << "g key!" << std::endl;
-					this->clModel->Modified();
-				}
-			}
+
 		}
-
-
 
 		//	this->Superclass::OnKeyPress();
 		return;
+	}
+
+	virtual void OnLeave()
+	{
+		pick = false;
+		rotate = false;
 	}
 
 public:
@@ -813,10 +826,12 @@ QVesselEditingWidget::QVesselEditingWidget()
 	layout->addWidget(widget2, 1);
 	this->setLayout(layout);
 
+	
 	this->ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
 	this->ORSliceStyleCallback->superwidget = this;
 	this->ORSliceStyleCallback->widget = this->widget2;
 	this->widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
+	widget1->GetRenderWindow()->LineSmoothingOn();
 
 	this->CRRotateStyleCallback = vtkSmartPointer<CRRotateStyle>::New();
 	this->CRRotateStyleCallback->superwidget = this;
