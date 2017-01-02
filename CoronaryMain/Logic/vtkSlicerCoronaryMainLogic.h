@@ -113,6 +113,7 @@ public:
   bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar);
   bool DetectCenterlinesLogic(QProgressBar* progressbar);
   bool DetectLumenLogic(QProgressBar* progressbar);
+  bool DetectLumenLogic(vtkIdType segmentID);
 
   bool BuildLandmarksMeshLogic();
   bool BuildCenterlinesMeshLogic();

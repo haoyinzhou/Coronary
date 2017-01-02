@@ -1964,10 +1964,8 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vtkImageInterpolator* interpolator, Learning &learn)
 {
 	LearningImpl *learnimpl = learn.limpl;
-	
-	//	learnimpl->LoadLumenWallClassifiers();
 	learnimpl->LoadLumenAlongNormalsClassifiers();
-
+	
 	vtkSmartPointer<vtkDoubleArray> clAxis1 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis1"));
 	vtkSmartPointer<vtkDoubleArray> clAxis2 = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("Axis2"));
 	vtkSmartPointer<vtkDoubleArray> clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
@@ -1997,7 +1995,7 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 			for (int l = 0; l < 3; l++) ray[2][l] = cos((k + 1)*cirstep)*axis1[l] + sin((k + 1)*cirstep)*axis2[l];
 			double maxpred = std::numeric_limits<double>::lowest();
 			double maxradius, maxthickness;
-			for (double radius = 0.8; radius < 2.5; radius = radius + 0.05)
+			for (double radius = 0.2; radius < 3.0; radius += 0.1)
 			{
 				for (int j = 0; j < 3; j++)
 				{
@@ -2005,7 +2003,8 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 				}
 
 				double pred = 0;
-				for (double thickness = 0.05; thickness < 0.25; thickness += 0.05)
+//				for (double thickness = 0.05; thickness < 0.25; thickness += 0.05)
+				double thickness = 0.05;
 				{
 					for (int j = 0; j < 3; j++)
 					{
@@ -2034,6 +2033,8 @@ bool DetectCenterlineLumenWall_core(vtkPolyData* clModel, vtkIdType selectId, vt
 
 		for (int k = 0; k < clLumenRadius->GetNumberOfComponents(); k++)
 		{
+			if (Radius[k] > 3.0)
+				Radius[k] = 3.0;
 			clLumenRadius->SetComponent(pid, k, Radius[k]);
 			clWallThickness->SetComponent(pid, k, Thickness[k]);
 		}

@@ -338,13 +338,15 @@ public:
 
 						superwidget->send_clcoordchanged(focalParam[0], coord[0], coord[1], coord[2]);
 
-						vector<vtkIdType> neighorclid;
+					/*	vector<vtkIdType> neighorclid;
 						vector<double> distance;
 						GetNeighorClPoints(&neighorclid, &distance);
 						for (int i = 0; i < neighorclid.size(); i ++)
 						{
-							double rd = distance.at(i) / superwidget->smoothclradius;
-							double weight = 1.0 - rd * rd;
+						//	double rd = distance.at(i) / superwidget->smoothclradius;
+						//	double weight = 1.0 - rd * rd;
+							double hd = distance.at(i) / superwidget->smoothclradius;
+							double weight = exp(-hd * hd * 5);
 							double wm[3];
 							for (int k = 0; k < 3; k ++) wm[k] = weight * coordmove[k];
 							clModel->GetPoint(neighorclid.at(i), coord);
@@ -352,6 +354,7 @@ public:
 							clModel->GetPoints()->SetPoint(neighorclid.at(i), coord);
 							superwidget->send_clcoordchanged(neighorclid.at(i), coord[0], coord[1], coord[2]);
 						}
+						*/
 					}
 					else
 					{	
@@ -433,6 +436,10 @@ public:
 		else if (key == "Control_L")
 		{
 			ObliqueReformat->UpdateImageOn();
+		}
+		else if (key == "g")
+		{
+			superwidget->send_detectlumen(ObliqueReformat->GetSegmentId());
 		}
 
 	//	this->Superclass::OnKeyPress();
@@ -775,8 +782,9 @@ public:
 		}
 		else if (key == "g")
 		{
-
+			superwidget->send_detectlumen(CurvedReformat->GetSegmentId());
 		}
+
 
 		//	this->Superclass::OnKeyPress();
 		return;
@@ -831,7 +839,6 @@ QVesselEditingWidget::QVesselEditingWidget()
 	this->ORSliceStyleCallback->superwidget = this;
 	this->ORSliceStyleCallback->widget = this->widget2;
 	this->widget2->GetInteractor()->SetInteractorStyle(ORSliceStyleCallback);
-	widget1->GetRenderWindow()->LineSmoothingOn();
 
 	this->CRRotateStyleCallback = vtkSmartPointer<CRRotateStyle>::New();
 	this->CRRotateStyleCallback->superwidget = this;
@@ -1065,6 +1072,12 @@ void QVesselEditingWidget::forcerenderslot()
 
 }
 
+void QVesselEditingWidget::simplerenderslot()
+{
+	std::cout << "simplerenderslot" << std::endl;
+	this->widget1->GetRenderWindow()->Render();
+	this->widget2->GetRenderWindow()->Render();
+}
 
 void QVesselEditingWidget::SavePolyData(vtkPolyData *poly, const char* fileName)
 {
@@ -1110,6 +1123,30 @@ void QVesselEditingWidget::send_lumenradiuschanged(vtkIdType pointid, vtkIdType 
 	emit lumenradiuschanged(pointid, lumenpointid, radius);
 }
 
+void QVesselEditingWidget::send_detectlumen(vtkIdType sid)
+{
+	emit detectlumensinglal(sid);
+}
+
+
+
+class KeyCallbackCenterline : public vtkCommand
+{
+public:
+	static KeyCallbackCenterline *New()
+	{
+		return new KeyCallbackCenterline;
+	}
+	void Delete()
+	{
+		delete this;
+	}
+	virtual void Execute(vtkObject *caller, unsigned long, void*)
+	{
+	}
+};
+
+
 
 
 
@@ -1137,6 +1174,11 @@ void qSlicerCoronaryMainModuleWidget::send_forcerendersingal()
 {
 	emit forcerendersingal();
 }
+void qSlicerCoronaryMainModuleWidget::send_simplerendersingal()
+{
+	emit simplerendersingal();
+}
+
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -1219,9 +1261,12 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
 	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
 	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
+	connect(this, SIGNAL(simplerendersingal()), VesselEditingWidget, SLOT(simplerenderslot()));
 	connect(VesselEditingWidget, SIGNAL(clcoordchanged(vtkIdType, double, double, double)), this, SLOT(setclcoordslot(vtkIdType, double, double, double)));
 	connect(VesselEditingWidget, SIGNAL(lumenradiuschanged(vtkIdType, vtkIdType, double)), this, SLOT(setlumenradiusslot(vtkIdType, vtkIdType, double)));
 	connect(VesselEditingWidget, SIGNAL(removemouseobserveratmainwidget()), this, SLOT(removemouseobserverslot()));
+	connect(VesselEditingWidget, SIGNAL(detectlumensinglal(vtkIdType)), this, SLOT(detectlumenslot(vtkIdType)));
+
 
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
@@ -1750,8 +1795,7 @@ void qSlicerCoronaryMainModuleWidget::setlumenradiusslot(vtkIdType pointid, vtkI
 	{
 		coord[l] = center[l] + newradius * (cos(lumenpointid*cirstep) * axis1[l] + sin(lumenpointid*cirstep) * axis2[l]);
 	}
-
-
+	
 	return;
 }
 
@@ -1765,6 +1809,26 @@ void qSlicerCoronaryMainModuleWidget::removemouseobserverslot()
 		RenderWindowInteractorthreeD->RemoveObserver(this->addedvesselpickobservertag.at(i));
 	this->addedvesselpickobservertag.clear();
 }
+
+
+void qSlicerCoronaryMainModuleWidget::detectlumenslot(vtkIdType sid)
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	if (logic != NULL)
+	{
+		if (logic->DetectLumenLogic(sid))
+		{
+			send_simplerendersingal();
+			logic->BuildCenterlinesMeshLogic();
+			SetupKeyMouseObserver();
+			ShowSelectedVesselThreeD(sid);
+		}
+	}
+
+}
+
 
 
 

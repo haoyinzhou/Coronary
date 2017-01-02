@@ -281,6 +281,36 @@ bool vtkSlicerCoronaryMainLogic
 }
 
 bool vtkSlicerCoronaryMainLogic
+::DetectLumenLogic(vtkIdType segmentID)
+{
+	if (imageData == 0)
+	{
+		std::cerr << "DetectLumenLogic: cannot find image data" << std::endl;
+		return false;
+	}
+	if (centerlineModel->GetNumberOfCells() == 0)
+	{
+		std::cerr << "cannot find centerline" << std::endl;
+		return false;
+	}
+	if (segmentID < 0 || segmentID >= centerlineModel->GetNumberOfCells())
+	{
+		std::cerr << "segment ID out of range" << std::endl;
+		return false;
+	}
+
+	vtkSmartPointer<vtkIdTypeArray> cidarray = vtkIdTypeArray::SafeDownCast(centerlineModel->GetCellData()->GetArray("SegmentId"));
+	if (DetectCenterlineLumenWall_core(centerlineModel, cidarray->GetValue(segmentID), interpolator, learn))
+	{
+		centerlineModel->Modified();
+	}
+
+	return true;
+}
+
+
+
+bool vtkSlicerCoronaryMainLogic
 ::BuildCenterlinesMeshLogic()
 {
 	std::cout << "BuildCenterlinesMeshLogic Begin! " << std::endl;

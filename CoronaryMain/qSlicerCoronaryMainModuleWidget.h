@@ -119,9 +119,12 @@ signals:
 	void lumenradiuschanged(vtkIdType, vtkIdType, double);
 	void removemouseobserveratmainwidget();
 
+	void detectlumensinglal(vtkIdType);
+
 public:
 	void send_clcoordchanged(vtkIdType, double, double, double);
 	void send_lumenradiuschanged(vtkIdType, vtkIdType, double);
+	void send_detectlumen(vtkIdType);
 
 	
 public slots:
@@ -131,8 +134,8 @@ public slots:
 	void setimagedataslot(vtkImageData*);
 	void resetslot(void);
 	void forcerenderslot(void);
-
-	
+	void simplerenderslot(void);
+		
 public:
 	vtkPolyData* clModel;
 	vtkImageData* ImageData;
@@ -160,7 +163,6 @@ class Q_SLICER_QTMODULES_CORONARYMAIN_EXPORT qSlicerCoronaryMainModuleWidget :
 	Q_OBJECT
 
 public:
-
 	typedef qSlicerAbstractModuleWidget Superclass;
 	qSlicerCoronaryMainModuleWidget(QWidget *parent=0);
 	virtual ~qSlicerCoronaryMainModuleWidget();
@@ -194,6 +196,7 @@ signals:
 	void imagedatachanged(vtkImageData*);
 	void resetsingal();
 	void forcerendersingal();
+	void simplerendersingal();
 
 public:
 	void send_visibilitychanged(bool);
@@ -202,11 +205,15 @@ public:
 	void send_imagedatachanged(vtkImageData*);
 	void send_resetsingal();
 	void send_forcerendersingal();
+	void send_simplerendersingal();
 
 public slots:
 	void setclcoordslot(vtkIdType, double, double, double);
 	void setlumenradiusslot(vtkIdType, vtkIdType, double);
 	void removemouseobserverslot();
+
+	void detectlumenslot(vtkIdType);
+
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;
