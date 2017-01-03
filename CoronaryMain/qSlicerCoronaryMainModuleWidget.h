@@ -119,7 +119,8 @@ signals:
 	void lumenradiuschanged(vtkIdType, vtkIdType, double);
 	void removemouseobserveratmainwidget();
 
-	void detectlumensinglal(vtkIdType);
+	void detectlumensingal(vtkIdType);
+	void widgetclosedsingal();
 
 public:
 	void send_clcoordchanged(vtkIdType, double, double, double);
@@ -214,6 +215,7 @@ public slots:
 	void removemouseobserverslot();
 
 	void detectlumenslot(vtkIdType);
+	void vesseleditingwidgetclosedslot();
 
 
 public:

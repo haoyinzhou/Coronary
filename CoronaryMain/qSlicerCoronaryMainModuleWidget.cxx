@@ -862,6 +862,7 @@ QVesselEditingWidget::~QVesselEditingWidget()
 void QVesselEditingWidget::closeEvent(QCloseEvent *event)
 {
 	this->Visiblity = false;
+	emit widgetclosedsingal();
 	QVTKWidget::closeEvent(event);
 }
 
@@ -1125,7 +1126,7 @@ void QVesselEditingWidget::send_lumenradiuschanged(vtkIdType pointid, vtkIdType 
 
 void QVesselEditingWidget::send_detectlumen(vtkIdType sid)
 {
-	emit detectlumensinglal(sid);
+	emit detectlumensingal(sid);
 }
 
 
@@ -1245,7 +1246,8 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(VesselEditingWidget, SIGNAL(clcoordchanged(vtkIdType, double, double, double)), this, SLOT(setclcoordslot(vtkIdType, double, double, double)));
 	connect(VesselEditingWidget, SIGNAL(lumenradiuschanged(vtkIdType, vtkIdType, double)), this, SLOT(setlumenradiusslot(vtkIdType, vtkIdType, double)));
 	connect(VesselEditingWidget, SIGNAL(removemouseobserveratmainwidget()), this, SLOT(removemouseobserverslot()));
-	connect(VesselEditingWidget, SIGNAL(detectlumensinglal(vtkIdType)), this, SLOT(detectlumenslot(vtkIdType)));
+	connect(VesselEditingWidget, SIGNAL(detectlumensingal(vtkIdType)), this, SLOT(detectlumenslot(vtkIdType)));
+	connect(VesselEditingWidget, SIGNAL(widgetclosedsingal()), this, SLOT(vesseleditingwidgetclosedslot()));
 
 
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
@@ -1798,6 +1800,9 @@ void qSlicerCoronaryMainModuleWidget::detectlumenslot(vtkIdType sid)
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
+	if (sid < 0 || sid >= logic->centerlineModel->GetNumberOfCells())
+		return;
+
 	if (logic != NULL)
 	{
 		if (logic->DetectLumenLogic(sid))
@@ -1811,6 +1816,11 @@ void qSlicerCoronaryMainModuleWidget::detectlumenslot(vtkIdType sid)
 
 }
 
+void qSlicerCoronaryMainModuleWidget::vesseleditingwidgetclosedslot()
+{
+	std::cout << "vesseleditingwidgetclosedslot" << std::endl;
+	this->RemoveAllSelectedVesselThreeD();
+}
 
 
 
@@ -1935,7 +1945,8 @@ public:
 		else if (vtkStdString(Iren->GetKeySym()) == "g" || vtkStdString(Iren->GetKeySym()) == "G")
 		{
 			std::cout << "g is pressed!" << std::endl;
-
+			mainwidget->detectlumenslot(mainwidget->SelectedVesselID);
+//			mainwidget->send_visibilitychanged(true);
 		}
 		else if (vtkStdString(Iren->GetKeySym()) == "d" || vtkStdString(Iren->GetKeySym()) == "Delete")
 		{
