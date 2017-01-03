@@ -146,6 +146,14 @@ public:
 		if (!clModel || !ObliqueReformat || !obliqueImageSlicer)
 			return;
 
+	//	clModel->BuildCells();
+	//	vtkSmartPointer<vtkCell> thisline = clModel->GetCell(ObliqueReformat->GetSegmentId());
+		//std::cout << "npts = " << thisline->GetNumberOfPoints() << std::endl;
+	//	vtkSmartPointer<vtkIdList> idlistthisline = thisline->GetPointIds();
+	//	std::cout << "npts = " << idlistthisline->GetNumberOfIds() << std::endl;
+	//	std::cout << "pts[npts-1] = " << idlistthisline->GetId(idlistthisline->GetNumberOfIds() - 1) << std::endl;
+	//	std::cout << "ObliqueReformatid = " << ObliqueReformat->GetPointId() << std::endl;
+
 		if (this->Pick(lastpickpos))
 		{
 			vtkPolyData *lumenPoly = vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(2));
@@ -171,10 +179,11 @@ public:
 			{
 				vtkDoubleArray *paramArray = vtkDoubleArray::SafeDownCast(lumenPoly->GetPointData()->GetArray("Param"));
 				if (!paramArray) return;
-
 				double param[2];
 				paramArray->GetTuple(focalId, param);
 
+			//	std::cout << "param = " << param[0] << ", " << param[1] << std::endl;
+				
 				focalParam[0] = vtkIdType((SmartCoronary::LongitudinalRefineSteps + 1) * param[0] + 0.5);
 				focalParam[1] = vtkIdType(param[1] + 0.5) % clLumenRadius->GetNumberOfComponents();
 				vtkIdType segmentId = this->ObliqueReformat->GetSegmentId();
@@ -189,7 +198,11 @@ public:
 						pickedids[0] = segmentId;
 						pickedids[1] = focalParam[0];
 
-						focalParam[0] = idlist->GetId(focalParam[0]);
+					//	std::cout << "1 focalParam = " << focalParam[0] << ", " << focalParam[1] << std::endl;
+
+						// focalParam[0] = idlist->GetId(focalParam[0]);
+						focalParam[0] = idlist->GetId(ObliqueReformat->GetPointId());
+
 						pick = true;
 						if (!this->Interactor->GetControlKey())
 							ObliqueReformat->UpdateImageOff();
@@ -252,7 +265,6 @@ public:
 			{
 				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
 				widget->GetRenderWindow()->Render();
-
 			}
 		}
 
@@ -1977,11 +1989,9 @@ public:
 					logic->centerlineModel = vtkPolyData::SafeDownCast(logic->centerlineId->GetOutput());
 					
 					logic->AddCircumParamtoClModel();
-					SavePolyData(logic->centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\logic_centerlineModel1.vtp");
 					logic->AddLongiParamtoClModel();
 					SavePolyData(logic->centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\logic_centerlineModel2.vtp");
-
-
+					
 					logic->BuildCenterlinesMeshLogic();
 					mainwidget->SetupKeyMouseObserver();
 
@@ -2149,9 +2159,15 @@ bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
 
 	Q_D(qSlicerCoronaryMainModuleWidget);
 
-	d->logic()->BuildCenterlinesMeshLogic();
-	SetupKeyMouseObserver();
+//	d->logic()->BuildCenterlinesMeshLogic();
+//	SetupKeyMouseObserver();
 
+	vtkDoubleArray* temp = vtkDoubleArray::SafeDownCast(d->logic()->centerlineModel->GetPointData()->GetArray("LongiParam"));
+	std::cout << "temp.num = " << temp->GetNumberOfValues() << std::endl;
+	std::cout << "point.num = " << d->logic()->centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
+
+
+//	std::cout 
 //	SavePolyData(d->logic()->centerlineTube->GetOutput(0), "C:\\work\\Coronary_Slicer\\testdata\\centerlineTube0.vtp");
 
 //	d->logic()->TestLogic();

@@ -898,18 +898,19 @@ int ExtendTubeFilter::RequestData(
 				{
 					if( k%this->CircumferentialResampleSteps!=0 && k!=0 ) continue;
 
+					if (j == TailPID[inCellId])
+						longiparam = j / (SmartCoronary::LongitudinalRefineSteps + 1);
+
 					for(int l=0; l<3; l++)
 						coord[l] = center[l] + radius * this->RadiusScale * ( cos(k*cirstep)*axis1[l] + sin(k*cirstep)*axis2[l] );
 					idlist1curr->InsertNextId(out1Points->InsertNextPoint(coord));
 					out1Param->InsertNextTuple2(longiparam, circumparam[k]);
 					out1Radius->InsertNextValue(radius);
 
-
 					for(int l=0; l<3; l++)
 						coord[l] = center[l] + refineradii[k] * this->RadiusScale * ( cos(k*cirstep)*axis1[l] + sin(k*cirstep)*axis2[l] );
 
 					idlist2curr->InsertNextId(out2Points->InsertNextPoint(coord));
-
 
 					out2Param->InsertNextTuple2(longiparam, circumparam[k]);
 					out2Radius->InsertNextValue(refineradii[k]);
