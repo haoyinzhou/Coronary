@@ -2782,3 +2782,185 @@ void InterpolateRefine(vtkCardinalSpline *spline, double *in, int insize, double
 			out[ct++] = spline->Evaluate(i + j*rs);
 	}
 }
+
+
+void CleanClModel(vtkPolyData* clModel)
+{
+	if (!clModel || clModel->GetNumberOfCells() == 0) return;
+	//std::cout << "Entering CleanCenterline:" << clModel->GetNumberOfCells() << std::endl;
+	clModel->BuildCells();
+	clModel->BuildLinks();
+
+	unsigned short ncells;
+	vtkIdType	*cells;
+	vtkIdType numcells = clModel->GetNumberOfCells();
+	std::vector<vtkIdType> deleteCells;
+	for (vtkIdType i = 0; i < numcells; i++)
+	{
+		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+		clModel->GetCellPoints(i, idlist);
+		vtkSmartPointer<vtkIdList> newlist = vtkSmartPointer<vtkIdList>::New();
+
+		bool split = false;
+		for (vtkIdType j = 0; j < idlist->GetNumberOfIds(); j++)
+		{
+			newlist->InsertNextId(idlist->GetId(j));
+
+			clModel->GetPointCells(idlist->GetId(j), ncells, cells);
+			if (ncells > 1 && j != 0 && j != idlist->GetNumberOfIds() - 1)
+			{
+				clModel->InsertNextCell(VTK_POLY_LINE, newlist);
+				newlist->Initialize();
+				newlist->InsertNextId(idlist->GetId(j));
+				split = true;
+			}
+		}
+		if (split)
+		{
+			clModel->InsertNextCell(VTK_POLY_LINE, newlist);
+			deleteCells.push_back(i);
+		}
+	}
+	if (deleteCells.size() > 0)
+	{
+		for (size_t i = 0; i < deleteCells.size(); i++)	clModel->DeleteCell(deleteCells[i]);
+		clModel->RemoveDeletedCells();
+		clModel->BuildCells();
+		clModel->BuildLinks();
+	}
+
+	std::vector<int> newIds(clModel->GetNumberOfCells(), -1);
+	int newid = 0;
+	for (vtkIdType i = 0; i < clModel->GetNumberOfPoints(); i++)
+	{
+		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+		clModel->GetPointCells(i, idlist);
+		if (idlist->GetNumberOfIds() == 2)
+		{
+			int& id1 = newIds[idlist->GetId(0)];
+			int& id2 = newIds[idlist->GetId(1)];
+			if (id1 < 0 && id2 < 0)
+			{
+				id1 = newid;
+				id2 = newid;
+				newid++;
+			}
+			else if (id1 >= 0 && id2 >= 0)
+			{
+				int oldid2 = id2, oldid1 = id1;
+				if (oldid1 < oldid2)
+				{
+
+					for (int k = 0; k < newIds.size(); k++) if (newIds[k] == oldid2) newIds[k] = oldid1;
+				}
+				else if (oldid1 > oldid2)
+				{
+					for (int k = 0; k < newIds.size(); k++) if (newIds[k] == oldid1) newIds[k] = oldid2;
+				}
+			}
+			else
+			{
+				if (id1 < id2) id1 = id2;
+				else            id2 = id1;
+			}
+		}
+	}
+	vtkSmartPointer<vtkPolyData> newModel = vtkSmartPointer<vtkPolyData>::New();
+	newModel->Allocate();
+	for (vtkIdType i = 0; i < clModel->GetNumberOfCells(); i++)
+	{
+		if (newIds[i] == -1)
+		{
+			vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+			clModel->GetCellPoints(i, idlist);
+			newModel->InsertNextCell(VTK_POLY_LINE, idlist);
+		}
+		else if (newIds[i] >= 0)
+		{
+			int newid = newIds[i];
+			std::set<vtkIdType> ids;
+
+			for (int k = 0; k < newIds.size(); k++)
+			{
+				if (newIds[k] == newid)
+				{
+					ids.insert(k);
+				}
+			}
+			//std::cout << "ids.size(): " << ids.size() << std::endl;
+
+			std::deque<vtkIdType> pidlist;
+			vtkSmartPointer<vtkIdList> idl = vtkSmartPointer<vtkIdList>::New();
+			clModel->GetCellPoints(*ids.begin(), idl);
+			for (vtkIdType l = 0; l < idl->GetNumberOfIds(); l++) pidlist.push_back(idl->GetId(l));
+			newIds[*ids.begin()] = -2;
+			ids.erase(ids.begin());
+			std::queue<vtkIdType> fqueue, equeue;
+			fqueue.push(idl->GetId(0));
+			equeue.push(idl->GetId(idl->GetNumberOfIds() - 1));
+			while (!fqueue.empty())
+			{
+				vtkIdType fid = fqueue.front();
+				fqueue.pop();
+				for (auto iter = ids.begin(); iter != ids.end(); iter++)
+				{
+					vtkSmartPointer<vtkIdList> idl = vtkSmartPointer<vtkIdList>::New();
+					clModel->GetCellPoints(*iter, idl);
+					if (idl->GetId(0) == fid)
+					{
+						for (vtkIdType l = 1; l < idl->GetNumberOfIds(); l++) pidlist.push_front(idl->GetId(l));
+						fqueue.push(idl->GetId(idl->GetNumberOfIds() - 1));
+						newIds[*iter] = -2;
+						ids.erase(iter);
+						break;
+					}
+					else if (idl->GetId(idl->GetNumberOfIds() - 1) == fid)
+					{
+						for (vtkIdType l = idl->GetNumberOfIds() - 2; l >= 0; l--) pidlist.push_front(idl->GetId(l));
+						fqueue.push(idl->GetId(0));
+						newIds[*iter] = -2;
+						ids.erase(iter);
+						break;
+					}
+				}
+			}
+			while (!equeue.empty())
+			{
+				vtkIdType fid = equeue.front();
+				equeue.pop();
+				for (auto iter = ids.begin(); iter != ids.end(); iter++)
+				{
+					vtkSmartPointer<vtkIdList> idl = vtkSmartPointer<vtkIdList>::New();
+					clModel->GetCellPoints(*iter, idl);
+					if (idl->GetId(0) == fid)
+					{
+						for (vtkIdType l = 1; l < idl->GetNumberOfIds(); l++) pidlist.push_back(idl->GetId(l));
+						equeue.push(idl->GetId(idl->GetNumberOfIds() - 1));
+						newIds[*iter] = -2;
+						ids.erase(iter);
+						break;
+					}
+					else if (idl->GetId(idl->GetNumberOfIds() - 1) == fid)
+					{
+						for (vtkIdType l = idl->GetNumberOfIds() - 2; l >= 0; l--) pidlist.push_back(idl->GetId(l));
+						equeue.push(idl->GetId(0));
+						newIds[*iter] = -2;
+						ids.erase(iter);
+						break;
+					}
+				}
+			}
+			vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+			for (size_t p = 0; p < pidlist.size(); p++) idlist->InsertNextId(pidlist[p]);
+			newModel->InsertNextCell(VTK_POLY_LINE, idlist);
+		}
+	}
+	newModel->SetPoints(clModel->GetPoints());
+	newModel->GetPointData()->CopyAllOn();
+	newModel->GetPointData()->PassData(clModel->GetPointData());
+	clModel->DeepCopy(newModel);
+
+	//std::cout << "Leaving CleanCenterline:" << clModel->GetNumberOfCells() << std::endl;
+
+}
+

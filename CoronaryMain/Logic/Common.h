@@ -144,6 +144,10 @@ void RayFeatures(vtkImageInterpolator* interpolator, const double point[3], cons
 int CentralizedThisContour(double center[3], double axis1[3], double axis2[3], int RingSize, double center_new[3], double* Radius, double* Thickness);
 void InterpolateRefine(vtkCardinalSpline *spline, double *in, int insize, double *out, int refinesteps);
 
+//void CleanCenterline(vtkPolyData* clModel);
+
+void CleanClModel(vtkPolyData* clModel);
+void AddCircumParamtoClModel(vtkPolyData* clModel);
 
 void fillBifurcationTriangle(CBifurcationTriangle* t
 	, vtkIdType p1_idx0, vtkIdType p1_idx1, double p1_rx, double p1_ry, double p1_rz, double p1_realrx, double p1_realry, double p1_realrz

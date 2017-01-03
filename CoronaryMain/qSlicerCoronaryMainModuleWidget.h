@@ -188,6 +188,7 @@ public:
 
 public:
 	QVesselEditingWidget *VesselEditingWidget;
+	vtkIdType SelectedVesselID;
 
 signals:
 	void visibilitychanged(bool);
@@ -229,7 +230,8 @@ public:
 	bool ShowSelectedVesselThreeD(vtkIdType);
 	bool RemoveKeyMouseObserver();
 	bool SetupKeyMouseObserver();
-	
+
+		
 protected:
 	QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;
 	virtual void setup();

@@ -337,8 +337,8 @@ bool vtkSlicerCoronaryMainLogic
 	
 	LumenModel = centerlineTube->GetOutput(2);
 
-	//SavePolyData(centerlineTube->GetOutput(0), "C:\\work\\Coronary_Slicer\\testdata\\centerlineTubeGetOutput(0)_BuildCenterlinesMeshLogic.vtp");
-	//SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel_BuildCenterlinesMeshLogic.vtp");
+//	SavePolyData(centerlineTube->GetOutput(0), "C:\\work\\Coronary_Slicer\\testdata\\centerlineTubeGetOutput(0)_BuildCenterlinesMeshLogic.vtp");
+//	SavePolyData(LumenModel, "C:\\work\\Coronary_Slicer\\testdata\\LumenModel_BuildCenterlinesMeshLogic.vtp");
 
 	centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
 	LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
@@ -458,6 +458,66 @@ bool vtkSlicerCoronaryMainLogic
 
 	return true;
 }
+
+
+bool vtkSlicerCoronaryMainLogic
+::DeleteCenterlineOneSegmentLogic(vtkIdType selectId)
+{
+	vtkPolyData* clModel = this->centerlineModel;
+
+	clModel->DeleteCell(selectId);
+	clModel->RemoveDeletedCells();
+	CleanClModel(clModel);
+	AxisCenterline(clModel);
+	vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+	cleaner->SetInputData(clModel);
+	cleaner->Update();
+	clModel->DeepCopy(cleaner->GetOutput());
+	return true;
+}
+
+void vtkSlicerCoronaryMainLogic
+::AddCircumParamtoClModel()
+{
+	vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(centerlineModel->GetPointData()->GetArray("LumenRadius"));
+	if (clLumenRadius == NULL)
+		return;
+
+	if (centerlineModel->GetCellData()->HasArray("CircumParam"))
+		return;
+
+	double *circumparam = new double[clLumenRadius->GetNumberOfComponents()*(SmartCoronary::CircumferentialRefineSteps + 1)];
+
+	vtkCellArray* inLines = centerlineModel->GetLines();
+	vtkIdType inCellId = 0;
+	vtkIdType npts = 0, *pts = NULL;
+
+	double cstep = 1.0 / clLumenRadius->GetNumberOfComponents();
+	double cirstep = 2.0 * M_PI * cstep;
+	double circumstep = clLumenRadius->GetNumberOfComponents() * cstep;
+
+	vtkSmartPointer<vtkDoubleArray> out0CircumParam = vtkSmartPointer<vtkDoubleArray>::New();
+	out0CircumParam->SetName("CircumParam");
+	out0CircumParam->SetNumberOfComponents(clLumenRadius->GetNumberOfComponents());
+
+	for (inCellId = 0, inLines->InitTraversal(); inLines->GetNextCell(npts, pts); inCellId ++)
+	{
+		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+		for (vtkIdType j = 0; j < npts; j ++)
+		{
+			for (int k = 0; k < clLumenRadius->GetNumberOfComponents(); k++)
+			{
+				circumparam[k] = k * circumstep;
+			}
+			out0CircumParam->InsertNextTuple(circumparam);
+		}
+	}
+
+	this->centerlineModel->GetCellData()->AddArray(out0CircumParam);
+
+	delete[] circumparam;
+}
+
 
 
 class CMyvtkCommand : public vtkCommand

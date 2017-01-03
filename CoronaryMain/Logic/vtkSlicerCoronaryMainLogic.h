@@ -117,6 +117,8 @@ public:
 
   bool BuildLandmarksMeshLogic();
   bool BuildCenterlinesMeshLogic();
+
+  bool DeleteCenterlineOneSegmentLogic(vtkIdType selectId);
   
   bool TestLogic();  // just for debug
 
@@ -177,11 +179,15 @@ public:
 
 public:
 	bool WillBuildBifurcationMesh;
+	
+public:
+	void AddCircumParamtoClModel();
 
 
 public:
 	vtkIdType cellid_temp; // just for debug
 	
+
 private:
 
   vtkSlicerCoronaryMainLogic(const vtkSlicerCoronaryMainLogic&); // Not implemented
