@@ -862,7 +862,7 @@ QVesselEditingWidget::~QVesselEditingWidget()
 void QVesselEditingWidget::closeEvent(QCloseEvent *event)
 {
 	this->Visiblity = false;
-	emit widgetclosedsingal();
+	emit widgetclosedsignal();
 	QVTKWidget::closeEvent(event);
 }
 
@@ -1126,7 +1126,7 @@ void QVesselEditingWidget::send_lumenradiuschanged(vtkIdType pointid, vtkIdType 
 
 void QVesselEditingWidget::send_detectlumen(vtkIdType sid)
 {
-	emit detectlumensingal(sid);
+	emit detectlumensignal(sid);
 }
 
 
@@ -1146,17 +1146,17 @@ void qSlicerCoronaryMainModuleWidget::send_imagedatachanged(vtkImageData* p)
 {
 	emit imagedatachanged(p);
 }
-void qSlicerCoronaryMainModuleWidget::send_resetsingal()
+void qSlicerCoronaryMainModuleWidget::send_resetsignal()
 {
-	emit resetsingal();
+	emit resetsignal();
 }
-void qSlicerCoronaryMainModuleWidget::send_forcerendersingal()
+void qSlicerCoronaryMainModuleWidget::send_forcerendersignal()
 {
-	emit forcerendersingal();
+	emit forcerendersignal();
 }
-void qSlicerCoronaryMainModuleWidget::send_simplerendersingal()
+void qSlicerCoronaryMainModuleWidget::send_simplerendersignal()
 {
-	emit simplerendersingal();
+	emit simplerendersignal();
 }
 
 
@@ -1240,14 +1240,14 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(this, SIGNAL(selectidchanged(vtkIdType)), VesselEditingWidget, SLOT(setselectidslot(vtkIdType)));
 	connect(this, SIGNAL(clmodelchanged(vtkPolyData*)), VesselEditingWidget, SLOT(setclmodelslot(vtkPolyData*)));
 	connect(this, SIGNAL(imagedatachanged(vtkImageData*)), VesselEditingWidget, SLOT(setimagedataslot(vtkImageData*)));
-	connect(this, SIGNAL(resetsingal(void)), VesselEditingWidget, SLOT(resetslot()));
-	connect(this, SIGNAL(forcerendersingal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
-	connect(this, SIGNAL(simplerendersingal()), VesselEditingWidget, SLOT(simplerenderslot()));
+	connect(this, SIGNAL(resetsignal(void)), VesselEditingWidget, SLOT(resetslot()));
+	connect(this, SIGNAL(forcerendersignal(void)), VesselEditingWidget, SLOT(forcerenderslot()));
+	connect(this, SIGNAL(simplerendersignal()), VesselEditingWidget, SLOT(simplerenderslot()));
 	connect(VesselEditingWidget, SIGNAL(clcoordchanged(vtkIdType, double, double, double)), this, SLOT(setclcoordslot(vtkIdType, double, double, double)));
 	connect(VesselEditingWidget, SIGNAL(lumenradiuschanged(vtkIdType, vtkIdType, double)), this, SLOT(setlumenradiusslot(vtkIdType, vtkIdType, double)));
 	connect(VesselEditingWidget, SIGNAL(removemouseobserveratmainwidget()), this, SLOT(removemouseobserverslot()));
-	connect(VesselEditingWidget, SIGNAL(detectlumensingal(vtkIdType)), this, SLOT(detectlumenslot(vtkIdType)));
-	connect(VesselEditingWidget, SIGNAL(widgetclosedsingal()), this, SLOT(vesseleditingwidgetclosedslot()));
+	connect(VesselEditingWidget, SIGNAL(detectlumensignal(vtkIdType)), this, SLOT(detectlumenslot(vtkIdType)));
+	connect(VesselEditingWidget, SIGNAL(widgetclosedsignal()), this, SLOT(vesseleditingwidgetclosedslot()));
 
 
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
@@ -1807,7 +1807,7 @@ void qSlicerCoronaryMainModuleWidget::detectlumenslot(vtkIdType sid)
 	{
 		if (logic->DetectLumenLogic(sid))
 		{
-			send_simplerendersingal();
+			send_simplerendersignal();
 			logic->BuildCenterlinesMeshLogic();
 			SetupKeyMouseObserver();
 			ShowSelectedVesselThreeD(sid);
@@ -1874,8 +1874,8 @@ public:
 
 		mainwidget->send_clmodelchanged(clmodel);
 		mainwidget->send_imagedatachanged(imagedata);
-		//mainwidget->send_resetsingal();
-		mainwidget->send_forcerendersingal();
+		//mainwidget->send_resetsignal();
+		mainwidget->send_forcerendersignal();
 	}
 
 public:

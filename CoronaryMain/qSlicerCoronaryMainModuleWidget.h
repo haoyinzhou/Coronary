@@ -119,8 +119,8 @@ signals:
 	void lumenradiuschanged(vtkIdType, vtkIdType, double);
 	void removemouseobserveratmainwidget();
 
-	void detectlumensingal(vtkIdType);
-	void widgetclosedsingal();
+	void detectlumensignal(vtkIdType);
+	void widgetclosedsignal();
 
 public:
 	void send_clcoordchanged(vtkIdType, double, double, double);
@@ -196,18 +196,18 @@ signals:
 	void selectidchanged(vtkIdType);
 	void clmodelchanged(vtkPolyData*);
 	void imagedatachanged(vtkImageData*);
-	void resetsingal();
-	void forcerendersingal();
-	void simplerendersingal();
+	void resetsignal();
+	void forcerendersignal();
+	void simplerendersignal();
 
 public:
 	void send_visibilitychanged(bool);
 	void send_selectidchanged(vtkIdType);
 	void send_clmodelchanged(vtkPolyData*);
 	void send_imagedatachanged(vtkImageData*);
-	void send_resetsingal();
-	void send_forcerendersingal();
-	void send_simplerendersingal();
+	void send_resetsignal();
+	void send_forcerendersignal();
+	void send_simplerendersignal();
 
 public slots:
 	void setclcoordslot(vtkIdType, double, double, double);

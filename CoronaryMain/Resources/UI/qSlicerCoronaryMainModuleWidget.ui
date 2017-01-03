@@ -320,7 +320,7 @@
    <item>
     <widget class="QPushButton" name="pushButtonTest">
      <property name="text">
-      <string>Test</string>
+      <string>Test (just for debug)</string>
      </property>
     </widget>
    </item>
