@@ -146,6 +146,8 @@ public:
 	vtkSmartPointer<ImageCurvedReformat>	 CurvedReformat;
 	vtkSmartPointer<ImageObliqueReformat> ObliqueReformat;
 
+	vtkSmartPointer<vtkLineSource> CurvedReformatLine;
+
 	bool Visiblity;
 
 protected:

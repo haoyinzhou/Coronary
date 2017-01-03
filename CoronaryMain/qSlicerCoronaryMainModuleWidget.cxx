@@ -265,6 +265,20 @@ public:
 			{
 				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
 				widget->GetRenderWindow()->Render();
+
+				int	 imageDims[3];
+				double imageOrigins[3];
+				double imageSpacings[3];
+				vtkImageData* reformatImage = vtkImageData::SafeDownCast(superwidget->CurvedReformat->GetOutput());
+				reformatImage->GetDimensions(imageDims);
+				reformatImage->GetOrigin(imageOrigins);
+				reformatImage->GetSpacing(imageSpacings);
+				double point1[3] = { imageOrigins[0], imageOrigins[1] + ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+				double point2[3] = { imageOrigins[0] + (imageDims[0] - 1)*imageSpacings[0], imageOrigins[1] + ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+				superwidget->CurvedReformatLine->SetPoint1(point1);
+				superwidget->CurvedReformatLine->SetPoint2(point2);
+
+				superwidget->widget1->GetRenderWindow()->Render();
 			}
 		}
 
@@ -349,6 +363,19 @@ public:
 						clModel->GetPoints()->SetPoint(focalParam[0], coord);
 
 						superwidget->send_clcoordchanged(focalParam[0], coord[0], coord[1], coord[2]);
+						
+						int	 imageDims[3];
+						double imageOrigins[3];
+						double imageSpacings[3];
+						vtkImageData* reformatImage = vtkImageData::SafeDownCast(superwidget->CurvedReformat->GetOutput());
+						reformatImage->GetDimensions(imageDims);
+						reformatImage->GetOrigin(imageOrigins);
+						reformatImage->GetSpacing(imageSpacings);
+						double point1[3] = { imageOrigins[0], imageOrigins[1] + ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+						double point2[3] = { imageOrigins[0] + (imageDims[0] - 1)*imageSpacings[0], imageOrigins[1] + ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+						superwidget->CurvedReformatLine->SetPoint1(point1);
+						superwidget->CurvedReformatLine->SetPoint2(point2);
+						superwidget->widget1->GetRenderWindow()->Render();
 
 					/*	vector<vtkIdType> neighorclid;
 						vector<double> distance;
@@ -443,8 +470,32 @@ public:
 			{
 				ObliqueReformat->SetPointId(ObliqueReformat->GetPointId() + step);
 				this->Interactor->Render();
+
+				int	 imageDims[3];
+				double imageOrigins[3];
+				double imageSpacings[3];
+				vtkImageData* reformatImage = vtkImageData::SafeDownCast(superwidget->CurvedReformat->GetOutput());
+				reformatImage->GetDimensions(imageDims);
+				reformatImage->GetOrigin(imageOrigins);
+				reformatImage->GetSpacing(imageSpacings);
+				double point1[3] = { imageOrigins[0], imageOrigins[1] + ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+				double point2[3] = { imageOrigins[0] + (imageDims[0] - 1)*imageSpacings[0], imageOrigins[1] + ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+				superwidget->CurvedReformatLine->SetPoint1(point1);
+				superwidget->CurvedReformatLine->SetPoint2(point2);
+
+				superwidget->widget1->GetRenderWindow()->Render();
 			}
 		}
+		else if (key == "Left" || key == "Right")
+		{
+			int step = (key == "Right") ? 1 : -1;
+			if (step != 0)
+			{
+				superwidget->CurvedReformat->SetTwistIndex(superwidget->CurvedReformat->GetTwistIndex() + step);
+				superwidget->widget1->GetRenderWindow()->Render();
+			}
+		}
+
 		else if (key == "Control_L")
 		{
 			ObliqueReformat->UpdateImageOn();
@@ -792,6 +843,30 @@ public:
 				this->Interactor->Render();
 			}
 		}
+		else if (key == "Up" || key == "Down")
+		{
+			int step = (key == "Up") ? 1 : -1;
+			if (step != 0)
+			{
+				superwidget->ObliqueReformat->SetPointId(superwidget->ObliqueReformat->GetPointId() + step);
+				this->Interactor->Render();
+
+				int	 imageDims[3];
+				double imageOrigins[3];
+				double imageSpacings[3];
+				vtkImageData* reformatImage = vtkImageData::SafeDownCast(superwidget->CurvedReformat->GetOutput());
+				reformatImage->GetDimensions(imageDims);
+				reformatImage->GetOrigin(imageOrigins);
+				reformatImage->GetSpacing(imageSpacings);
+				double point1[3] = { imageOrigins[0], imageOrigins[1] + superwidget->ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+				double point2[3] = { imageOrigins[0] + (imageDims[0] - 1)*imageSpacings[0], imageOrigins[1] + superwidget->ObliqueReformat->GetPointId() * imageSpacings[1], imageOrigins[2] };
+				superwidget->CurvedReformatLine->SetPoint1(point1);
+				superwidget->CurvedReformatLine->SetPoint2(point2);
+
+				this->Interactor->Render();
+				superwidget->widget2->GetRenderWindow()->Render();
+			}
+		}
 		else if (key == "g")
 		{
 			superwidget->send_detectlumen(CurvedReformat->GetSegmentId());
@@ -845,8 +920,7 @@ QVesselEditingWidget::QVesselEditingWidget()
 	layout->addWidget(widget1, 1);
 	layout->addWidget(widget2, 1);
 	this->setLayout(layout);
-
-	
+		
 	this->ORSliceStyleCallback = vtkSmartPointer<ORSliceStyle>::New();
 	this->ORSliceStyleCallback->superwidget = this;
 	this->ORSliceStyleCallback->widget = this->widget2;
@@ -857,9 +931,10 @@ QVesselEditingWidget::QVesselEditingWidget()
 	this->CRRotateStyleCallback->widget = this->widget1;
 	this->widget1->GetInteractor()->SetInteractorStyle(CRRotateStyleCallback);
 
-
 	this->Visiblity = false;
 	this->smoothclradius = 5.5;
+
+	this->CurvedReformatLine = vtkSmartPointer<vtkLineSource>::New();
 }
 
 QVesselEditingWidget::~QVesselEditingWidget()
@@ -926,6 +1001,7 @@ void QVesselEditingWidget::resetslot()
 
 void QVesselEditingWidget::forcerenderslot()
 {
+
 	{
 		vtkSmartPointer<vtkRendererCollection> rendercollection = widget1->GetRenderWindow()->GetRenderers();
 		rendercollection->InitTraversal();
@@ -986,6 +1062,29 @@ void QVesselEditingWidget::forcerenderslot()
 		clActor->PickableOff();
 		CurvedRenderer->AddActor(clActor);
 
+		
+		int	 imageDims[3];
+		double imageOrigins[3];
+		double imageSpacings[3];
+		vtkImageData* reformatImage = vtkImageData::SafeDownCast(CurvedReformat->GetOutput());
+		reformatImage->GetDimensions(imageDims);
+		reformatImage->GetOrigin(imageOrigins);
+		reformatImage->GetSpacing(imageSpacings);
+		double point1[3] = { imageOrigins[0], imageOrigins[1] + 0 * imageSpacings[1], imageOrigins[2] };
+		double point2[3] = { imageOrigins[0] + (imageDims[0] - 1)*imageSpacings[0], imageOrigins[1] + 0 * imageSpacings[1], imageOrigins[2] };
+		CurvedReformatLine->SetPoint1(point1);
+		CurvedReformatLine->SetPoint2(point2);
+
+		vtkSmartPointer<vtkPolyDataMapper> curveReformatLineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		curveReformatLineMapper->SetInputConnection(this->CurvedReformatLine->GetOutputPort());
+		vtkSmartPointer<vtkActor> curveReformatLineActor = vtkSmartPointer<vtkActor>::New();
+		curveReformatLineActor->SetMapper(curveReformatLineMapper);
+		curveReformatLineActor->GetProperty()->SetColor(0.0, 0.0, 1.0);
+		curveReformatLineActor->GetProperty()->SetLineWidth(3.0f);
+		curveReformatLineActor->GetProperty()->SetOpacity(0.6);
+		curveReformatLineActor->PickableOff();
+		CurvedRenderer->AddActor(curveReformatLineActor);
+		
 		widget1->GetRenderWindow()->AddRenderer(CurvedRenderer);
 
 		vtkCamera* camera = CurvedRenderer->GetActiveCamera();
@@ -1829,8 +1928,14 @@ void qSlicerCoronaryMainModuleWidget::detectlumenslot(vtkIdType sid)
 
 void qSlicerCoronaryMainModuleWidget::vesseleditingwidgetclosedslot()
 {
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
 	std::cout << "vesseleditingwidgetclosedslot" << std::endl;
 	this->RemoveAllSelectedVesselThreeD();
+	logic->BuildCenterlinesMeshLogic();
+	SetupKeyMouseObserver();
+
 }
 
 
@@ -2159,17 +2264,15 @@ bool qSlicerCoronaryMainModuleWidget::TestButtonFunc()
 
 	Q_D(qSlicerCoronaryMainModuleWidget);
 
-//	d->logic()->BuildCenterlinesMeshLogic();
-//	SetupKeyMouseObserver();
+	d->logic()->BuildCenterlinesMeshLogic();
+	SetupKeyMouseObserver();
 
-	vtkDoubleArray* temp = vtkDoubleArray::SafeDownCast(d->logic()->centerlineModel->GetPointData()->GetArray("LongiParam"));
-	std::cout << "temp.num = " << temp->GetNumberOfValues() << std::endl;
-	std::cout << "point.num = " << d->logic()->centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
+//	vtkDoubleArray* temp = vtkDoubleArray::SafeDownCast(d->logic()->centerlineModel->GetPointData()->GetArray("LongiParam"));
+//	std::cout << "temp.num = " << temp->GetNumberOfValues() << std::endl;
+//	std::cout << "point.num = " << d->logic()->centerlineModel->GetPoints()->GetNumberOfPoints() << std::endl;
+	
 
-
-//	std::cout 
 //	SavePolyData(d->logic()->centerlineTube->GetOutput(0), "C:\\work\\Coronary_Slicer\\testdata\\centerlineTube0.vtp");
-
 //	d->logic()->TestLogic();
 
 	std::cout << "TestButtonFunc end" << std::endl;
