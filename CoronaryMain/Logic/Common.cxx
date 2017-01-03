@@ -1608,8 +1608,6 @@ bool DensifyCenterline(vtkPolyData* clModel)
 					out0Dir->InsertNextTuple(dir);
 					out0Axis1->InsertNextTuple(axis1);
 					out0Axis2->InsertNextTuple(axis2);
-
-
 				}
 			}
 		}

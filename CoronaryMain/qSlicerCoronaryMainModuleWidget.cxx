@@ -1412,11 +1412,6 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		}
 		else
 		{
-			logic->centerlineModel = vtkSmartPointer<vtkPolyData>::New();
-			logic->centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
-			logic->LumenModel = vtkSmartPointer<vtkPolyData>::New();
-			logic->LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
-
 			d->progressBar->setValue(0);
 			const QString DEFAULT_DIR_KEY("default_dir");
 			QSettings MySettings;
@@ -1444,6 +1439,10 @@ bool qSlicerCoronaryMainModuleWidget::DetectCenterlinesButtonFunc()
 		//	std::cout << "baseName = " << baseName.toStdString() << endl;
 
 			logic->centerlineModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->centerlineModel_display = vtkSmartPointer<vtkPolyData>::New();
+			logic->LumenModel = vtkSmartPointer<vtkPolyData>::New();
+			logic->LumenModel_display = vtkSmartPointer<vtkPolyData>::New();
+
 			logic->centerlineModel->DeepCopy(reader->GetOutput());
 			//remove "SegmentId" if there is one in the loaded centerline because we will generate the ids with idfilter
 			if (logic->centerlineModel->GetCellData()->HasArray("SegmentId"))	logic->centerlineModel->GetCellData()->RemoveArray("SegmentId");
@@ -1978,7 +1977,10 @@ public:
 					logic->centerlineModel = vtkPolyData::SafeDownCast(logic->centerlineId->GetOutput());
 					
 					logic->AddCircumParamtoClModel();
-			//		SavePolyData(logic->centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\logic_centerlineModel2.vtp");
+					SavePolyData(logic->centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\logic_centerlineModel1.vtp");
+					logic->AddLongiParamtoClModel();
+					SavePolyData(logic->centerlineModel, "C:\\work\\Coronary_Slicer\\testdata\\logic_centerlineModel2.vtp");
+
 
 					logic->BuildCenterlinesMeshLogic();
 					mainwidget->SetupKeyMouseObserver();

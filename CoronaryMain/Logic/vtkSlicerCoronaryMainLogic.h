@@ -106,21 +106,24 @@ class VTK_SLICER_CORONARYMAIN_MODULE_LOGIC_EXPORT vtkSlicerCoronaryMainLogic :
   public vtkSlicerModuleLogic
 {
 public:
-  static vtkSlicerCoronaryMainLogic *New();
-  vtkTypeMacro(vtkSlicerCoronaryMainLogic, vtkSlicerModuleLogic);
-  void PrintSelf(ostream& os, vtkIndent indent);
+	static vtkSlicerCoronaryMainLogic *New();
+	vtkTypeMacro(vtkSlicerCoronaryMainLogic, vtkSlicerModuleLogic);
+	void PrintSelf(ostream& os, vtkIndent indent);
 
-  bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar);
-  bool DetectCenterlinesLogic(QProgressBar* progressbar);
-  bool DetectLumenLogic(QProgressBar* progressbar);
-  bool DetectLumenLogic(vtkIdType segmentID);
+	bool DetectLandmarksLogic(vtkMRMLScalarVolumeNode* VolumnNode, QProgressBar* progressbar);
+	bool DetectCenterlinesLogic(QProgressBar* progressbar);
+	bool DetectLumenLogic(QProgressBar* progressbar);
+	bool DetectLumenLogic(vtkIdType segmentID);
 
-  bool BuildLandmarksMeshLogic();
-  bool BuildCenterlinesMeshLogic();
+	bool BuildLandmarksMeshLogic();
+	bool BuildCenterlinesMeshLogic();
 
-  bool DeleteCenterlineOneSegmentLogic(vtkIdType selectId);
-  
-  bool TestLogic();  // just for debug
+	bool DeleteCenterlineOneSegmentLogic(vtkIdType selectId);
+	void AddCircumParamtoClModel();
+	void AddLongiParamtoClModel();
+
+
+	bool TestLogic();  // just for debug
 
 public:
 	bool GetLandMarksCoord(int index, double coord[3]);
@@ -180,8 +183,6 @@ public:
 public:
 	bool WillBuildBifurcationMesh;
 	
-public:
-	void AddCircumParamtoClModel();
 
 
 public:

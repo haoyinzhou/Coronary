@@ -502,7 +502,6 @@ void vtkSlicerCoronaryMainLogic
 
 	for (inCellId = 0, inLines->InitTraversal(); inLines->GetNextCell(npts, pts); inCellId ++)
 	{
-		vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
 		for (vtkIdType j = 0; j < npts; j ++)
 		{
 			for (int k = 0; k < clLumenRadius->GetNumberOfComponents(); k++)
@@ -517,6 +516,34 @@ void vtkSlicerCoronaryMainLogic
 
 	delete[] circumparam;
 }
+
+void vtkSlicerCoronaryMainLogic::AddLongiParamtoClModel()
+{
+	if (centerlineModel->GetPointData()->HasArray("LongiParam"))
+	{
+		centerlineModel->GetPointData()->RemoveArray("LongiParam");
+	}
+
+	vtkSmartPointer<vtkDoubleArray> outLongiParam = vtkSmartPointer<vtkDoubleArray>::New();
+	outLongiParam->SetName("LongiParam");
+	outLongiParam->SetNumberOfComponents(1);
+	outLongiParam->SetNumberOfValues(centerlineModel->GetPoints()->GetNumberOfPoints());
+
+	vtkCellArray* inLines = centerlineModel->GetLines();
+	vtkIdType inCellId = 0;
+	vtkIdType npts = 0, *pts = NULL;
+
+	for (inCellId = 0, inLines->InitTraversal(); inLines->GetNextCell(npts, pts); inCellId ++)
+	{
+		for (vtkIdType j = 0; j < npts; j++)
+		{
+			double s = (double)j / ((double)SmartCoronary::LongitudinalRefineSteps + 1.0);
+			outLongiParam->SetValue(pts[j], s);
+		}
+	}
+	this->centerlineModel->GetPointData()->AddArray(outLongiParam);
+}
+
 
 
 
