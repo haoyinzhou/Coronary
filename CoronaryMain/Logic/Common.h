@@ -144,6 +144,8 @@ void RayFeatures(vtkImageInterpolator* interpolator, const double point[3], cons
 int CentralizedThisContour(double center[3], double axis1[3], double axis2[3], int RingSize, double center_new[3], double* Radius, double* Thickness);
 void InterpolateRefine(vtkCardinalSpline *spline, double *in, int insize, double *out, int refinesteps);
 
+void SmoothLumenRadius(vtkPolyData* clModel, vtkIdType VesselID, int iternum);
+
 //void CleanCenterline(vtkPolyData* clModel);
 
 void CleanClModel(vtkPolyData* clModel);

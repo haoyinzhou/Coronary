@@ -385,6 +385,8 @@ bool vtkSlicerCoronaryMainLogic
 
 	clDisplayNode->SetColor(1, 0, 0);
 	clDisplayNode->SelectableOn();
+	clDisplayNode->SetLineWidth(3.0);
+	clDisplayNode->LightingOn();
 	clNode->SetAndObservePolyData(centerlineModel_display);
 	clNode->ApplyTransformMatrix(transformMatrix);
 

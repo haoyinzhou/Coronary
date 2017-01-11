@@ -106,6 +106,7 @@ public:
 public:
 	QVTKWidget* widget1;
 	QVTKWidget* widget2;
+	QVTKWidget* widget3;
 
 	vtkSmartPointer<ORSliceStyle> ORSliceStyleCallback;
 	vtkSmartPointer<CRRotateStyle> CRRotateStyleCallback;
@@ -147,15 +148,13 @@ public:
 	vtkSmartPointer<ImageObliqueReformat> ObliqueReformat;
 
 	vtkSmartPointer<vtkLineSource> CurvedReformatLine;
+	vtkSmartPointer<vtkLineSource> stretchCurvedReformatLine;
 
 	bool Visiblity;
 
 protected:
 	virtual void closeEvent(QCloseEvent *event);
 
-public:
-	void SavePolyData(vtkPolyData *poly, const char* fileName);
-	void SaveVTKImage(vtkImageData *image, const char* fileName);  // just for debug
 };
 
 
@@ -173,6 +172,7 @@ public:
 public:
 	QString baseName;
 	
+
 public slots:
 	bool DetectLandmarksButtonFunc();
 	bool DetectCenterlinesButtonFunc();
@@ -228,13 +228,12 @@ public:
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
 	vtkSmartPointer<vtkCellPicker> VesselPicker;
 	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
-	
+
 public:
 	bool RemoveAllSelectedVesselThreeD();
 	bool ShowSelectedVesselThreeD(vtkIdType);
 	bool RemoveKeyMouseObserver();
 	bool SetupKeyMouseObserver();
-
 		
 protected:
 	QScopedPointer<qSlicerCoronaryMainModuleWidgetPrivate> d_ptr;

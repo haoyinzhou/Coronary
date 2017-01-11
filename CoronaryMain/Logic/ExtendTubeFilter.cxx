@@ -166,8 +166,6 @@ int ExtendTubeFilter::RequestData(
 
 	output0->DeepCopy(input);
 
-//	SavePolyData(output0, "C:\\work\\Coronary_Slicer\\testdata\\output0.vtp");
-
 	vtkPoints* out0Points = output0->GetPoints();
 	vtkCellArray* out0Lines = output0->GetLines();
 

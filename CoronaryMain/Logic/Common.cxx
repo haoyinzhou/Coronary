@@ -1946,8 +1946,7 @@ bool DetectCenterline_core(vtkImageData *ImageData, vtkImageData *hessianImage, 
 		DensifyCenterline(clModel);
 		append->AddInputData(clModel);
 	}
-
-
+	
 	append->Update();
 	centerlineModel->DeepCopy(append->GetOutput());
 
@@ -2962,3 +2961,49 @@ void CleanClModel(vtkPolyData* clModel)
 
 }
 
+void SmoothLumenRadius(vtkPolyData* clModel, vtkIdType VesselID, int iternum)
+{
+	vtkDoubleArray *clLumenRadius = vtkDoubleArray::SafeDownCast(clModel->GetPointData()->GetArray("LumenRadius"));
+	if (clLumenRadius == NULL)
+		return;
+	vtkIdType ringsize = clLumenRadius->GetNumberOfComponents();
+
+	vtkSmartPointer<vtkIdList> idlist = vtkSmartPointer<vtkIdList>::New();
+	clModel->GetCellPoints(VesselID, idlist);
+
+	for (int iter = 0; iter < iternum; iter++)
+	{
+		vtkSmartPointer<vtkDoubleArray> clLumenRadius_old = vtkSmartPointer<vtkDoubleArray>::New();
+		clLumenRadius_old->DeepCopy(clLumenRadius);
+
+		for (vtkIdType i = 1; i < idlist->GetNumberOfIds(); i++)
+		{
+			if (i == 0 || i == idlist->GetNumberOfIds())
+				continue;
+
+			vtkIdType pid = idlist->GetId(i);
+			vtkIdType pid1 = idlist->GetId(i - 1);
+			vtkIdType pid2 = idlist->GetId(i + 1);
+
+			for (vtkIdType j = 0; j < ringsize; j++)
+			{
+				vtkIdType j1 = (j == 0) ? ringsize - 1 : j - 1;
+				vtkIdType j2 = (j == ringsize - 1) ? 0 : j + 1;
+
+				double r[5];
+				r[0] = clLumenRadius_old->GetComponent(pid, j);
+				r[1] = clLumenRadius_old->GetComponent(pid, j1);
+				r[2] = clLumenRadius_old->GetComponent(pid, j2);
+				r[3] = clLumenRadius_old->GetComponent(pid1, j);
+				r[4] = clLumenRadius_old->GetComponent(pid2, j);
+
+				double weight[5] = { 0.6, 0.1, 0.1, 0.1, 0.1 };
+				double r_mean = 0.0;
+				for (int l = 0; l < 5; l++)
+					r_mean += r[l] * weight[l];
+
+				clLumenRadius->SetComponent(pid, j, r_mean);
+			}
+		}
+	}
+}
