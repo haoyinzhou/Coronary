@@ -293,6 +293,7 @@ public:
 					superwidget->stretchCurvedReformatLine->SetPoint2(point2);
 					superwidget->widget3->GetRenderWindow()->Render();
 				}
+				superwidget->send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(5)));
 			}
 		}
 
@@ -527,7 +528,7 @@ public:
 					superwidget->stretchCurvedReformatLine->SetPoint2(point2);
 					superwidget->widget3->GetRenderWindow()->Render();
 				}
-
+				superwidget->send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(5)));
 			}
 		}
 		else if (key == "Left" || key == "Right")
@@ -539,8 +540,8 @@ public:
 				superwidget->widget1->GetRenderWindow()->Render();
 				superwidget->stretchCurvedReformat->SetTwistIndex(superwidget->CurvedReformat->GetTwistIndex());
 				superwidget->widget3->GetRenderWindow()->Render();
-
 			}
+			superwidget->send_updatecurvedslicesignal(vtkPolyData::SafeDownCast(superwidget->CurvedReformat->GetOutput(5)));
 		}
 
 		else if (key == "Control_L")
@@ -550,6 +551,8 @@ public:
 		else if (key == "g")
 		{
 			superwidget->send_detectlumen(ObliqueReformat->GetSegmentId());
+		//	superwidget->send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(5)));
+		//	superwidget->send_updatecurvedslicesignal(vtkPolyData::SafeDownCast(superwidget->CurvedReformat->GetOutput(5)));
 		}
 
 	//	this->Superclass::OnKeyPress();
@@ -799,6 +802,8 @@ public:
 
 				superwidget->stretchCurvedReformat->SetTwistIndex(CurvedReformat->GetTwistIndex());
 				superwidget->widget3->GetRenderWindow()->Render();
+
+				superwidget->send_updatecurvedslicesignal(vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(5)));
 			}
 		}
 		else if (pick)
@@ -895,6 +900,9 @@ public:
 				this->Interactor->Render();
 				superwidget->stretchCurvedReformat->SetTwistIndex(CurvedReformat->GetTwistIndex());
 				superwidget->widget3->GetRenderWindow()->Render();
+
+				superwidget->send_updatecurvedslicesignal(vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(5)));
+
 			}
 		}
 		else if (key == "Up" || key == "Down")
@@ -920,11 +928,15 @@ public:
 				this->Interactor->Render();
 				superwidget->widget2->GetRenderWindow()->Render();
 				superwidget->widget3->GetRenderWindow()->Render();
+
+				superwidget->send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(superwidget->ObliqueReformat->GetOutput(5)));
 			}
 		}
 		else if (key == "g")
 		{
 			superwidget->send_detectlumen(CurvedReformat->GetSegmentId());
+		//	superwidget->send_updatecurvedslicesignal(vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(5)));
+		//	superwidget->send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(superwidget->ObliqueReformat->GetOutput(5)));
 		}
 
 
@@ -984,8 +996,6 @@ public:
 
 };
 vtkStandardNewMacro(SCRRotateStyle);
-
-
 
 
 QVesselEditingWidget::QVesselEditingWidget()
@@ -1185,6 +1195,8 @@ void QVesselEditingWidget::forcerenderslot()
 		this->CRRotateStyleCallback->CurvedReformat = this->CurvedReformat;
 		this->CRRotateStyleCallback->curvedImageSlicer = CurvedimageSlice;
 
+		send_updatecurvedslicesignal(vtkPolyData::SafeDownCast(CurvedReformat->GetOutput(5)));
+
 //		CurvedReformat->GetOutputPort(5);
 	}
 
@@ -1351,6 +1363,8 @@ void QVesselEditingWidget::forcerenderslot()
 		this->ORSliceStyleCallback->clModel = this->clModel;
 		this->ORSliceStyleCallback->ObliqueReformat = this->ObliqueReformat;
 		this->ORSliceStyleCallback->obliqueImageSlicer = ObliqueimageSlice;
+
+		send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(5)));
 	}
 	
 
@@ -1399,6 +1413,17 @@ void QVesselEditingWidget::send_detectlumen(vtkIdType sid)
 {
 	emit detectlumensignal(sid);
 }
+
+void QVesselEditingWidget::send_updateobliqueslicesignal(vtkPolyData* p)
+{
+	emit updateobliqueslicesignal(p);
+}
+
+void QVesselEditingWidget::send_updatecurvedslicesignal(vtkPolyData* p)
+{
+	emit updatecurvedslicesignal(p);
+}
+
 
 
 void qSlicerCoronaryMainModuleWidget::send_visibilitychanged(bool f)
@@ -1488,6 +1513,9 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	this->VolumeNode = NULL;
 	this->TransformCoronaryNode = NULL;
 
+	ObliqueSlicePolydata = vtkSmartPointer<vtkPolyData>::New();
+	CurvedSlicePolydata = vtkSmartPointer<vtkPolyData>::New();
+
 	VesselEditingWidget = new QVesselEditingWidget;
 	QDesktopWidget *desktop = QApplication::desktop();
 	int screenWidth = desktop->width();
@@ -1498,7 +1526,11 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	VesselEditingWidget->setWindowTitle("Vessel Editing Widget");
 	VesselEditingWidget->setVisible(false);
 
-
+	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+	this->threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+	this->RenderWindowInteractorthreeD = threeDView->GetInteractor();
+	
+	
 	connect(d->DetectLandmarks, SIGNAL(clicked()), this, SLOT(DetectLandmarksButtonFunc()));
 	connect(d->DetectCenterlines, SIGNAL(clicked()), this, SLOT(DetectCenterlinesButtonFunc()));
 	connect(d->DetectLumen, SIGNAL(clicked()), this, SLOT(DetectLumenButtonFunc()));
@@ -1519,7 +1551,8 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	connect(VesselEditingWidget, SIGNAL(removemouseobserveratmainwidget()), this, SLOT(removemouseobserverslot()));
 	connect(VesselEditingWidget, SIGNAL(detectlumensignal(vtkIdType)), this, SLOT(detectlumenslot(vtkIdType)));
 	connect(VesselEditingWidget, SIGNAL(widgetclosedsignal()), this, SLOT(vesseleditingwidgetclosedslot()));
-
+	connect(VesselEditingWidget, SIGNAL(updateobliqueslicesignal(vtkPolyData*)), this, SLOT(updateobliquesliceslot(vtkPolyData*)));
+	connect(VesselEditingWidget, SIGNAL(updatecurvedslicesignal(vtkPolyData*)), this, SLOT(updatecurvedsliceslot(vtkPolyData*)));
 
 	connect(d->pushButtonTest, SIGNAL(clicked()), this, SLOT(TestButtonFunc()));
 
@@ -1967,31 +2000,101 @@ bool qSlicerCoronaryMainModuleWidget
 	geometryFilter->Update();
 
 	vtkSmartPointer<vtkPolyData> selectpolydata = geometryFilter->GetOutput();
-	
-	SelectedClNode = vtkSmartPointer< vtkMRMLModelNode >::New();
-	SelectedClDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+	{
+		vtkMRMLNode* thisaddednode;
 
-	vtkMRMLNode* thisaddednode;
+		SelectedClNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+		SelectedClDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
 
-	thisaddednode = logic->GetMRMLScene()->AddNode(SelectedClNode);
-	addedselectedclnode.push_back(thisaddednode);
-	thisaddednode = logic->GetMRMLScene()->AddNode(SelectedClDisplayNode);
-	addedselectedclnode.push_back(thisaddednode);
-	SelectedClDisplayNode->SetScene(logic->GetMRMLScene());
-	SelectedClNode->SetScene(logic->GetMRMLScene());
-	SelectedClNode->SetName("selected vessel");
-	SelectedClNode->SetAndObserveDisplayNodeID(SelectedClDisplayNode->GetID());
-	SelectedClNode->Modified();
-	SelectedClDisplayNode->Modified();
+		thisaddednode = logic->GetMRMLScene()->AddNode(SelectedClNode);
+		addedselectedclnode.push_back(thisaddednode);
+		thisaddednode = logic->GetMRMLScene()->AddNode(SelectedClDisplayNode);
+		addedselectedclnode.push_back(thisaddednode);
+		SelectedClDisplayNode->SetScene(logic->GetMRMLScene());
+		SelectedClNode->SetScene(logic->GetMRMLScene());
+		SelectedClNode->SetName("selected vessel");
+		SelectedClNode->SetAndObserveDisplayNodeID(SelectedClDisplayNode->GetID());
+		SelectedClNode->Modified();
+		SelectedClDisplayNode->Modified();
 
-	SelectedClDisplayNode->SetColor(1, 1, 0);
-	SelectedClDisplayNode->SetPointSize(5);
-	SelectedClDisplayNode->SetLineWidth(5);
-	SelectedClDisplayNode->SetVisibility(1);
-	SelectedClDisplayNode->LightingOn();
-	SelectedClDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
-	SelectedClNode->SetAndObservePolyData(selectpolydata);
-	
+		SelectedClDisplayNode->SetColor(1, 1, 0);
+		SelectedClDisplayNode->SetPointSize(5);
+		SelectedClDisplayNode->SetLineWidth(5);
+		SelectedClDisplayNode->SetVisibility(1);
+		SelectedClDisplayNode->LightingOn();
+		SelectedClDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
+		SelectedClNode->SetAndObservePolyData(selectpolydata);
+	}
+
+	{
+		vtkMRMLNode* thisaddednode;
+
+		ObliqueSliceNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+		ObliqueSliceDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+
+		thisaddednode = logic->GetMRMLScene()->AddNode(ObliqueSliceNode);
+		addedselectedclnode.push_back(thisaddednode);
+		thisaddednode = logic->GetMRMLScene()->AddNode(ObliqueSliceDisplayNode);
+		addedselectedclnode.push_back(thisaddednode);
+		ObliqueSliceDisplayNode->SetScene(logic->GetMRMLScene());
+		ObliqueSliceNode->SetScene(logic->GetMRMLScene());
+		ObliqueSliceNode->SetName("ObliqueSlice");
+		ObliqueSliceNode->SetAndObserveDisplayNodeID(ObliqueSliceDisplayNode->GetID());
+		ObliqueSliceNode->Modified();
+		ObliqueSliceDisplayNode->Modified();
+
+		ObliqueSliceNode->SetAndObservePolyData(ObliqueSlicePolydata);
+
+		ObliqueSliceDisplayNode->SetVisibility(1);		
+		ObliqueSliceDisplayNode->SetActiveScalarName("pointcolor");
+		ObliqueSliceDisplayNode->SetScalarVisibility(1);
+		ObliqueSliceDisplayNode->SetAutoScalarRange(0);
+		ObliqueSliceDisplayNode->SetAndObserveColorNodeID("vtkMRMLColorTableNodeGrey");
+		ObliqueSliceDisplayNode->SetBackfaceCulling(0);
+
+		//vtkSmartPointer<vtkRendererCollection> rendercollection = threeDView->GetRenderWindow()->GetRenderers();
+		//vtkSmartPointer<vtkPolyDataMapper> ObliqueMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		//ObliqueMapper->SetInputData(ObliqueSlicePolydata);
+		//vtkSmartPointer<vtkActor> ObliqueActor = vtkSmartPointer<vtkActor>::New();
+		//ObliqueActor->SetMapper(ObliqueMapper);
+		//ObliqueActor->GetProperty()->SetColor(1.0, 1.0, 1.0);
+		//ObliqueActor->GetProperty()->SetLineWidth(3.0f);
+		//ObliqueActor->GetProperty()->SetOpacity(0.6);
+		//ObliqueActor->PickableOff();
+		//vtkSmartPointer<vtkRenderer> Slicer3DRender = rendercollection->GetFirstRenderer();
+		//Slicer3DRender->AddActor(ObliqueActor);
+		//RenderWindowInteractorthreeD->Render();
+
+	}
+
+	{
+		vtkMRMLNode* thisaddednode;
+
+		CurvedSliceNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+		CurvedSliceDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+
+		thisaddednode = logic->GetMRMLScene()->AddNode(CurvedSliceNode);
+		addedselectedclnode.push_back(thisaddednode);
+		thisaddednode = logic->GetMRMLScene()->AddNode(CurvedSliceDisplayNode);
+		addedselectedclnode.push_back(thisaddednode);
+		CurvedSliceDisplayNode->SetScene(logic->GetMRMLScene());
+		CurvedSliceNode->SetScene(logic->GetMRMLScene());
+		CurvedSliceNode->SetName("CurvedSlice");
+		CurvedSliceNode->SetAndObserveDisplayNodeID(CurvedSliceDisplayNode->GetID());
+		CurvedSliceNode->Modified();
+		CurvedSliceDisplayNode->Modified();
+
+		CurvedSliceNode->SetAndObservePolyData(CurvedSlicePolydata);
+
+		CurvedSliceDisplayNode->SetVisibility(1);
+		CurvedSliceDisplayNode->SetActiveScalarName("pointcolor");
+		CurvedSliceDisplayNode->SetScalarVisibility(1);
+		CurvedSliceDisplayNode->SetAutoScalarRange(0);
+		CurvedSliceDisplayNode->SetAndObserveColorNodeID("vtkMRMLColorTableNodeGrey");
+		CurvedSliceDisplayNode->SetBackfaceCulling(0);
+	}
+
+
 	return true;
 }
 
@@ -2050,9 +2153,9 @@ void qSlicerCoronaryMainModuleWidget::setlumenradiusslot(vtkIdType pointid, vtkI
 
 void qSlicerCoronaryMainModuleWidget::removemouseobserverslot()
 {
-	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
-	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
-	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
+//	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+//	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+//	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
 
 	for (int i = 0; i < this->addedvesselpickobservertag.size(); i++)
 		RenderWindowInteractorthreeD->RemoveObserver(this->addedvesselpickobservertag.at(i));
@@ -2090,8 +2193,69 @@ void qSlicerCoronaryMainModuleWidget::vesseleditingwidgetclosedslot()
 	this->RemoveAllSelectedVesselThreeD();
 	logic->BuildCenterlinesMeshLogic();
 	SetupKeyMouseObserver();
-
 }
+
+void qSlicerCoronaryMainModuleWidget::updateobliquesliceslot(vtkPolyData* p)
+{
+	this->ObliqueSlicePolydata = p;
+
+	//SavePolyData(this->ObliqueSlicePolydata, "C:\\work\\Coronary_Slicer\\testdata\\ObliqueSlicePolydata.vtp");
+
+	//for (int i = 0; i < this->ObliqueSlicePolydata->GetPoints()->GetNumberOfPoints(); i ++)
+	//{
+	//	double coord[3];
+	//	this->ObliqueSlicePolydata->GetPoints()->GetPoint(i, coord);
+	//	coord[0] = -coord[0];
+	//	coord[1] = -coord[1];
+	//	this->ObliqueSlicePolydata->GetPoints()->SetPoint(i, coord);
+	//}
+
+/*	vtkMRMLNode* thisaddednode;
+	 
+	ObliqueSliceNode = vtkSmartPointer< vtkMRMLModelNode >::New();
+	ObliqueSliceDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
+	 
+	thisaddednode =  logic->GetMRMLScene()->AddNode(ObliqueSliceNode);
+	addedselectedclnode.push_back(thisaddednode);
+	thisaddednode = logic->GetMRMLScene()->AddNode(ObliqueSliceDisplayNode);
+	addedselectedclnode.push_back(thisaddednode);
+	ObliqueSliceDisplayNode->SetScene(logic->GetMRMLScene());
+	ObliqueSliceNode->SetScene(logic->GetMRMLScene());
+	ObliqueSliceNode->SetName("ObliqueSlice");
+	ObliqueSliceNode->SetAndObserveDisplayNodeID(ObliqueSliceDisplayNode->GetID());
+	ObliqueSliceNode->Modified();
+	ObliqueSliceDisplayNode->Modified();
+	 
+	ObliqueSliceDisplayNode->SetColor(1, 1, 0);
+	ObliqueSliceDisplayNode->SetPointSize(5);
+	ObliqueSliceDisplayNode->SetLineWidth(5);
+	ObliqueSliceDisplayNode->SetVisibility(1);
+	ObliqueSliceDisplayNode->LightingOn();
+//	ObliqueSliceDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
+	 
+	ObliqueSliceNode->SetAndObservePolyData(ObliqueSlicePolydata);
+*/
+	this->ObliqueSlicePolydata->Modified();
+//	RenderWindowInteractorthreeD->Render();
+}
+
+void qSlicerCoronaryMainModuleWidget::updatecurvedsliceslot(vtkPolyData* p)
+{
+	std::cout << "updatecurvedsliceslot" << std::endl;
+	this->CurvedSlicePolydata = p;
+
+	//for (int i = 0; i < this->CurvedSlicePolydata->GetPoints()->GetNumberOfPoints(); i++)
+	//{
+	//	double coord[3];
+	//	this->CurvedSlicePolydata->GetPoints()->GetPoint(i, coord);
+	//	coord[0] = -coord[0];
+	//	coord[1] = -coord[1];
+	//	this->CurvedSlicePolydata->GetPoints()->SetPoint(i, coord);
+	//}
+
+	this->CurvedSlicePolydata->Modified();
+}
+
 
 
 
@@ -2125,18 +2289,21 @@ public:
 			return;
 
 		vtkSmartPointer<vtkPolyData> pickedpoly = vtkPolyData::SafeDownCast(picker->GetDataSet());
-
+		if (pickedpoly->GetNumberOfCells() != lumenmodel->GetNumberOfCells()
+			&& pickedpoly->GetNumberOfCells() != clmodel->GetNumberOfCells())
+		{
+			return;
+		}
 		if (pickedpoly->GetNumberOfCells() == lumenmodel->GetNumberOfCells())
 		{
 			vtkSmartPointer<vtkIdTypeArray> segmentidarray = vtkIdTypeArray::SafeDownCast(lumenmodel->GetCellData()->GetArray("SegmentId"));
 			pickid = segmentidarray->GetValue(pickid);
 		}
+		
 
 	//	if (pickid == LastSelectedID)
 	//		return;
 		LastSelectedID = pickid;
-
-		mainwidget->ShowSelectedVesselThreeD(pickid);
 
 		mainwidget->send_visibilitychanged(true);
 
@@ -2147,6 +2314,8 @@ public:
 		mainwidget->send_imagedatachanged(imagedata);
 		//mainwidget->send_resetsignal();
 		mainwidget->send_forcerendersignal();
+
+		mainwidget->ShowSelectedVesselThreeD(pickid);
 	}
 
 public:
@@ -2179,24 +2348,6 @@ public:
 	}
 	~vtkKeyPressedInteractionCallback()	{}
 
-	void SavePolyData(vtkPolyData *poly, const char* fileName)
-	{
-		if (!poly) return;
-		vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
-		writer->SetInputData(poly);
-		writer->SetFileName(fileName);
-		writer->SetDataModeToBinary();
-		try
-		{
-			writer->Write();
-		}
-		catch (...)
-		{
-			std::cerr << "Error occurs when writing " << fileName << std::endl;
-			return;
-		}
-	}
-
 	void SetInteractor(vtkRenderWindowInteractor *iren)
 	{
 		this->Iren = iren;
@@ -2218,6 +2369,8 @@ public:
 			std::cout << "g is pressed!" << std::endl;
 			mainwidget->detectlumenslot(mainwidget->SelectedVesselID);
 //			mainwidget->send_visibilitychanged(true);
+//			mainwidget->updatecurvedsliceslot(logic->centerlineModel);
+//			mainwidget->updateobliquesliceslot();
 		}
 		else if (vtkStdString(Iren->GetKeySym()) == "d" || vtkStdString(Iren->GetKeySym()) == "Delete")
 		{
@@ -2271,9 +2424,7 @@ public:
 
 	qSlicerCoronaryMainModuleWidget* mainwidget;
 	vtkSlicerCoronaryMainLogic *logic;
-
-
-
+	
 //	vtkPolyData* clmodel;
 };
 
@@ -2322,9 +2473,9 @@ public:
 bool qSlicerCoronaryMainModuleWidget
 ::RemoveKeyMouseObserver()
 {
-	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
-	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
-	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
+//	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+//	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+//	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
 
 	for (int i = 0; i < this->addedvesselpickobservertag.size(); i++)
 		RenderWindowInteractorthreeD->RemoveObserver(this->addedvesselpickobservertag.at(i));
@@ -2350,9 +2501,9 @@ bool qSlicerCoronaryMainModuleWidget
 	qSlicerCoronaryMainModuleWidget::RemoveKeyMouseObserver();
 
 	// set ctrl observer
-	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
-	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
-	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
+//	qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+//	QVTKWidget* threeDView = layoutManager->threeDWidget(0)->threeDView()->VTKWidget();
+//	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD = threeDView->GetInteractor();
 	vtkSmartPointer<vtkRendererCollection> rendercollection = threeDView->GetRenderWindow()->GetRenderers();
 
 	/*	std::cout << "rendercollection->GetNumberOfItems() = " << rendercollection->GetNumberOfItems() << std::endl;

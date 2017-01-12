@@ -233,9 +233,13 @@ int ImageObliqueReformat::RequestData(
 
 		vtkPoints *imPoints = vtkPoints::New();
 		imPoints->SetNumberOfPoints(RadialSize*RadialSize);
+		vtkSmartPointer<vtkPoints> imPoints_for3DSlicer = vtkSmartPointer<vtkPoints>::New();
+
+
 		outImagePoly->Allocate((RadialSize-1)*(RadialSize-1));
 		vtkShortArray *imPixels = vtkShortArray::New();
 		imPixels->SetNumberOfValues(imPoints->GetNumberOfPoints());
+		imPixels->SetName("pointcolor");
 
 		inputCenterline->GetPoint(pointId, coord1);
 		clAxis1->GetTuple(pointId, axis1);
@@ -269,10 +273,18 @@ int ImageObliqueReformat::RequestData(
 				outImagePoly->InsertNextCell(VTK_QUAD, 4, ids);
 			}
 		}	
-		
+	
+		for (int i = 0; i < imPoints->GetNumberOfPoints(); i++)
+		{
+			double coordi[3];
+			imPoints->GetPoint(i, coordi);
+			coordi[0] = -coordi[0];
+			coordi[1] = -coordi[1];
+			imPoints_for3DSlicer->InsertNextPoint(coordi);
+		}
 
-		outImagePoly->SetPoints(imPoints); imPoints->Delete();
-		outImagePoly->GetPointData()->SetScalars(imPixels); imPixels->Delete();		
+		outImagePoly->SetPoints(imPoints_for3DSlicer); imPoints->Delete();
+		outImagePoly->GetPointData()->AddArray(imPixels); imPixels->Delete();		
 	}
 	double outputImageSpacings[3];
 	outputImage->GetSpacing(outputImageSpacings);

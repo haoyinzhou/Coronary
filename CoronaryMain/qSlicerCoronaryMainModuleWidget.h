@@ -34,6 +34,7 @@
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLNode.h"
+#include "vtkMRMLColorTableNode.h"
 
 #include "qMRMLLayoutManager.h"
 #include "qMRMLThreeDWidget.h"
@@ -111,6 +112,7 @@ public:
 	vtkSmartPointer<ORSliceStyle> ORSliceStyleCallback;
 	vtkSmartPointer<CRRotateStyle> CRRotateStyleCallback;
 
+
 public:
 	double smoothclradius;
 
@@ -123,10 +125,15 @@ signals:
 	void detectlumensignal(vtkIdType);
 	void widgetclosedsignal();
 
+	void updateobliqueslicesignal(vtkPolyData*);
+	void updatecurvedslicesignal(vtkPolyData*);
+
 public:
 	void send_clcoordchanged(vtkIdType, double, double, double);
 	void send_lumenradiuschanged(vtkIdType, vtkIdType, double);
 	void send_detectlumen(vtkIdType);
+	void send_updateobliqueslicesignal(vtkPolyData*);
+	void send_updatecurvedslicesignal(vtkPolyData*);
 
 	
 public slots:
@@ -171,7 +178,10 @@ public:
 
 public:
 	QString baseName;
-	
+
+public:
+	QVTKWidget* threeDView;
+	vtkSmartPointer<vtkRenderWindowInteractor> RenderWindowInteractorthreeD;
 
 public slots:
 	bool DetectLandmarksButtonFunc();
@@ -219,6 +229,9 @@ public slots:
 	void detectlumenslot(vtkIdType);
 	void vesseleditingwidgetclosedslot();
 
+	void updateobliquesliceslot(vtkPolyData*);
+	void updatecurvedsliceslot(vtkPolyData*);
+
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;
@@ -228,6 +241,16 @@ public:
 	vtkSmartPointer< vtkMRMLModelDisplayNode > SelectedClDisplayNode;
 	vtkSmartPointer<vtkCellPicker> VesselPicker;
 	vtkSmartPointer<CVesselPickCallBack> VesselPickCallBack;
+
+public:
+	vtkSmartPointer<vtkPolyData> ObliqueSlicePolydata;
+	vtkSmartPointer< vtkMRMLModelNode > ObliqueSliceNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > ObliqueSliceDisplayNode;
+
+	vtkSmartPointer<vtkPolyData> CurvedSlicePolydata;
+	vtkSmartPointer< vtkMRMLModelNode > CurvedSliceNode;
+	vtkSmartPointer< vtkMRMLModelDisplayNode > CurvedSliceDisplayNode;
+
 
 public:
 	bool RemoveAllSelectedVesselThreeD();

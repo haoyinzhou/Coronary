@@ -258,6 +258,7 @@ int ImageCurvedReformat::RequestData(
 	//std::cout << "updateimage: " << this->UpdateImage << " | " << extent[0] << " " << extent[1] << " " << extent[2] << " " << extent[3] << " " << extent[4] << " " << extent[5] <<  " | ";
 
 	vtkPoints *imPoints = vtkPoints::New();
+	vtkSmartPointer<vtkPoints> imPoints_for3DSlicer = vtkSmartPointer<vtkPoints>::New();
 
 	if(this->UpdateImage)
 	{
@@ -287,6 +288,7 @@ int ImageCurvedReformat::RequestData(
 		imPoints->SetNumberOfPoints(npts * RadialSize);
 		vtkShortArray *imPixels = vtkShortArray::New();
 		imPixels->SetNumberOfValues(imPoints->GetNumberOfPoints());
+		imPixels->SetName("pointcolor");
 
 		double radialindex = twistindex * 2.0 * M_PI / clLumenRadius->GetNumberOfComponents();
 
@@ -324,8 +326,17 @@ int ImageCurvedReformat::RequestData(
 			}
 		}
 
-		outImagePoly->SetPoints(imPoints); imPoints->Delete();
-		outImagePoly->GetPointData()->SetScalars(imPixels); imPixels->Delete();
+		for (int i = 0; i < imPoints->GetNumberOfPoints(); i++)
+		{
+			double coordi[3];
+			imPoints->GetPoint(i, coordi);
+			coordi[0] = -coordi[0];
+			coordi[1] = -coordi[1];
+			imPoints_for3DSlicer->InsertNextPoint(coordi);
+		}
+
+		outImagePoly->SetPoints(imPoints_for3DSlicer); imPoints->Delete();
+		outImagePoly->GetPointData()->AddArray(imPixels); imPixels->Delete();
 	}
 	double outputImageSpacings[3];
 	outputImage->GetSpacing(outputImageSpacings);
