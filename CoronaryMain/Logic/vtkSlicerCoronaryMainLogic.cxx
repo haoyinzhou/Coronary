@@ -564,7 +564,7 @@ public:
 	{
 		double ras[3];
 		this->crosshairNode->GetCursorPositionRAS(ras);
-		std::cout << ras[0] << ", " << ras[1] << ", " << ras[2] << std::endl;
+	//	std::cout << ras[0] << ", " << ras[1] << ", " << ras[2] << std::endl;
 	}
 
 public:
@@ -586,7 +586,7 @@ public:
 	{
 		int pickPosition[2];
 		this->GetInteractor()->GetEventPosition(pickPosition);
-		std::cout << pickPosition[0] << ", " << pickPosition[1] << std::endl;
+	//	std::cout << pickPosition[0] << ", " << pickPosition[1] << std::endl;
 	}
 
 public:
@@ -600,7 +600,6 @@ vtkStandardNewMacro(CenterlineMouseInteractorStyle);
 bool vtkSlicerCoronaryMainLogic
 ::TestLogic()
 {
-	std::cout << "TestLogic begin" << std::endl;
 //	QVesselEditingWidget* temp; // = new QVesselEditingWidget;
 //	temp->resize(600, 500);
 //	temp->show();
@@ -709,7 +708,6 @@ RenderWindowInteractorthreeD->Start();
 //	}
 
 
-	std::cout << "TestLogic end" << std::endl;
 	return true;
 }
 

@@ -144,6 +144,7 @@ public slots:
 	void resetslot(void);
 	void forcerenderslot(void);
 	void simplerenderslot(void);
+
 		
 public:
 	vtkPolyData* clModel;
@@ -235,6 +236,7 @@ public slots:
 
 public:
 	std::vector<vtkMRMLNode*> addedselectedclnode;
+	std::vector<vtkMRMLNode*> addedobliqueandcurvednode;
 	std::vector< unsigned long > addedctrlobservertag;
 	std::vector< unsigned long > addedvesselpickobservertag;
 	vtkSmartPointer< vtkMRMLModelNode > SelectedClNode;
@@ -255,6 +257,8 @@ public:
 public:
 	bool RemoveAllSelectedVesselThreeD();
 	bool ShowSelectedVesselThreeD(vtkIdType);
+	bool RemoveAllObliqueandCurvedSlice();
+	bool ShowObliqueandCurvedSlice();
 	bool RemoveKeyMouseObserver();
 	bool SetupKeyMouseObserver();
 		

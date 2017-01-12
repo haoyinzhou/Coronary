@@ -810,7 +810,7 @@ public:
 		{
 			if (Pick(pickpos))
 			{
-				this->clModel->Modified();
+			//	this->clModel->Modified();
 
 				double move[3];
 				vtkMath::Subtract(pickpos, lastpickpos, move);
@@ -1247,7 +1247,6 @@ void QVesselEditingWidget::forcerenderslot()
 		clActor->PickableOff();
 		stretchCurvedRenderer->AddActor(clActor);
 
-
 /*		int	 imageDims[3];
 		double imageOrigins[3];
 		double imageSpacings[3];
@@ -1367,7 +1366,7 @@ void QVesselEditingWidget::forcerenderslot()
 		send_updateobliqueslicesignal(vtkPolyData::SafeDownCast(ObliqueReformat->GetOutput(5)));
 	}
 	
-
+	
 /*	vtkSmartPointer<vtkPolyDataMapper> VesselEditingMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	VesselEditingMapper->SetInputData(lumenModel);
 	vtkSmartPointer<vtkActor> VesselEditingActor = vtkSmartPointer<vtkActor>::New();
@@ -1392,12 +1391,10 @@ void QVesselEditingWidget::forcerenderslot()
 
 void QVesselEditingWidget::simplerenderslot()
 {
-	std::cout << "simplerenderslot" << std::endl;
 	this->widget1->GetRenderWindow()->Render();
 	this->widget2->GetRenderWindow()->Render();
 	this->widget3->GetRenderWindow()->Render();
 }
-
 
 
 void QVesselEditingWidget::send_clcoordchanged(vtkIdType pointid, double x, double y, double z)
@@ -1562,6 +1559,7 @@ void qSlicerCoronaryMainModuleWidget::setup()
 	d->checkBox_loadcenterlines->setChecked(false);
 
 	addedselectedclnode.clear();
+	addedobliqueandcurvednode.clear();
 	addedctrlobservertag.clear();
 	addedvesselpickobservertag.clear();
 
@@ -1665,7 +1663,7 @@ bool qSlicerCoronaryMainModuleWidget::DetectLandmarksButtonFunc()
 				return false;
 			}
 			double coord[3];
-			for (int i = 0; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
+			for (int i = SmartCoronary::LEFT_CORONARY_OSTIUM; i < SmartCoronary::NUMBER_OF_LVCOR_LANDMARKS; i++)
 			{
 				reader->GetOutput()->GetPoint(i, coord);
 				std::cout << "landmarkcoord " << i << " = " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
@@ -1957,9 +1955,25 @@ bool qSlicerCoronaryMainModuleWidget
 			logic->GetMRMLScene()->RemoveNode(addedselectedclnode.at(i));
 		addedselectedclnode.clear();
 	}
-
 	return true;
 }
+
+bool qSlicerCoronaryMainModuleWidget
+::RemoveAllObliqueandCurvedSlice()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	if (addedobliqueandcurvednode.size() != 0)
+	{
+		for (int i = 0; i < addedobliqueandcurvednode.size(); i++)
+			logic->GetMRMLScene()->RemoveNode(addedobliqueandcurvednode.at(i));
+		addedobliqueandcurvednode.clear();
+	}
+	return true;
+}
+
+
 
 bool qSlicerCoronaryMainModuleWidget
 ::ShowSelectedVesselThreeD(vtkIdType cellid)
@@ -2025,6 +2039,17 @@ bool qSlicerCoronaryMainModuleWidget
 		SelectedClDisplayNode->SetRepresentation(vtkMRMLModelDisplayNode::WireframeRepresentation);
 		SelectedClNode->SetAndObservePolyData(selectpolydata);
 	}
+	
+	return true;
+}
+
+bool qSlicerCoronaryMainModuleWidget::ShowObliqueandCurvedSlice()
+{
+	Q_D(qSlicerCoronaryMainModuleWidget);
+	vtkSlicerCoronaryMainLogic *logic = d->logic();
+
+	RemoveAllObliqueandCurvedSlice();
+	//emit updatereformats();
 
 	{
 		vtkMRMLNode* thisaddednode;
@@ -2033,9 +2058,9 @@ bool qSlicerCoronaryMainModuleWidget
 		ObliqueSliceDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
 
 		thisaddednode = logic->GetMRMLScene()->AddNode(ObliqueSliceNode);
-		addedselectedclnode.push_back(thisaddednode);
+		addedobliqueandcurvednode.push_back(thisaddednode);
 		thisaddednode = logic->GetMRMLScene()->AddNode(ObliqueSliceDisplayNode);
-		addedselectedclnode.push_back(thisaddednode);
+		addedobliqueandcurvednode.push_back(thisaddednode);
 		ObliqueSliceDisplayNode->SetScene(logic->GetMRMLScene());
 		ObliqueSliceNode->SetScene(logic->GetMRMLScene());
 		ObliqueSliceNode->SetName("ObliqueSlice");
@@ -2045,7 +2070,7 @@ bool qSlicerCoronaryMainModuleWidget
 
 		ObliqueSliceNode->SetAndObservePolyData(ObliqueSlicePolydata);
 
-		ObliqueSliceDisplayNode->SetVisibility(1);		
+		ObliqueSliceDisplayNode->SetVisibility(1);
 		ObliqueSliceDisplayNode->SetActiveScalarName("pointcolor");
 		ObliqueSliceDisplayNode->SetScalarVisibility(1);
 		ObliqueSliceDisplayNode->SetAutoScalarRange(0);
@@ -2074,9 +2099,9 @@ bool qSlicerCoronaryMainModuleWidget
 		CurvedSliceDisplayNode = vtkSmartPointer< vtkMRMLModelDisplayNode >::New();
 
 		thisaddednode = logic->GetMRMLScene()->AddNode(CurvedSliceNode);
-		addedselectedclnode.push_back(thisaddednode);
+		addedobliqueandcurvednode.push_back(thisaddednode);
 		thisaddednode = logic->GetMRMLScene()->AddNode(CurvedSliceDisplayNode);
-		addedselectedclnode.push_back(thisaddednode);
+		addedobliqueandcurvednode.push_back(thisaddednode);
 		CurvedSliceDisplayNode->SetScene(logic->GetMRMLScene());
 		CurvedSliceNode->SetScene(logic->GetMRMLScene());
 		CurvedSliceNode->SetName("CurvedSlice");
@@ -2097,6 +2122,7 @@ bool qSlicerCoronaryMainModuleWidget
 
 	return true;
 }
+
 
 void qSlicerCoronaryMainModuleWidget::setclcoordslot(vtkIdType pointid, double x, double y, double z)
 {
@@ -2189,8 +2215,8 @@ void qSlicerCoronaryMainModuleWidget::vesseleditingwidgetclosedslot()
 	Q_D(qSlicerCoronaryMainModuleWidget);
 	vtkSlicerCoronaryMainLogic *logic = d->logic();
 
-	std::cout << "vesseleditingwidgetclosedslot" << std::endl;
 	this->RemoveAllSelectedVesselThreeD();
+	this->RemoveAllObliqueandCurvedSlice();
 	logic->BuildCenterlinesMeshLogic();
 	SetupKeyMouseObserver();
 }
@@ -2198,7 +2224,6 @@ void qSlicerCoronaryMainModuleWidget::vesseleditingwidgetclosedslot()
 void qSlicerCoronaryMainModuleWidget::updateobliquesliceslot(vtkPolyData* p)
 {
 	this->ObliqueSlicePolydata = p;
-
 	//SavePolyData(this->ObliqueSlicePolydata, "C:\\work\\Coronary_Slicer\\testdata\\ObliqueSlicePolydata.vtp");
 
 	//for (int i = 0; i < this->ObliqueSlicePolydata->GetPoints()->GetNumberOfPoints(); i ++)
@@ -2236,12 +2261,11 @@ void qSlicerCoronaryMainModuleWidget::updateobliquesliceslot(vtkPolyData* p)
 	ObliqueSliceNode->SetAndObservePolyData(ObliqueSlicePolydata);
 */
 	this->ObliqueSlicePolydata->Modified();
-//	RenderWindowInteractorthreeD->Render();
+
 }
 
 void qSlicerCoronaryMainModuleWidget::updatecurvedsliceslot(vtkPolyData* p)
 {
-	std::cout << "updatecurvedsliceslot" << std::endl;
 	this->CurvedSlicePolydata = p;
 
 	//for (int i = 0; i < this->CurvedSlicePolydata->GetPoints()->GetNumberOfPoints(); i++)
@@ -2316,6 +2340,7 @@ public:
 		mainwidget->send_forcerendersignal();
 
 		mainwidget->ShowSelectedVesselThreeD(pickid);
+		mainwidget->ShowObliqueandCurvedSlice();
 	}
 
 public:
@@ -2360,13 +2385,13 @@ public:
 
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
-			std::cout << "Control_L is pressed!" << std::endl;
+			//std::cout << "Control_L is pressed!" << std::endl;
 			Iren->SetPicker(VesselPicker);
 			addedvesselpickobservertag->push_back(Iren->AddObserver(vtkCommand::LeftButtonPressEvent, VesselPickCallBack, 10.0f));
 		}
 		else if (vtkStdString(Iren->GetKeySym()) == "g" || vtkStdString(Iren->GetKeySym()) == "G")
 		{
-			std::cout << "g is pressed!" << std::endl;
+			//std::cout << "g is pressed!" << std::endl;
 			mainwidget->detectlumenslot(mainwidget->SelectedVesselID);
 //			mainwidget->send_visibilitychanged(true);
 //			mainwidget->updatecurvedsliceslot(logic->centerlineModel);
@@ -2374,8 +2399,8 @@ public:
 		}
 		else if (vtkStdString(Iren->GetKeySym()) == "d" || vtkStdString(Iren->GetKeySym()) == "Delete")
 		{
-			std::cout << "d is pressed!" << std::endl;
-			std::cout << "SelectedVesselID = " << mainwidget->SelectedVesselID << std::endl;
+			//std::cout << "d is pressed!" << std::endl;
+			//std::cout << "SelectedVesselID = " << mainwidget->SelectedVesselID << std::endl;
 			
 			if (mainwidget->SelectedVesselID < 0)
 				return;
@@ -2455,7 +2480,7 @@ public:
 	{
 		if (vtkStdString(Iren->GetKeySym()) == "Control_L")
 		{
-			std::cout << "Control_L is released!" << std::endl;
+			//std::cout << "Control_L is released!" << std::endl;
 			for (int i = 0; i < addedvesselpickobservertag->size(); i++)
 				Iren->RemoveObserver(addedvesselpickobservertag->at(i));
 			addedvesselpickobservertag->clear();
@@ -2498,6 +2523,7 @@ bool qSlicerCoronaryMainModuleWidget
 		return false;
 
 	qSlicerCoronaryMainModuleWidget::RemoveAllSelectedVesselThreeD();
+//	qSlicerCoronaryMainModuleWidget::RemoveAllObliqueandCurvedSlice();
 	qSlicerCoronaryMainModuleWidget::RemoveKeyMouseObserver();
 
 	// set ctrl observer

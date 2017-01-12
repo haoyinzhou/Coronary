@@ -202,8 +202,6 @@ int ImageStretchCurvedReformat::RequestData(
 	vtkInformationVector **inputVector,
 	vtkInformationVector *outputVector)
 {
-	std::cout << "ImageStretchCurvedReformat begin!" << std::endl;
-
 	// get the info objects
 	vtkInformation *inImageInfo = inputVector[0]->GetInformationObject(0);
 	vtkInformation *inCenterlineInfo = inputVector[1]->GetInformationObject(0);
@@ -241,8 +239,6 @@ int ImageStretchCurvedReformat::RequestData(
 	vtkDoubleArray *clLongiParam = vtkDoubleArray::SafeDownCast(inputCenterline->GetPointData()->GetArray("LongiParam"));
 	vtkDoubleArray *clCircumParam = vtkDoubleArray::SafeDownCast(inputCenterline->GetCellData()->GetArray("CircumParam"));
 	
-	std::cout << "this->SegmentId = " << this->SegmentId << std::endl;
-	std::cout << "inputCenterline->GetNumberOfCells() = " << inputCenterline->GetNumberOfCells() << std::endl;
 
 	// Compute the output centerline and centerline frames
 	if( this->SegmentId < 0 || this->SegmentId >= inputCenterline->GetNumberOfCells() || !clDir || !clAxis1 || !clAxis2 || !clLumenRadius || !clWallThickness || !clLongiParam || !clCircumParam )
