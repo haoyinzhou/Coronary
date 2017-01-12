@@ -228,14 +228,12 @@ int ImageCurvedReformat::RequestData(
 		outputImage2->AllocateScalars(VTK_SHORT, 1);
 
 		return 1;
-	}
-	
+	}	
 
 	vtkIdType npts = 0, *pts = NULL;
 	inputCenterline->BuildCells();
 	inputCenterline->GetCellPoints(this->SegmentId, npts, pts);
-
-
+	
 	double length = 0.0;
 	double coord1[3], coord2[3];
 		

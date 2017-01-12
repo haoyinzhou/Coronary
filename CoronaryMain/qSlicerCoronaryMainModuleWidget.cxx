@@ -986,13 +986,30 @@ public:
 	{
 		this->superwidget = NULL;
 		this->widget = NULL;
+		rotate = false;
 	}
 	~SCRRotateStyle(){}
+
+	virtual void OnLeftButtonDown()
+	{
+	}
+	virtual void OnLeftButtonUp()
+	{
+	}
+
+	virtual void OnRightButtonDown()
+	{
+	}
+	virtual void OnRightButtonUp()
+	{
+	}
+
 
 
 public:
 	QVesselEditingWidget* superwidget;
 	QVTKWidget* widget;
+	bool rotate;
 
 };
 vtkStandardNewMacro(SCRRotateStyle);
@@ -1022,6 +1039,11 @@ QVesselEditingWidget::QVesselEditingWidget()
 	this->CRRotateStyleCallback->superwidget = this;
 	this->CRRotateStyleCallback->widget = this->widget1;
 	this->widget1->GetInteractor()->SetInteractorStyle(CRRotateStyleCallback);
+
+	this->SCRRotateStyleCallback = vtkSmartPointer<SCRRotateStyle>::New();
+	this->SCRRotateStyleCallback->superwidget = this;
+	this->SCRRotateStyleCallback->widget = this->widget3;
+	this->widget3->GetInteractor()->SetInteractorStyle(SCRRotateStyleCallback);
 
 	this->Visiblity = false;
 	this->smoothclradius = 5.5;
